@@ -32,3 +32,8 @@ npm-debug.log*
 *.temp
 # Dev artifacts
 .playwright-mcp/
+
+# Loose binary artifacts (originals live in src/assets)
+/icon.png
+/icon1.png
+*.zip

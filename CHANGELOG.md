@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CHAP login**: `md5.js` was referenced at a non-existent path (`assets/js/md5.js`) — now resolved correctly for both EN and AR pages, so the CHAP hash path works
+- **Clone prevention**: auto-login read the form element before it was defined, so `enableClonePrevention: false` was ignored during auto-login
+- **i18n**: added missing `redirecting` and `seconds` keys (Arabic logout page showed hardcoded English); added `captive_notice` to the Arabic dictionary; removed a duplicate `expired_alert_text` key
+- **Build completeness**: `redirect.html` and `alogin.html` are now copied from `src/static/` on every build (previously lost on a clean rebuild); `alogin.html` is mirrored to `ar/` since it is self-bilingual
+
+### Changed
+- Removed dead `enableTrial` config key (never referenced by any code)
+- Removed legacy one-off patch scripts and `test-visual.html` (preserved in git history)
+- Initialized git repository
+
 ### Added
 - Build system for eliminating code duplication
 - Nunjucks template engine for HTML generation

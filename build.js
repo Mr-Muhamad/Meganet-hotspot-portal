@@ -84,7 +84,8 @@ function buildJS(page) {
     'logout': ['i18n', 'ui'],
     'error': ['i18n', 'ui'],
     'expired': ['i18n', 'ui'],
-    'plans': ['i18n', 'ui']
+    'plans': ['i18n', 'ui'],
+    'alogin': ['i18n', 'ui']
   };
 
   if (pageModules[page]) {
@@ -243,7 +244,7 @@ function build(options = {}) {
   }
 
   console.log('📄 Building English pages...');
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans'].forEach(page => {
+  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
       const html = generatePage(page, 'en', options);
       const outputPath = path.join(distDir, `${page}.html`);
@@ -258,7 +259,7 @@ function build(options = {}) {
   const arDir = path.join(distDir, 'ar');
   fs.mkdirSync(arDir, { recursive: true });
 
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans'].forEach(page => {
+  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
       const html = generatePage(page, 'ar', options);
       const outputPath = path.join(arDir, `${page}.html`);

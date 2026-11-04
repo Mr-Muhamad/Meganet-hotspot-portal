@@ -1,19 +1,27 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting...</title>
+  <title>WiFi Portal</title>
   <script>
-    {% if lang == 'ar' %}
-    window.location.replace('./login.html');
-    {% else %}
-    window.location.replace('./ar/login.html');
-    {% endif %}
+    // Route to the portal language matching the browser preference,
+    // falling back to the Arabic portal (primary audience).
+    (function() {
+      var lang = 'en';
+      try {
+        lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      } catch (err) { /* detection unavailable */ }
+      var isArabic = lang.indexOf('ar') === 0;
+      window.location.replace(isArabic ? './ar/login.html' : './login.html');
+    })();
   </script>
+  <noscript><meta http-equiv="refresh" content="0; url=./login.html"></noscript>
 </head>
 <body>
-  <p>Redirecting to login page...</p>
-  <p>If you are not redirected, <a href="{% if lang == 'ar' %}./login.html{% else %}./ar/login.html{% endif %}">click here</a>.</p>
+  <p>Redirecting&hellip;</p>
+  <p>
+    <a href="./login.html">English</a> &middot; <a href="./ar/login.html">العربية</a>
+  </p>
 </body>
 </html>

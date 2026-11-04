@@ -39,19 +39,20 @@ By inlining all CSS and JS, every page renders correctly in any captive portal b
 ### Page Flow
 
 ```
-redirect.html → login.html → [status.html | alogin.html]
-                                   ↓
-                              logout.html
+redirect.html → login.html → alogin.html → $(link-redirect)
+                   ↓
+              status.html → logout.html
 ```
 
-- `redirect.html` — MikroTik intercept page, redirects to login
-- `login.html` — Main authentication page (PAP/CHAP/trial)
-- `status.html` — Connection status after successful login
-- `alogin.html` — Auto-login redirect target
-- `logout.html` — Session termination page
-- `error.html` — Error display (auth failure, quota exceeded, etc.)
-- `rlogin.html` — Redirect after login (success handler)
-- `radvert.html` — Advertisement page (pre-login splash)
+- `redirect.html` — MikroTik intercept page (static, from `src/static/`)
+- `index.html` — Language router: detects browser language, then forwards to the matching portal
+- `login.html` — Main authentication page (voucher / PAP / CHAP)
+- `alogin.html` — Auto-login "Connected" page with 3-second redirect target
+- `status.html` — Live session stats (quota, time remaining, up/down, smart usage assistant)
+- `logout.html` — Session summary + redirect back to login
+- `error.html` — Error display — messages localized through RouterOS `errors.txt`
+- `expired.html` — Service suspended page
+- `plans.html` — Subscription plans rendered from `config.json`
 
 ### Why Inline CSS/JS
 
@@ -68,28 +69,29 @@ redirect.html → login.html → [status.html | alogin.html]
 ## File Structure
 
 ```
-hotspot/
-├── login.html              # Main login page (PAP/CHAP/trial)
-├── status.html             # Connection status display
-├── logout.html             # Session logout handler
-├── alogin.html             # Auto-login redirect
-├── error.html              # Error page (auth fail, quota, etc.)
-├── redirect.html           # MikroTik intercept redirect
-├── rlogin.html             # Post-login redirect handler
-├── radvert.html            # Advertisement/splash page
-├── md5.js                  # MD5 hash for CHAP authentication
-├── img/                    # Image assets (logo, favicon)
-│   ├── logo.svg            # Portal logo (see docs/logo.txt)
-│   └── favicon.svg         # Browser tab icon (see docs/favicon.txt)
-├── ar/                     # Arabic (RTL) translations
-│   ├── login.html
-│   ├── status.html
-│   ├── logout.html
-│   ├── error.html
-│   └── ...
-└── docs/                   # Documentation and SVG source
-    ├── logo.txt            # Logo SVG source code
-    └── favicon.txt         # Favicon SVG source code
+Meganet-New-hotspot/
+├── config.json             # ★ Portal settings: branding, theme, plans, support, features
+├── build.js                # Build script: Nunjucks + CSS/JS bundling + minify → dist/
+├── md5.js                  # MD5 for CHAP authentication (copied to dist/)
+├── src/
+│   ├── templates/          # Nunjucks templates (base.html + index, login, status,
+│   │                       #   logout, error, expired, plans, alogin)
+│   ├── css/                # CSS modules (variables, theme, reset, layout,
+│   │                       #   components, utilities, media) — inlined at build
+│   ├── js/modules/         # IIFE modules (util, auth, ui, i18n, status,
+│   │                       #   rate-limiter) — inlined at build
+│   ├── i18n/               # en.json / ar.json translation dictionaries
+│   ├── static/             # RouterOS files copied verbatim (never minified):
+│   │                       #   redirect.html, errors.txt
+│   └── assets/             # logo.svg, prand-title.svg, icon.png, support photos
+├── dist/                   # ★ Build output — upload this directory to the router
+│   ├── *.html              # English pages
+│   ├── ar/                 # Arabic (RTL) pages
+│   ├── assets/             # Static assets
+│   ├── md5.js              # CHAP hashing
+│   ├── errors.txt          # RouterOS localized error messages
+│   └── redirect.html       # MikroTik intercept page
+└── docs/                   # SVG sources (logo.txt, favicon.txt)
 ```
 
 ---
@@ -98,18 +100,24 @@ hotspot/
 
 ### RouterOS v6
 
-1. **Upload files** to router flash storage via WinBox Files panel or FTP:
+1. **Build first** (requires Node.js 16+):
    ```
-   /file print
-   # Upload all files to flash/hotspot/
+   npm install
+   npm run build
    ```
 
-2. **Configure hotspot server profile** to use custom templates:
+2. **Upload the contents of `dist/`** to router flash storage via WinBox Files panel or FTP:
+   ```
+   /file print
+   # Upload all files from dist/ to flash/hotspot/
+   ```
+
+3. **Configure hotspot server profile** to use custom templates:
    ```routeros
    /ip hotspot profile set [find name="hsprof1"] html-override-directory=flash/hotspot
    ```
 
-3. **Set login method** on the hotspot server:
+4. **Set login method** on the hotspot server:
    ```routeros
    # For PAP (simpler, compatible with all browsers):
    /ip hotspot set [find] login-by=http-pap
@@ -118,14 +126,14 @@ hotspot/
    /ip hotspot set [find] login-by=http-chap
    ```
 
-4. **Verify** that MikroTik `$(variable)` injection works by visiting the login page and checking that `$(hostname)`, `$(link-login)`, etc. resolve correctly.
+5. **Verify** that MikroTik `$(variable)` injection works by visiting the login page and checking that `$(hostname)`, `$(link-login)`, etc. resolve correctly.
 
 ### RouterOS v7
 
-1. **Upload files** to router storage (flash or tmpfs):
+1. **Build first**, then **upload the contents of `dist/`** to router storage (flash or tmpfs):
    ```routeros
    /file print
-   # Upload all files to flash/hotspot/
+   # Upload all files from dist/ to flash/hotspot/
    ```
 
 2. **Configure hotspot profile** with HTML override:
@@ -165,42 +173,36 @@ Multiple methods can be combined:
 
 ### Theme Customization
 
-The portal uses **CSS custom properties** for easy branding. Edit the `:root` variables in any HTML file:
+All visual branding is driven by **`config.json`** — edit it, run `npm run build`, and the values are injected into every page as CSS custom property overrides. No HTML editing required:
 
-```css
-:root {
-  --color-primary: #3b82f6;       /* Primary brand color */
-  --color-primary-hover: #2563eb; /* Hover state */
-  --color-bg: #ffffff;            /* Page background */
-  --color-surface: #f8fafc;       /* Card surfaces */
-  --color-text: #0f172a;          /* Primary text */
-  --color-text-muted: #64748b;    /* Secondary text */
-  --color-border: #e2e8f0;        /* Borders */
-  --radius: 12px;                 /* Border radius */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-```
+| Key | Purpose |
+|---|---|
+| `theme.primaryColor` | Primary brand color (Hex) — buttons, links, focus rings, SVG accents |
+| `theme.backgroundColor` | Dark background tone |
+| `theme.cardRadius` | Card/button corner radius |
+| `theme.enableNetworkBackground` | Interactive animated canvas background |
+| `general.networkName` | Network name shown in the header |
+| `general.poweredByText` / `poweredByUrl` / `poweredByName` | Footer branding |
 
-Dark mode is automatic via `@media (prefers-color-scheme: dark)` — override the dark theme variables in the `@media` block to customize.
+Base design tokens live in `src/css/variables.css` and `src/css/theme.css`.
+
+Dark mode is automatic via `@media (prefers-color-scheme: dark)`.
 
 ### Language Configuration
 
-The portal supports **English (LTR)** and **Arabic (RTL)** out of the box.
+The portal ships with **English (LTR)** and **Arabic (RTL)**.
 
-**How it works**: MikroTik's hotspot system uses a `target=` URL parameter to determine language. The `ar/` subdirectory contains Arabic translations that mirror the root HTML files.
+The build produces every page twice: English at the root of `dist/` and Arabic under `dist/ar/` (with `dir="rtl"` and `lang="ar"`). MikroTik routes clients to the matching directory based on the hotspot server's language handling.
 
-- English pages: `login.html`, `status.html`, etc. (root directory)
-- Arabic pages: `ar/login.html`, `ar/status.html`, etc.
-
-MikroTik selects the correct directory based on the hotspot server's language setting or the client's `Accept-Language` header.
+- `index.html` detects the browser language and forwards Arabic browsers to `ar/login.html`, everyone else to `login.html` (with a `<noscript>` fallback and manual links).
+- The header language toggle (`features.enableLanguageToggle`) switches languages at runtime and remembers the choice via cookie.
+- Translation strings live in `src/i18n/en.json` (contains both `en` and `ar` sections) and `src/i18n/ar.json` (overrides the Arabic section at build time).
 
 **To add a new language** (e.g., French):
 
-1. Create a `fr/` subdirectory
-2. Copy all root HTML files into `fr/`
-3. Translate all user-visible strings
-4. Set `dir="ltr"` and `lang="fr"` on each HTML element
-5. MikroTik will auto-route based on browser language
+1. Add the strings to `src/i18n/` (a `fr` section or `fr.json`)
+2. Add `'fr'` to the two build loops and the `loadTranslations()` merge in `build.js`
+3. Set the correct `dir` mapping in `generatePage()` (`lang === 'ar' ? 'rtl' : 'ltr'` logic extended for the new language)
 
 ### Walled Garden
 
@@ -409,6 +411,26 @@ Potential integrations and features for extended deployments:
 - **Customer Portal** — Self-service dashboard for users to manage sessions, view usage, purchase top-ups
 - **Voucher System** — Pre-generated access codes for resale or distribution
 - **Multi-site Management** — Centralized configuration for chains or MSP deployments
+
+---
+
+## Development
+
+```
+npm install        # install build/test dependencies
+npm run build      # production build (minified) → dist/
+npm run build:dev  # development build (no minification)
+npm run watch      # rebuild on src/ changes
+npm test           # Jest unit tests
+npm run validate   # check dist/ completeness, MikroTik vars, a11y markers
+```
+
+Key invariants:
+
+- All CSS/JS is inlined per page (iOS CNA compatibility) — pages make **zero** external requests
+- Files in `src/static/` are copied **verbatim** — keep MikroTik `$(if …)` blocks out of `<script>` content there; minifiers would break them
+- MikroTik `$(variables)` must survive minification — verified by `npm run validate` plus the build
+- Every page inherits `base.html`: config-driven theme, header/footer, support and install modals, i18n data
 
 ---
 

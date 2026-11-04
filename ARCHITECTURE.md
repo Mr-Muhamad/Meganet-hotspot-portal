@@ -22,11 +22,27 @@ The MikroTik Hotspot Portal is a captive portal system designed for MikroTik Rou
 ```
 src/templates/
 ├── base.html          # Base template with shared structure
-├── login.html         # Login page
-├── status.html        # Status page
+├── index.html         # Language router (browser-language detection)
+├── login.html         # Login page (voucher / PAP / CHAP)
+├── status.html        # Status page (live session stats)
 ├── logout.html        # Logout page
-└── error.html         # Error page
+├── error.html         # Error page
+├── expired.html       # Service suspended page
+├── plans.html         # Subscription plans (from config.json)
+└── alogin.html        # Auto-login "Connected" page
 ```
+
+### 1b. Static Layer (RouterOS-required files)
+
+```
+src/static/
+├── redirect.html      # MikroTik intercept page
+└── errors.txt         # Localized error message strings ($(error) lookup)
+```
+
+**Purpose**: Files RouterOS reads **verbatim** from the hotspot directory.
+
+**Why verbatim**: `redirect.html` carries line-sensitive `$(if http-status …)` / `$(if http-header …)` directives, and `errors.txt` is a RouterOS-parsed format. These files are copied as-is on every build — never minified, never templated.
 
 **Purpose**: Generate HTML pages with MikroTik template variables.
 
@@ -119,23 +135,18 @@ Source Files (src/)
     ↓
 Build Script (build.js)
     ↓
-Template Compilation (Nunjucks)
+Template Compilation (Nunjucks)  ← config.json + i18n injected
     ↓
-CSS/JS Bundling
+CSS/JS Bundling (inlined per page)
     ↓
 Minification
     ↓
 Output Files (dist/)
-    ├── login.html
-    ├── status.html
-    ├── logout.html
-    ├── error.html
-    ├── ar/
-    │   ├── login.html
-    │   ├── status.html
-    │   ├── logout.html
-    │   └── error.html
-    ├── api.json
+    ├── index / login / status / logout / error / expired / plans / alogin .html
+    ├── ar/  (same 8 pages, RTL)
+    ├── redirect.html + errors.txt   ← copied verbatim from src/static/
+    ├── api.json / announcements.json / manifest.json
+    ├── assets/
     └── md5.js
 ```
 

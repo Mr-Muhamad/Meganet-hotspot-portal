@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build completeness**: `redirect.html`, `alogin.html`, and `errors.txt` (RouterOS localized error messages) are now copied from `src/static/` on every build (previously lost on a clean rebuild); `alogin.html` is mirrored to `ar/` since it is self-bilingual
 
 ### Changed
+- **alogin.html is now a full template** extending `base.html` — it inherits the config-driven theme, header/footer, and support/install modals like every other page (was a standalone page with its own hardcoded styles); the MikroTik `$(if popup)` status-popup logic and the 3-second iOS CNA redirect path are preserved
+- **index.html now detects the browser language** (Arabic browsers → `ar/login.html`, otherwise → `login.html`) instead of the previous hard-coded language swap, with a `<noscript>` fallback and manual links
 - Removed dead `enableTrial` config key (never referenced by any code)
 - Removed legacy one-off patch scripts and `test-visual.html` (preserved in git history)
 - Initialized git repository

@@ -1,0 +1,17 @@
+{
+  "short_name": "Mega WiFi",
+  "name": "Mega Captive WiFi Portal",
+  "icons": [
+    {
+      "src": "assets/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./login.html",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait"
+}

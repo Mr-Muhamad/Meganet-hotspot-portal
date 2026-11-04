@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card plans-container">
+  <div class="card-header">
+    <div class="card-header__brand">
+      <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+      </svg>
+    </div>
+    <h1 class="card-header__title" data-i18n="plans_title">Subscription Plans</h1>
+    <p class="card-header__subtitle" data-i18n="plans_subtitle">Choose the best package for your needs</p>
+  </div>
+
+  <div class="plans-grid">
+    {% if config.plans and config.plans.length > 0 %}
+      {% for plan in config.plans %}
+      <div class="plan-card">
+        <div class="plan-card__icon-wrapper">
+          {% if plan.icon == 'globe' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          {% elif plan.icon == 'briefcase' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+          </svg>
+          {% elif plan.icon == 'graduation-cap' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+          </svg>
+          {% elif plan.icon == 'ghost' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 3 3 3-3 3 3 3-3 3 3V10a8 8 0 0 0-8-8z"/>
+          </svg>
+          {% elif plan.icon == 'star' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          {% elif plan.icon == 'shield' %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          {% else %}
+          <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
+            <path d="M3 20h18"/>
+          </svg>
+          {% endif %}
+        </div>
+        <div class="plan-card__info">
+          <div class="plan-card__quota">{% if lang == 'ar' and plan.quota_ar %}{{ plan.quota_ar }}{% else %}{{ plan.quota }}{% endif %}</div>
+          <div class="plan-card__name">{% if lang == 'ar' and plan.name_ar %}{{ plan.name_ar }}{% else %}{{ plan.name }}{% endif %}</div>
+        </div>
+        <div class="plan-card__price">{% if lang == 'ar' %}{{ plan.price }} ج.م{% else %}{{ plan.price }} EGP{% endif %}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="grid-column: 1/-1; text-align: center; color: var(--color-text-muted);">No plans available</p>
+    {% endif %}
+  </div>
+
+  <div class="plans-footer">
+    <a href="./login.html" class="btn btn-secondary btn-block" style="text-align: center; display: block; margin-top: var(--space-lg);" data-i18n="back_to_login">Back to Login</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function() {
+    try {
+      i18n.init();
+      ui.initTheme();
+      ui.initLang();
+    } catch (err) {
+      console.error('Plans page init error:', err);
+    }
+  })();
+</script>
+{% endblock %}

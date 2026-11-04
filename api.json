@@ -1,0 +1,22 @@
+{
+  "captive": $(if logged-in == 'yes')false$(else)true$(endif),
+  "user-portal-url": "$(link-login-only)",
+  $(if logged-in == 'yes')
+  "user-login": true,
+  "user-name": "$(username-esc)",
+  "session-info-url": "$(link-status)",
+  "session-logout-url": "$(link-logout)",
+  $(if session-timeout-secs)
+  "seconds-remaining": $(session-timeout-secs),
+  $(endif)
+  $(if remain-bytes-in)
+  "bytes-remaining": $(remain-bytes-in),
+  $(endif)
+  $(else)
+  "user-login": false,
+  $(endif)
+  "can-extend-session": false,
+  "venue-info-url": "",
+  "network": "$(identity)",
+  "server": "$(server-address)"
+}

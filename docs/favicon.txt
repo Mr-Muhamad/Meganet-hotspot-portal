@@ -1,0 +1,28 @@
+Hotspot Portal Favicon - SVG Source Code
+=========================================
+
+Save the following SVG code as: img/favicon.svg
+
+Minimal WiFi signal icon with blue primary color (#3b82f6).
+ViewBox: 32x32, ultra-lightweight for browser tab icon.
+
+--- BEGIN SVG ---
+
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <circle cx="16" cy="22" r="2" fill="#3b82f6"/>
+  <path d="M12 18a5.5 5.5 0 0 1 8 0" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M8.5 14.5a10 10 0 0 1 15 0" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M5 11a14.5 14.5 0 0 1 22 0" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+</svg>
+
+--- END SVG ---
+
+HTML Reference (add to <head>):
+
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+
+For legacy browser support, also add:
+
+  <link rel="icon" type="image/png" href="img/favicon.png">
+
+File size: ~380 bytes, scalable, no external dependencies.

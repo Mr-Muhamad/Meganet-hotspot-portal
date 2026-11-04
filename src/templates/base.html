@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ dir }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WiFi Portal">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="{% if lang == 'ar' %}../{% endif %}assets/icon.png">
+  <link rel="manifest" href="{% if lang == 'ar' %}../{% endif %}manifest.json">
+  <link rel="icon" type="image/svg+xml" href="{% if lang == 'ar' %}../{% endif %}assets/logo.svg">
+  <title>$(hostname) - {{ i18n[page + '_title'] }}</title>
+  <style>
+{{ css }}
+    /* Dynamic Theme Overrides from config.json */
+    :root {
+      {% if config.theme.primaryColor %}
+      --color-primary: {{ config.theme.primaryColor }};
+      --color-input-focus: {{ config.theme.primaryColor }};
+      --color-primary-hover: {{ config.theme.primaryColor }}e6; /* slight transparency */
+      --color-primary-active: {{ config.theme.primaryColor }}cc;
+      --svg-accent: {{ config.theme.primaryColor }};
+      --color-primary-bg: {{ config.theme.primaryColor }}26; /* 15% opacity bg */
+      --color-success: {{ config.theme.primaryColor }};
+      --color-success-bg: {{ config.theme.primaryColor }}26;
+      {% endif %}
+      {% if config.theme.backgroundColor %}
+      --color-bg: {{ config.theme.backgroundColor }};
+      {% endif %}
+      {% if config.theme.cardRadius %}
+      --radius-md: calc({{ config.theme.cardRadius }} - 4px);
+      --radius-lg: {{ config.theme.cardRadius }};
+      {% endif %}
+    }
+  </style>
+</head>
+<body>
+  <!-- Interactive Network Background -->
+  <canvas id="network-bg" class="network-bg"></canvas>
+
+  <!-- Skip to main content link for accessibility -->
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <div class="page-shell{% if page == 'status' %} page-shell--wide{% endif %}">
+    <!-- Header -->
+    <header class="header">
+      <div class="header__brand">
+        <span class="header__logo">{{ logoInline | safe }}</span>
+        <span class="header__name" style="margin-right: var(--space-xs);">{% if config.general.networkName %}{{ config.general.networkName }}{% else %}$(identity){% endif %}</span>
+        <!-- Mini Status Dot Indicator -->
+        <div style="display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); margin-left: 4px;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; animation: status-pulse-dot 1.5s infinite ease-in-out;"></span>
+          <span style="font-size: 9px; color: #10b981; font-weight: bold; line-height: 1;" data-i18n="status_active">Active</span>
+        </div>
+      </div>
+      <div class="header__actions">
+        {% if config.features.enableLanguageToggle %}
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Toggle language">
+          <svg class="lang-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </button>
+        {% endif %}
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <svg class="theme-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button class="install-toggle" onclick="toggleInstallModal()" aria-label="Install App" data-i18n-aria="install_app_btn">
+          <svg class="install-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main" class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer__text">
+        {% if config.general.poweredByText %}
+          {{ config.general.poweredByText }}
+          {% if config.general.poweredByUrl %}
+            <a href="{{ config.general.poweredByUrl }}" class="footer__link" target="_blank" rel="noopener noreferrer">
+              {% if config.general.poweredByName %}{{ config.general.poweredByName }}{% else %}{{ config.general.poweredByUrl }}{% endif %}
+            </a>
+          {% endif %}
+        {% else %}
+          {{ i18n.footer_powered_by }} <a href="https://mikrotik.com" class="footer__link" target="_blank" rel="noopener noreferrer">{{ i18n.footer_mikrotik }}</a>
+        {% endif %}
+      </p>
+    </footer>
+  </div>
+
+  <!-- i18n Data -->
+  <script type="application/json" id="i18n-data">
+{{ allTranslations | dump }}
+  </script>
+
+  <!-- Global Handler Stubs -->
+  <script>
+    function toggleTheme() {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleTheme();
+    }
+    function toggleLang() {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleLang();
+    }
+    function togglePassword() {
+      if (window.Hotspot && window.Hotspot.auth) return window.Hotspot.auth.togglePassword();
+    }
+    function toggleSupportModal() {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleSupportModal();
+    }
+    function closeSupportModalOnClickOutside(event) {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.closeSupportModalOnClickOutside(event);
+    }
+    function toggleInstallModal() {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleInstallModal();
+    }
+    function closeInstallModalOnClickOutside(event) {
+      if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.closeInstallModalOnClickOutside(event);
+    }
+    function refreshStatus() {
+      if (window.Hotspot && window.Hotspot.status) return window.Hotspot.status.refreshStatus();
+    }
+    function doLogin() {
+      if (window._doLogin) return window._doLogin();
+      return true;
+    }
+    function copyToClipboard(text, type) {
+      if (!text || text === '$' + '(ip)' || text === '$' + '(mac-esc)') return;
+      var lang = document.documentElement.getAttribute('lang') || 'en';
+      var successMsg = lang === 'ar' ? 'تم نسخ ' + type + ' بنجاح!' : type + ' copied successfully!';
+      var errMsg = lang === 'ar' ? 'فشل النسخ تلقائياً.' : 'Failed to copy automatically.';
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          if (window.Hotspot && window.Hotspot.util) {
+            window.Hotspot.util.showToast(successMsg, 'success', 2000);
+          } else {
+            alert(successMsg);
+          }
+        }).catch(function() {
+          fallbackCopyText(text, successMsg, errMsg);
+        });
+      } else {
+        fallbackCopyText(text, successMsg, errMsg);
+      }
+    }
+    function fallbackCopyText(text, successMsg, errMsg) {
+      try {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        var successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+          if (window.Hotspot && window.Hotspot.util) {
+            window.Hotspot.util.showToast(successMsg, 'success', 2000);
+          } else {
+            alert(successMsg);
+          }
+        } else {
+          alert(errMsg);
+        }
+      } catch (err) {
+        alert(errMsg);
+      }
+    }
+  </script>
+
+  <!-- Main JavaScript -->
+  <script>
+{{ js }}
+    // Automatically initialize interactive network background on load if enabled
+    {% if config.theme.enableNetworkBackground %}
+    if (window.Hotspot && window.Hotspot.ui) {
+      window.Hotspot.ui.initBackground();
+    }
+    {% else %}
+    // Hide network background canvas if disabled
+    var bgCanvas = document.getElementById('network-bg');
+    if (bgCanvas) bgCanvas.style.display = 'none';
+    {% endif %}
+  </script>
+
+  <!-- Floating Support Button -->
+  <button class="support-trigger" onclick="toggleSupportModal()" aria-label="Technical Support">
+    <svg class="support-trigger__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </button>
+
+  <!-- Support Modal -->
+  <div class="support-modal" id="supportModal" onclick="closeSupportModalOnClickOutside(event)">
+    <div class="support-modal__content">
+      <div class="support-modal__header">
+        <h2 class="support-modal__title" data-i18n="support_title">Technical Support</h2>
+        <button class="support-modal__close" onclick="toggleSupportModal()" aria-label="Close">
+          <svg class="support-modal__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="support-modal__body">
+        <p class="support-modal__desc" data-i18n="support_desc">Need help? Choose one of our support options:</p>
+        <div class="support-grid-cards" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); width: 100%;">
+          {% for agent in config.support.agents %}
+          <!-- Card: {{ agent.name }} -->
+          <div class="support-person-card" style="background: var(--color-surface-hover); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-sm);">
+            <div style="width: 44px; height: 44px; border-radius: var(--radius-full); border: 2px solid var(--color-primary); box-shadow: 0 0 10px rgba(34, 197, 94, 0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--color-surface);">
+              {% if agent.image %}
+              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image }}" alt="{{ agent.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              {% endif %}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{% if agent.image %}display: none;{% endif %} color: var(--color-primary);">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-text);">{{ agent.name }}</span>
+              <span style="font-size: 10px; color: var(--color-text-muted);">{{ agent.role }}</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-xs); width: 100%; margin-top: var(--space-xs);">
+              {% if agent.phone %}
+              <a href="tel:{{ agent.phone }}" class="btn btn-primary btn-sm btn-block" style="text-decoration: none; padding: var(--space-xs); min-height: 28px; font-size: 11px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span data-i18n="support_call_action">Call</span>
+              </a>
+              {% endif %}
+              {% if agent.whatsapp %}
+              <a href="https://wa.me/{{ agent.whatsapp }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm btn-block" style="text-decoration: none; padding: var(--space-xs); min-height: 28px; font-size: 11px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <span>واتساب</span>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install App Modal -->
+  <div class="support-modal" id="installModal" onclick="closeInstallModalOnClickOutside(event)">
+    <div class="support-modal__content">
+      <div class="support-modal__header">
+        <h2 class="support-modal__title" data-i18n="install_title">Install Application</h2>
+        <button class="support-modal__close" onclick="toggleInstallModal()" aria-label="Close">
+          <svg class="support-modal__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="support-modal__body">
+        <p class="support-modal__desc" data-i18n="install_desc">Add this portal to your Home Screen to open it as a fullscreen mobile application.</p>
+        
+        <!-- iOS Guide -->
+        <div id="ios-guide" class="install-guide" style="display: none;">
+          <div class="install-step">
+            <span class="install-step__num">1</span>
+            <span class="install-step__text" data-i18n="install_ios_step1">Tap the share icon <strong>📤</strong> in Safari.</span>
+          </div>
+          <div class="install-step">
+            <span class="install-step__num">2</span>
+            <span class="install-step__text" data-i18n="install_ios_step2">Scroll down and select <strong>Add to Home Screen ➕</strong>.</span>
+          </div>
+        </div>
+
+        <!-- Android Guide -->
+        <div id="android-guide" class="install-guide" style="display: none;">
+          <div class="install-step">
+            <span class="install-step__num">1</span>
+            <span class="install-step__text" data-i18n="install_android_step1">Tap the browser menu icon <strong>⋮</strong>.</span>
+          </div>
+          <div class="install-step">
+            <span class="install-step__num">2</span>
+            <span class="install-step__text" data-i18n="install_android_step2">Select <strong>Add to Home Screen ➕</strong> or <strong>Install App</strong>.</span>
+          </div>
+        </div>
+
+        <!-- Generic Fallback Guide -->
+        <div id="generic-guide" class="install-guide" style="display: none;">
+          <div class="install-step">
+            <span class="install-step__text" data-i18n="install_generic">Open your browser menu settings and select <strong>Add to Home Screen</strong>.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page-specific initialization -->
+  {% block scripts %}{% endblock %}
+</body>
+</html>

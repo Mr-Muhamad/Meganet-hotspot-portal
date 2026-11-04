@@ -1,0 +1,70 @@
+<svg width="40" height="40" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" class="header__logo-svg" style="direction: ltr;">
+  <style>
+    .core-hub-header {
+      transform-origin: center;
+    }
+    .core-bg {
+      fill: #0f172a;
+      transition: fill 0.3s ease;
+    }
+    :root[data-theme="light"] .core-bg {
+      fill: #ffffff;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .core-bg {
+        fill: #ffffff;
+      }
+    }
+    
+    .core-m {
+      fill: #48ff00;
+      filter: url(#green-glow-logo);
+      transition: fill 0.3s ease, filter 0.3s ease;
+    }
+    :root[data-theme="light"] .core-m {
+      fill: #15803d;
+      filter: none;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .core-m {
+        fill: #15803d;
+        filter: none;
+      }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="cyber-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0052D4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff0080;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glowing green shadow filter -->
+    <filter id="green-glow-logo" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#48ff00" flood-opacity="0.85"/>
+    </filter>
+  </defs>
+
+  <g class="core-hub-header" transform="translate(60, 60)">
+    <!-- Rotating outer rings -->
+    <circle cx="0" cy="0" r="54" fill="none" stroke="url(#cyber-grad-logo)" stroke-width="6" stroke-dasharray="35 15">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="44" fill="none" stroke="#00d4ff" stroke-width="4" stroke-dasharray="25 20">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Pulse ring -->
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#48ff00" stroke-width="4">
+      <animate attributeName="r" values="30; 80" dur="2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="1; 0" dur="2s" repeatCount="indefinite" />
+    </circle>
+    
+    <!-- Solid core background -->
+    <circle class="core-bg" cx="0" cy="0" r="34" />
+    
+    <!-- The Letter M inside the core -->
+    <text class="core-m" x="0" y="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="52" text-anchor="middle" text-rendering="geometricPrecision">M</text>
+  </g>
+</svg>

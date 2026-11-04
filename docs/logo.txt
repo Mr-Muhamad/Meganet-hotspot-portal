@@ -1,0 +1,35 @@
+Hotspot Portal Logo - SVG Source Code
+======================================
+
+Save the following SVG code as: img/logo.svg
+
+The logo uses currentColor for automatic dark/light theme adaptation.
+ViewBox: 48x48, minimalist shield with WiFi signal arcs.
+
+--- BEGIN SVG ---
+
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+  <!-- Shield body -->
+  <path d="M24 4L8 12v10c0 11.1 6.8 20.4 16 24 9.2-3.6 16-12.9 16-24V12L24 4z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="currentColor" fill-opacity=".06"/>
+  <!-- WiFi dot -->
+  <circle cx="24" cy="32" r="2.2" fill="currentColor"/>
+  <!-- WiFi arc small -->
+  <path d="M19 27a7 7 0 0 1 10 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  <!-- WiFi arc medium -->
+  <path d="M15 23a12.5 12.5 0 0 1 18 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  <!-- WiFi arc large -->
+  <path d="M11.5 19a17.5 17.5 0 0 1 25 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+</svg>
+
+--- END SVG ---
+
+Usage:
+  <img src="img/logo.svg" alt="Hotspot Portal" width="48" height="48">
+
+Or inline in HTML:
+  <div style="color: #3b82f6;">
+    <!-- paste SVG here -->
+  </div>
+
+The logo adapts to parent text color via currentColor.
+File size: ~650 bytes, fully scalable, no external dependencies.

@@ -1,0 +1,164 @@
+<svg class="card-header__logo-svg" width="400" height="120" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg" style="direction: ltr;">
+  <style>
+    /* Brand Styling */
+    .core-bg {
+      fill: #0f172a;
+      transition: fill 0.3s ease;
+    }
+    :root[data-theme="light"] .core-bg {
+      fill: #ffffff;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .core-bg {
+        fill: #ffffff;
+      }
+    }
+
+    .core-m {
+      fill: #48ff00;
+      filter: url(#green-glow-prand);
+      transition: fill 0.3s ease, filter 0.3s ease;
+    }
+    :root[data-theme="light"] .core-m {
+      fill: #15803d;
+      filter: none;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .core-m {
+        fill: #15803d;
+        filter: none;
+      }
+    }
+
+    /* Text Logo Styling and Shadows */
+    .text-luxury {
+      filter: url(#text-glow-dark);
+      transform-origin: left center;
+      letter-spacing: 5px;
+    }
+    :root[data-theme="light"] .text-luxury {
+      filter: url(#text-shadow-light);
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .text-luxury {
+        filter: url(#text-shadow-light);
+      }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="cyber-grad-prand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0052D4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff0080;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="text-glow-dark" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00d4ff" flood-opacity="0.6"/>
+    </filter>
+    
+    <filter id="text-shadow-light" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.15"/>
+    </filter>
+    
+    <filter id="green-glow-prand" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#48ff00" flood-opacity="0.85"/>
+    </filter>
+
+    <!-- Cyber Glitch Horizontal Slices -->
+    <clipPath id="glitch-slice-1">
+      <rect x="0" y="0" width="400" height="8">
+        <animate attributeName="y" calcMode="discrete" values="0; 48; 60; 0; 45; 65; 52; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      </rect>
+    </clipPath>
+    
+    <clipPath id="glitch-slice-2">
+      <rect x="0" y="0" width="400" height="5">
+        <animate attributeName="y" calcMode="discrete" values="0; 58; 45; 0; 60; 48; 66; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      </rect>
+    </clipPath>
+  </defs>
+
+  <!-- Network Background -->
+  <g stroke="#00d4ff" stroke-width="1.5" opacity="0.6">
+    <path d="M40 60 L90 30 L160 80 L220 40 L290 90 L360 50" fill="none" stroke-dasharray="10 15">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite" />
+    </path>
+    <path d="M40 60 L100 90 L180 30 L250 80 L310 30 L360 50" fill="none" stroke-dasharray="10 15">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3s" repeatCount="indefinite" />
+    </path>
+  </g>
+
+  <!-- Network Nodes -->
+  <g fill="#00d4ff">
+    <circle cx="40" cy="60" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
+    <circle cx="90" cy="30" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
+    <circle cx="100" cy="90" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
+    <circle cx="160" cy="80" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
+    <circle cx="180" cy="30" r="5"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="4;6;4" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
+    <circle cx="220" cy="40" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
+    <circle cx="250" cy="80" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
+    <circle cx="290" cy="90" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
+    <circle cx="310" cy="30" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
+    <circle cx="360" cy="50" r="5"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="4;6;4" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
+  </g>
+
+  <!-- Central Digital Core -->
+  <g class="core-hub-prand" transform="translate(50, 60)">
+    <animateTransform attributeName="transform" type="translate" values="50 60; 50 57; 50 60" dur="6s" repeatCount="indefinite" />
+    <!-- Rotating outer rings -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="url(#cyber-grad-prand)" stroke-width="3" stroke-dasharray="15 5">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="10 10">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    <!-- Pulse ring -->
+    <circle cx="0" cy="0" r="20" fill="none" stroke="#48ff00" stroke-width="2">
+      <animate attributeName="r" values="20; 50" dur="2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="1; 0" dur="2s" repeatCount="indefinite" />
+    </circle>
+    <circle class="core-bg" cx="0" cy="0" r="24" />
+    <text class="core-m" x="0" y="15" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" text-anchor="middle" text-rendering="geometricPrecision">M</text>
+  </g>
+
+  <!-- Cyber Glitch Effect Text Layers -->
+  <g class="text-luxury" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" text-rendering="geometricPrecision">
+    
+    <!-- Layer 2: Cyan RGB Split -->
+    <text x="108" y="73" fill="#00d4ff" opacity="0">
+      MEGA NET
+      <animate attributeName="opacity" calcMode="discrete" values="0; 0.8; 0.5; 0; 0.9; 0.6; 0.8; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -4 2; 3 -1; 0 0; -6 -2; 5 1; -7 2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+    </text>
+
+    <!-- Layer 3: Magenta RGB Split -->
+    <text x="108" y="73" fill="#ff0080" opacity="0">
+      MEGA NET
+      <animate attributeName="opacity" calcMode="discrete" values="0; 0.7; 0.9; 0; 0.8; 0.9; 0.5; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; 4 -2; -3 1; 0 0; 6 2; -5 -1; 7 -2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+    </text>
+
+    <!-- Layer 1: Base Text -->
+    <text x="108" y="73" fill="currentColor">
+      MEGA <tspan fill="#ff0080">NET</tspan>
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -2 1; 2 -1; 0 0; -4 0; 4 2; -2 -2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animate attributeName="opacity" calcMode="discrete" values="1; 0.6; 0.8; 1; 0.4; 0.7; 0.5; 1; 1" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+    </text>
+
+    <!-- Layer 4: Horizontal Slice 1 (Shifted Left) -->
+    <text x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-1)" opacity="0">
+      MEGA <tspan fill="#ff0080">NET</tspan>
+      <animate attributeName="opacity" calcMode="discrete" values="0; 1; 1; 0; 1; 1; 1; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -12 0; 15 0; 0 0; -20 0; 18 0; -25 0; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+    </text>
+
+    <!-- Layer 5: Horizontal Slice 2 (Shifted Right) -->
+    <text x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-2)" opacity="0">
+      MEGA <tspan fill="#ff0080">NET</tspan>
+      <animate attributeName="opacity" calcMode="discrete" values="0; 1; 1; 0; 1; 1; 1; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; 15 0; -10 0; 0 0; 25 0; -20 0; 18 0; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+    </text>
+    
+  </g>
+</svg>

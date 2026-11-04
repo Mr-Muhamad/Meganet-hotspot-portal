@@ -1,0 +1,10 @@
+const fs = require('fs');
+const buildPath = 'build.js';
+const tempPath = process.env.TEMP + '/build.js.new';
+const data = fs.readFileSync(buildPath, 'utf8');
+const search = '  js += "window.Hotspot = { util: util, ui: ui, i18n: i18n, auth: auth, status: statusModule };\\n";';
+const replace = '  js += "window.Hotspot = { util: util, ui: ui, i18n: i18n, auth: auth };\\n";\n  if (typeof statusModule !== undefined) {\n    js += "window.Hotspot.status = statusModule;\\n";\n  }';
+const result = data.replace(search, replace);
+fs.writeFileSync(tempPath, result, 'utf8');
+fs.copyFileSync(tempPath, buildPath);
+console.log('Fixed');

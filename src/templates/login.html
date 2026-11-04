@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <!-- System Announcements Banner -->
+      <div id="announcement-banner" class="announcement-banner" style="display: none;">
+        <div class="announcement-banner__icon-wrapper">
+          <svg id="announcement-icon" class="announcement-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- SVG path is dynamically set by JS -->
+          </svg>
+        </div>
+        <div class="announcement-banner__content">
+          <span id="announcement-text" class="announcement-banner__text"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header__brand">
+            <span class="card-header__logo">{{ prandTitleInline | safe }}</span>
+            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+          </div>
+          <h1 class="card-header__title" data-i18n="login_title">Sign In</h1>
+          <p class="card-header__subtitle" data-i18n="login_subtitle">Enter your credentials to connect</p>
+        </div>
+
+        <div class="card-body">
+          <!-- Alerts Container -->
+          <div id="alerts">
+            $(if error)
+            <div class="alert alert-error" role="alert">
+              <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span class="alert__text" id="errorMessage">$(error-esc)</span>
+            </div>
+            $(endif)
+          </div>
+
+          <!-- Login Form -->
+          <form name="login" id="login-form" action="$(link-login-only)" method="post"
+                $(if chap-id) onsubmit="return doLogin()" $(endif)
+                autocomplete="on" novalidate
+                data-voucher-password-mode="{% if config.features.voucherPasswordMode %}{{ config.features.voucherPasswordMode }}{% else %}same{% endif %}"
+                data-clone-prevention="{% if config.features.enableClonePrevention %}true{% else %}false{% endif %}">
+
+            <!-- Hidden fields required by MikroTik -->
+            <input type="hidden" name="dst" value="$(link-orig)">
+            <input type="hidden" name="popup" value="$(popup)">
+
+            $(if chap-id)
+            <!-- CHAP mode: hidden fields for challenge data -->
+            <input type="hidden" name="sendin" id="sendin" value="">
+            <input type="hidden" name="chap-id" id="chap-id" value="$(chap-id)">
+            <input type="hidden" name="chap-challenge" id="chap-challenge" value="$(chap-challenge)">
+            $(endif)
+
+            {% if config.features.loginMode == 'both' %}
+            <!-- Mode Tabs -->
+            <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
+              <button type="button" class="auth-tab auth-tab--active" role="tab" aria-selected="true" data-mode="voucher" data-i18n="voucher_tab">Voucher</button>
+              <button type="button" class="auth-tab" role="tab" aria-selected="false" data-mode="normal" data-i18n="normal_tab">Normal</button>
+            </div>
+            {% endif %}
+
+            <!-- Normal credentials -->
+            <div class="form-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
+              <label class="form-label" for="username" data-i18n="username_label">Username</label>
+              <div class="input-wrapper">
+                <input class="form-input" type="text" id="username" name="username"
+                       value="$(username-esc)"
+                       autocomplete="username"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       required
+                       aria-required="true"
+                       data-i18n-placeholder="username_placeholder"
+                       placeholder="Enter username">
+              </div>
+            </div>
+
+            <div class="form-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
+              <label class="form-label" for="password" data-i18n="password_label">Password</label>
+              <div class="input-wrapper">
+                <input class="form-input" type="password" id="password" name="password"
+                       autocomplete="current-password"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       required
+                       aria-required="true"
+                       data-i18n-placeholder="password_placeholder"
+                       placeholder="Enter password">
+                <button type="button" class="input-toggle" onclick="auth.togglePassword()" aria-label="Show password" title="Show password">
+                  <svg class="input-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="checkbox-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
+              <input type="checkbox" id="remember-me" checked>
+              <label for="remember-me" data-i18n="remember_me">Remember me</label>
+            </div>
+
+            <!-- Voucher mode -->
+            <div class="form-group" data-mode-panel="voucher" {% if config.features.loginMode == 'normal_only' %}style="display: none;"{% endif %}>
+              <label class="form-label" for="voucher" data-i18n="voucher_label">Voucher code</label>
+              <div class="input-wrapper">
+                <input class="form-input" type="tel" id="voucher" name="voucher"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       autocomplete="off"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       data-i18n-placeholder="voucher_placeholder"
+                       placeholder="Enter voucher code">
+              </div>
+              {% if config.features.enableQRScanner %}
+               <button type="button" class="btn btn-secondary btn-block" id="qrScanButton" onclick="window.location.href='{% if config.features.qrScannerUrl %}{{ config.features.qrScannerUrl }}{% else %}https://laksa19.github.io/myqr{% endif %}'" style="display: flex; align-items: center; justify-content: center; gap: var(--space-xs); margin-top: var(--space-sm); margin-bottom: var(--space-xs);">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                   <path d="M7 7h2v2H7zM15 7h2v2h-2zM7 15h2v2H7zM12 7h1v10h-1zM15 15h2v2h-2zM11 12h2v2h-2z"></path>
+                 </svg>
+                 <span data-i18n="qr_scan_btn_text">Scan Card QR Code</span>
+               </button>
+              {% endif %}
+              <span class="form-hint" data-i18n="voucher_hint">Use the same code for username and password.</span>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-block" id="loginButton" data-i18n="login_button">Connect</button>
+            </div>
+
+            $(if captive)
+            <div class="form-footer">
+              <p class="text-muted" data-i18n="captive_notice">You are in the captive portal. Login to access the network.</p>
+            </div>
+            $(endif)
+          </form>
+        </div>
+        <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md); align-items: center; justify-content: center;">
+          <a href="./plans.html" class="plans-link" data-i18n="plans_link" style="display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-sm); text-decoration: none; color: var(--color-primary); font-weight: var(--font-weight-medium);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            <span data-i18n="plans_link">View subscription plans</span>
+          </a>
+          <div class="footer__device-info" style="font-size: 10px; color: var(--color-text-muted); display: flex; align-items: center; justify-content: center; gap: var(--space-sm); flex-wrap: wrap; width: 100%; border-top: 1px dashed var(--color-border); padding-top: var(--space-sm);">
+            <span style="cursor: pointer; padding: 1px 4px; border-radius: var(--radius-sm); background: var(--color-surface-hover); border: 1px solid var(--color-border); transition: all var(--transition-fast);" onclick="copyToClipboard('$(ip)', 'IP')" title="Click to copy IP">
+              IP: <strong style="color: var(--color-text); font-family: monospace;">$(ip)</strong>
+            </span>
+            <span style="cursor: pointer; padding: 1px 4px; border-radius: var(--radius-sm); background: var(--color-surface-hover); border: 1px solid var(--color-border); transition: all var(--transition-fast);" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" title="Click to copy MAC">
+              MAC: <strong id="footer-mac-display" style="color: var(--color-text); font-family: monospace;">$(mac-esc)</strong> <span id="mac-type-display" style="font-size: 8px; font-weight: bold; margin-left: 2px;"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% if lang == 'ar' %}../{% endif %}md5.js"></script>
+  <script>
+    // Initialize modules
+    (function() {
+      try {
+        i18n.init();
+        ui.initTheme();
+        ui.initLang();
+        
+        // Dynamically override active panel on start based on config
+        auth.init();
+        {% if config.features.loginMode == 'voucher_only' %}
+        var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
+        if (voucherPanel) voucherPanel.style.display = 'block';
+        var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
+        normalPanels.forEach(p => p.style.display = 'none');
+        {% elif config.features.loginMode == 'normal_only' %}
+        var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
+        if (voucherPanel) voucherPanel.style.display = 'none';
+        var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
+        normalPanels.forEach(p => p.style.display = 'block');
+        {% endif %}
+
+        // Decode footer MAC address if present on login page
+        ui.loadAnnouncements();
+        var footerMac = document.getElementById('footer-mac-display');
+        if (footerMac) {
+          var rawMacText = footerMac.textContent.trim();
+          var decodedMac = '';
+          try {
+            decodedMac = decodeURIComponent(rawMacText);
+          } catch (e) {
+            decodedMac = rawMacText.replace(/%3A/gi, ':');
+          }
+          footerMac.textContent = decodedMac;
+          
+          // Determine MAC type
+          var cleanMac = decodedMac.replace(/[:-]/g, '');
+          if (cleanMac.length >= 2) {
+            var secondChar = cleanMac.charAt(1).toUpperCase();
+            var isRandom = ['2', '6', 'A', 'E'].indexOf(secondChar) !== -1;
+            var typeDisplay = document.getElementById('mac-type-display');
+            if (typeDisplay) {
+              var lang = document.documentElement.getAttribute('lang') || 'en';
+              if (isRandom) {
+                typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
+                typeDisplay.style.color = '#eab308';
+              } else {
+                typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
+                typeDisplay.style.color = '#10b981';
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Login page init error:', err);
+      }
+    })();
+  </script>
+{% endblock %}
+

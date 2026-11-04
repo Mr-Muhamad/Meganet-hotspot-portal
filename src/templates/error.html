@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div class="card">
+        <div class="card-header">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <h1 class="card-header__title" data-i18n="error_title">Connection Error</h1>
+          <p class="card-header__subtitle" data-i18n="error_message">Unable to connect to the network</p>
+        </div>
+
+        <div class="card-body">
+          <!-- Error Alert -->
+          <div class="alert alert-error" role="alert">
+            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span class="alert__text" id="error-message">$(error-esc)</span>
+          </div>
+
+          <!-- Error Details -->
+          <div class="text-center mt-lg">
+            <p class="text-muted text-sm">
+              Error Code: <strong>$(error-esc)</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    // Initialize modules
+    (function() {
+      try {
+        i18n.init();
+        ui.initTheme();
+        ui.initLang();
+      } catch (err) {
+        console.error('Error page init error:', err);
+      }
+    })();
+  </script>
+{% endblock %}
+

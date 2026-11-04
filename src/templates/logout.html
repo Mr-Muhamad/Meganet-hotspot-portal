@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div class="card">
+        <div class="card-header">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <h1 class="card-header__title" data-i18n="logout_success">Logged Out</h1>
+          <p class="card-header__subtitle" data-i18n="logout_success">You have been successfully logged out</p>
+        </div>
+
+        <div class="card-body">
+          <!-- Session Summary -->
+          <div class="status-grid" role="region" aria-label="Session summary">
+            <div class="stat-card">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <div class="stat-card__label" data-i18n="username">Username</div>
+              <div class="stat-card__value">$(username-esc)</div>
+            </div>
+
+            <div class="stat-card">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <div class="stat-card__label" data-i18n="session_time">Session Time</div>
+              <div class="stat-card__value">$(uptime)</div>
+            </div>
+
+            <div class="stat-card">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <div class="stat-card__label" data-i18n="download">Download</div>
+              <div class="stat-card__value" id="stat-download" data-bytes="$(bytes-in)">$(bytes-in-nice)</div>
+            </div>
+
+            <div class="stat-card">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <div class="stat-card__label" data-i18n="upload">Upload</div>
+              <div class="stat-card__value" id="stat-upload" data-bytes="$(bytes-out)">$(bytes-out-nice)</div>
+            </div>
+          </div>
+
+          <!-- Redirect countdown -->
+          <div class="text-center mt-md">
+            <p class="text-muted text-sm">
+              <span data-i18n="redirecting">Redirecting in</span>
+              <span id="redirect-countdown">5</span>
+              <span data-i18n="seconds">seconds</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <a href="$(link-login)" class="btn btn-primary btn-block">
+            <span data-i18n="login_button">Sign In Again</span>
+          </a>
+        </div>
+      </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    // Initialize modules
+    (function() {
+      try {
+        i18n.init();
+        ui.initTheme();
+        ui.initLang();
+
+        // Auto-redirect countdown
+        util.safeRedirect('$(link-login)', 5, 'redirect-countdown');
+
+        // Dynamically format and localize bytes using util.formatBytes
+        var dlEl = document.getElementById('stat-download');
+        var ulEl = document.getElementById('stat-upload');
+        if (dlEl) {
+          var dlBytes = parseInt(dlEl.getAttribute('data-bytes'));
+          if (!isNaN(dlBytes)) dlEl.textContent = util.formatBytes(dlBytes);
+        }
+        if (ulEl) {
+          var ulBytes = parseInt(ulEl.getAttribute('data-bytes'));
+          if (!isNaN(ulBytes)) ulEl.textContent = util.formatBytes(ulBytes);
+        }
+      } catch (err) {
+        console.error('Logout page init error:', err);
+      }
+    })();
+  </script>
+{% endblock %}

@@ -1,0 +1,150 @@
+{
+  "_comment_general": "=== إعدادات عامة للشبكة ===",
+  "general": {
+    "networkName": "ميجا نت",
+    "poweredByText": "بدعم من ",
+    "poweredByText_hints": "نص الفوتر الترحيبي (مثال: 'بدعم من ' أو 'تطوير شبكة '، اتركه فارغاً أو احذفه للعودة لترجمة النظام التلقائية)",
+    "poweredByUrl": "https://facebook.com/MuhamadRedefines",
+    "poweredByUrl_hints": "رابط توجيه الفوتر عند الضغط عليه (مثال: رابط شركتك أو موقع المايكروتك)",
+    "poweredByName": "ميجا نت للحلول التقنية",
+    "poweredByName_hints": "الاسم الظاهر للرابط في الفوتر (مثال: 'MikroTik' أو اسم شركتك)"
+  },
+
+  "_comment_theme": "=== إعدادات التصميم البصري والألوان (ألوان نيون فخمة) ===",
+  "theme": {
+    "primaryColor": "#22c55e",
+    "primaryColor_hints": "اللون الأساسي للشبكة بصيغة Hex (مثال: الأخضر #22c55e، الأزرق #0070f3، البرتقالي #ff4e00)",
+    
+    "backgroundColor": "#020617",
+    "backgroundColor_hints": "درجة لون الخلفية الكلي الداكن للشبكة (مثال: أسود كحلي #020617، أو أسود خالص #000000)",
+    
+    "cardRadius": "16px",
+    "cardRadius_hints": "درجة انحناء حواف الكروت والأزرار (حادة 0px، مستديرة خفيفة 8px، مستديرة جداً 16px)",
+    
+    "enableNetworkBackground": true,
+    "enableNetworkBackground_hints": "تفعيل (true) أو إيقاف (false) خلفية الشبكة العصبية التفاعلية المتحركة بالـ Canvas"
+  },
+
+  "_comment_features": "=== إعدادات الوظائف المتاحة في البوابة ===",
+  "features": {
+    "loginMode": "voucher_only",
+    "loginMode_hints": "طريقة تسجيل الدخول: 'both' (كود شحن وباقة)، 'voucher_only' (كود شحن فقط)، 'normal_only' (باقة فقط)",
+    
+    "voucherPasswordMode": "same",
+    "voucherPasswordMode_hints": "وضع كلمة المرور للكروت: 'same' (الباسورد يطابق الكود)، 'empty' (الباسورد يترك فارغاً)",
+    
+    "enableQRScanner": true,
+    "enableQRScanner_hints": "إظهار (true) أو إخفاء (false) زر مسح الكارت عبر كاميرا الموبايل",
+    
+    "kbBase": 1000,
+    "kbBase_hints": "معيار حساب الكيلوبايت: 1000 (شائع تجارياً في كروت الشحن) أو 1024 (المعيار الهندسي للحاسوب)",
+    
+    "enableSmartAssistant": true,
+    "enableSmartAssistant_hints": "إظهار (true) أو إخفاء (false) مساعد الاستهلاك الذكي في صفحة الحالة",
+    
+    "quotaDisplayFormat": "MB",
+    "quotaDisplayFormat_hints": "صيغة عرض الرصيد المتبقي بصفحة الحالة: 'GB' (جيجا بايت)، أو 'MB' (ميجا بايت)",
+    
+    "enableTechDetails": true,
+    "enableTechDetails_hints": "تفعيل (true) أو إيقاف (false) إمكانية فتح صندوق التفاصيل التقنية (IP, MAC) للمشترك",
+    
+    "enableClonePrevention": true,
+    "enableClonePrevention_hints": "حماية كروت الشحن من السرقة ومشاركة الحسابات لمنع تشغيل الكارت على جهازين بنفس الوقت",
+    
+    "enableLanguageToggle": true,
+    "enableLanguageToggle_hints": "تفعيل (true) أو إخفاء (false) زر تغيير لغة البوابة بالهيدر لتثبيت واجهة لغة واحدة للمشتركين",
+    
+    "qrScannerUrl": "https://laksa19.github.io/myqr",
+    "qrScannerUrl_hints": "رابط تطبيق الويب المعتمد لمسح الـ QR ومسح الكروت عبر الكاميرا"
+  },
+
+  "_comment_plans": "=== قائمة أسعار وباقات الاشتراكات للشبكة ===",
+  "plans": [
+    {
+      "name": "Pop Plan",
+      "name_ar": "باقة البوب",
+      "quota": "10 GB",
+      "quota_ar": "10 جيجا",
+      "price": "60",
+      "icon": "globe"
+    },
+    {
+      "name": "Manager Plan",
+      "name_ar": "باقة المدير",
+      "quota": "20 GB",
+      "quota_ar": "20 جيجا",
+      "price": "100",
+      "icon": "briefcase"
+    },
+    {
+      "name": "Teacher Plan",
+      "name_ar": "باقة المعلم",
+      "quota": "30 GB",
+      "quota_ar": "30 جيجا",
+      "price": "148",
+      "icon": "graduation-cap"
+    },
+    {
+      "name": "Ghost Plan",
+      "name_ar": "باقة الشبح",
+      "quota": "40 GB",
+      "quota_ar": "40 جيجا",
+      "price": "180",
+      "icon": "ghost"
+    },
+    {
+      "name": "General Plan",
+      "name_ar": "باقة الجنرال",
+      "quota": "60 GB",
+      "quota_ar": "60 جيجا",
+      "price": "260",
+      "icon": "star"
+    },
+    {
+      "name": "Leader Plan",
+      "name_ar": "باقة الزعيم",
+      "quota": "75 GB",
+      "quota_ar": "75 جيجا",
+      "price": "315",
+      "icon": "shield"
+    },
+    {
+      "name": "King Plan",
+      "name_ar": "باقة الكينج",
+      "quota": "100 GB",
+      "quota_ar": "100 جيجا",
+      "price": "410",
+      "icon": "crown"
+    }
+  ],
+
+  "_comment_security": "=== إعدادات الحماية ومكافحة التخمين للسرقة ===",
+  "security": {
+    "maxAttempts": 3,
+    "maxAttempts_hints": "عدد محاولات تسجيل الدخول الخاطئة المسموح بها قبل حظر الجهاز",
+    
+    "blockDurationMinutes": 2,
+    "blockDurationMinutes_hints": "مدة حظر العميل (بالدقائق) عند تجاوزه عدد المحاولات الخاطئة"
+  },
+
+  "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
+  "support": {
+    "agents": [
+      {
+        "name": "محمد",
+        "role": "الدعم الفني",
+        "phone": "+201212208788",
+        "whatsapp": "201212208788",
+        "image": "mohamed.png",
+        "_hint": "ضع كود الدولة في رقم الواتساب بدون علامات زائد (مثال: 2012xxxxxxxx)"
+      },
+      {
+        "name": "مجدي",
+        "role": "الدعم الفني",
+        "phone": "+01220067835",
+        "whatsapp": "01220067835",
+        "image": "magdy.png"
+      }
+    ]
+  }
+}

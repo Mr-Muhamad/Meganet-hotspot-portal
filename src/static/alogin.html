@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="auto">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>$(hostname) - Connected</title>
+  <style>
+:root {
+  --color-bg: #020617;
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-primary: #22c55e;
+  --color-primary-hover: #16a34a;
+  --color-primary-active: #15803d;
+  --color-primary-text: #052e16;
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239,68,68,0.15);
+  --color-success: #22c55e;
+  --color-success-bg: rgba(34,197,94,0.15);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245,158,11,0.15);
+  --color-border: #1e293b;
+  --color-input-bg: #0f172a;
+  --color-input-border: #334155;
+  --color-input-focus: #22c55e;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --font-family: -apple-system, 'Segoe UI', Tahoma, 'Noto Sans Arabic', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 28px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --max-width: 420px;
+  --header-height: 56px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f1f5f9;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --color-border: #e2e8f0;
+    --color-input-bg: #ffffff;
+    --color-input-border: #cbd5e1;
+    --color-primary: #16a34a;
+    --color-primary-hover: #15803d;
+    --color-primary-active: #166534;
+    --color-primary-text: #ffffff;
+    --color-error-bg: rgba(239,68,68,0.08);
+    --color-success-bg: rgba(34,197,94,0.08);
+    --color-warning-bg: rgba(245,158,11,0.08);
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+}
+
+[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-input-bg: #ffffff;
+  --color-input-border: #cbd5e1;
+  --color-primary: #16a34a;
+  --color-primary-hover: #15803d;
+  --color-primary-active: #166534;
+  --color-primary-text: #ffffff;
+  --color-error-bg: rgba(239,68,68,0.08);
+  --color-success-bg: rgba(34,197,94,0.08);
+  --color-warning-bg: rgba(245,158,11,0.08);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[dir="rtl"] body {
+  direction: rtl;
+}
+
+.page-shell {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-md);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.header__logo {
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+}
+
+.header__name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.footer {
+  padding: var(--space-md);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.card-header {
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.card-header h1 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xs);
+}
+
+.card-header p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.card-body {
+  margin-bottom: var(--space-lg);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 12px 24px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: var(--font-size-sm);
+}
+
+.alert {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  border-inline-start: 4px solid;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.alert__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert__text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-md);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.success-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.countdown-display {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  text-align: center;
+  margin: var(--space-md) 0;
+}
+
+.countdown-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.user-info {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.user-info strong {
+  color: var(--color-text);
+}
+
+.cna-warning {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  text-align: center;
+}
+
+.cna-warning__icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-warning);
+  margin: 0 auto var(--space-sm);
+  display: block;
+}
+
+.cna-warning__text {
+  font-size: var(--font-size-sm);
+  color: var(--color-warning);
+  line-height: var(--line-height-normal);
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-lg) 0;
+}
+
+.text-center { text-align: center; }
+.text-muted { color: var(--color-text-muted); }
+.text-sm { font-size: var(--font-size-sm); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+  z-index: 1000;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+.theme-toggle,
+.lang-toggle {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.theme-toggle:hover,
+.lang-toggle:hover {
+  background: var(--color-surface-hover);
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn {
+    border: 2px solid ButtonText;
+  }
+  .alert {
+    border: 2px solid ButtonText;
+  }
+}
+
+@media (min-width: 480px) {
+  .page-shell {
+    padding: var(--space-lg);
+  }
+  .card {
+    padding: var(--space-xl);
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --max-width: 480px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --max-width: 520px;
+  }
+}
+
+@supports (container-type: inline-size) {
+  .card {
+    container-type: inline-size;
+  }
+}
+  </style>
+</head>
+<body class="page-alogin" data-page="alogin">
+
+  <!-- Skip link for accessibility -->
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <div class="page-shell">
+
+    <!-- Header: Logo + Network Name + Theme/Lang toggles -->
+    <header class="header">
+      <div class="header__brand">
+        <svg class="header__logo" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 4L8 12v10c0 11.1 6.8 20.4 16 24 9.2-3.6 16-12.9 16-24V12L24 4z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="currentColor" fill-opacity=".06"/>
+          <circle cx="24" cy="32" r="2.2" fill="currentColor"/>
+          <path d="M19 27a7 7 0 0 1 10 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+          <path d="M15 23a12.5 12.5 0 0 1 18 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+          <path d="M11.5 19a17.5 17.5 0 0 1 25 0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="header__name">$(identity)</span>
+      </div>
+      <div class="header__actions">
+        <button type="button" class="lang-toggle" id="langToggle" aria-label="Switch language" onclick="toggleLang()">
+          <span data-i18n="lang_toggle">العربية</span>
+        </button>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle theme" onclick="toggleTheme()">
+          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content: Connected Card -->
+    <main id="main" class="main-content">
+      <div class="card">
+        <div class="card-header">
+          <!-- Success checkmark icon -->
+          <div class="success-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h1 data-i18n="connected">You are connected</h1>
+          <p class="text-muted" data-i18n="connected_subtitle">Internet access is now active</p>
+        </div>
+
+        <div class="card-body">
+          <!-- Username display -->
+          <div class="user-info">
+            <span data-i18n="username">Username</span>: <strong>$(username-esc)</strong>
+          </div>
+
+          <!-- Countdown display -->
+          <div class="countdown-display" id="countdown" aria-live="polite">3</div>
+          <p class="countdown-label">
+            <span data-i18n="redirecting_in">Redirecting in</span>
+            <span id="countdown-seconds">3</span>
+            <span data-i18n="seconds">seconds</span>
+          </p>
+
+          <!-- Continue Now button — manual redirect -->
+          <a href="$(link-redirect)" class="btn btn-primary btn-block" id="continueBtn" onclick="return handleContinue(this);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+            <span data-i18n="continue_now">Continue Now</span>
+          </a>
+
+          <div class="divider"></div>
+
+          <!-- Captive Portal / CNA Warning -->
+          <div class="cna-warning" id="cnaWarning">
+            <svg class="cna-warning__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <p class="cna-warning__text" data-i18n="cna_warning">If pages don't load, close this window and open your regular browser (Chrome, Safari, etc.)</p>
+          </div>
+
+          <!-- Open in full browser hint -->
+          <p class="text-center text-muted text-sm" style="margin-top: var(--space-md);" data-i18n="open_full_browser">
+            For best experience, open in full browser
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="text-muted text-sm">
+        <span data-i18n="footer_text">Powered by</span> $(hostname)
+      </p>
+    </footer>
+
+  </div>
+
+  <!-- i18n translations (inline JSON) -->
+  <script type="application/json" id="i18n-data">
+  {
+    "en": {
+      "connected": "You are connected",
+      "connected_subtitle": "Internet access is now active",
+      "username": "Username",
+      "redirecting_in": "Redirecting in",
+      "seconds": "seconds",
+      "continue_now": "Continue Now",
+      "cna_warning": "If pages don't load, close this window and open your regular browser (Chrome, Safari, etc.)",
+      "open_full_browser": "For best experience, open in full browser",
+      "footer_text": "Powered by",
+      "theme_toggle": "Toggle theme",
+      "lang_toggle": "العربية"
+    },
+    "ar": {
+      "connected": "أنت متصل",
+      "connected_subtitle": "الاتصال بالإنترنت مفعّل الآن",
+      "username": "اسم المستخدم",
+      "redirecting_in": "سيتم التوجيه خلال",
+      "seconds": "ثوانٍ",
+      "continue_now": "متابعة الآن",
+      "cna_warning": "إذا لم يتم تحميل الصفحات، أغلق هذه النافذة وافتح المتصفح العادي (كروم، سفاري، إلخ)",
+      "open_full_browser": "للحصول على أفضل تجربة، افتح في المتصفح الكامل",
+      "footer_text": "مشغّل بواسطة",
+      "theme_toggle": "تبديل المظهر",
+      "lang_toggle": "English"
+    }
+  }
+  </script>
+
+  <!-- Inline application logic -->
+  <script>
+/* ── Global handler stubs — always defined so onclick/onsubmit never throw ── */
+function toggleTheme() {
+  if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleTheme();
+}
+function toggleLang() {
+  if (window.Hotspot && window.Hotspot.ui) return window.Hotspot.ui.toggleLang();
+}
+
+window.Hotspot = (function() {
+  'use strict';
+
+  var util = {
+    escapeHtml: function(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    },
+
+    formatBytes: function(bytes) {
+      if (bytes === 0) return '0 B';
+      var k = 1024;
+      var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      var i = Math.floor(Math.log(bytes) / Math.log(k));
+      return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    },
+
+    formatTime: function(seconds) {
+      if (!seconds || seconds < 0) return '0s';
+      var h = Math.floor(seconds / 3600);
+      var m = Math.floor((seconds % 3600) / 60);
+      var s = Math.floor(seconds % 60);
+      var result = '';
+      if (h > 0) result += h + 'h ';
+      if (m > 0) result += m + 'm ';
+      if (s > 0 || result === '') result += s + 's';
+      return result.trim();
+    },
+
+    formatUptime: function(str) {
+      if (!str) return '0s';
+      var match = str.match(/(\d+)h(\d+)m(\d+)s/);
+      if (!match) return str;
+      var h = parseInt(match[1], 10);
+      var m = parseInt(match[2], 10);
+      var s = parseInt(match[3], 10);
+      var result = '';
+      if (h > 0) result += h + 'h ';
+      if (m > 0) result += m + 'm ';
+      if (s > 0 || result === '') result += s + 's';
+      return result.trim();
+    },
+
+    setCookie: function(name, value, days) {
+      var expires = '';
+      if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+      }
+      document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; SameSite=Lax';
+    },
+
+    getCookie: function(name) {
+      var nameEQ = name + '=';
+      var ca = document.cookie.split(';');
+      for (var i = 0; i < ca.length; i++) {
+        var c = ca[i].trim();
+        if (c.indexOf(nameEQ) === 0) {
+          return decodeURIComponent(c.substring(nameEQ.length));
+        }
+      }
+      return null;
+    },
+
+    safeRedirect: function(url, delay) {
+      var countdown = document.getElementById('countdown');
+      if (!countdown) {
+        setTimeout(function() {
+          window.location.href = url;
+        }, delay * 1000);
+        return;
+      }
+      var remaining = delay;
+      countdown.textContent = remaining;
+      var interval = setInterval(function() {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(interval);
+          window.location.href = url;
+        } else {
+          countdown.textContent = remaining;
+        }
+      }, 1000);
+    }
+  };
+
+  var ui = {
+    initTheme: function() {
+      try {
+        var savedTheme = util.getCookie('hotspot_theme');
+        var theme = savedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+        ui.updateThemeIcon(theme);
+      } catch (err) {
+        console.error('Init theme error:', err);
+      }
+    },
+
+    toggleTheme: function() {
+      try {
+        var currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        util.setCookie('hotspot_theme', newTheme, 365);
+        ui.updateThemeIcon(newTheme);
+      } catch (err) {
+        console.error('Toggle theme error:', err);
+      }
+    },
+
+    updateThemeIcon: function(theme) {
+      try {
+        var themeIcon = document.getElementById('theme-icon');
+        if (themeIcon) {
+          if (theme === 'dark') {
+            themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+          } else {
+            themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+          }
+        }
+      } catch (err) {
+        console.error('Update theme icon error:', err);
+      }
+    },
+
+    initLang: function() {
+      try {
+        var savedLang = util.getCookie('hotspot_lang');
+        var lang = savedLang || i18n.detectLang();
+        document.documentElement.setAttribute('lang', lang);
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+        i18n.apply();
+      } catch (err) {
+        console.error('Init lang error:', err);
+      }
+    },
+
+    toggleLang: function() {
+      try {
+        var currentLang = document.documentElement.getAttribute('lang') || 'en';
+        var newLang = currentLang === 'en' ? 'ar' : 'en';
+        document.documentElement.setAttribute('lang', newLang);
+        document.documentElement.setAttribute('dir', newLang === 'ar' ? 'rtl' : 'ltr');
+        util.setCookie('hotspot_lang', newLang, 365);
+        i18n.apply();
+      } catch (err) {
+        console.error('Toggle lang error:', err);
+      }
+    },
+
+    showToast: function(message, type, duration) {
+      try {
+        type = type || 'info';
+        duration = duration || 3000;
+
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(function() {
+          toast.style.opacity = '0';
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        }, duration);
+      } catch (err) {
+        console.error('Show toast error:', err);
+      }
+    },
+
+    initCountdown: function(seconds, elementId, callback) {
+      try {
+        var element = document.getElementById(elementId);
+        if (!element) return;
+
+        var remaining = seconds;
+        element.textContent = util.formatTime(remaining);
+
+        var interval = setInterval(function() {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(interval);
+            element.textContent = '0s';
+            if (callback && typeof callback === 'function') {
+              callback();
+            }
+          } else {
+            element.textContent = util.formatTime(remaining);
+          }
+        }, 1000);
+
+        return interval;
+      } catch (err) {
+        console.error('Init countdown error:', err);
+      }
+    }
+  };
+
+  var i18n = {
+    data: null,
+
+    t: function(key) {
+      try {
+        if (!i18n.data) {
+          var dataScript = document.getElementById('i18n-data');
+          if (dataScript) {
+            i18n.data = JSON.parse(dataScript.textContent);
+          } else {
+            return key;
+          }
+        }
+
+        var lang = document.documentElement.getAttribute('lang') || 'en';
+        if (i18n.data[lang] && i18n.data[lang][key]) {
+          return i18n.data[lang][key];
+        }
+        if (i18n.data.en && i18n.data.en[key]) {
+          return i18n.data.en[key];
+        }
+        return key;
+      } catch (err) {
+        console.error('Translation error:', err);
+        return key;
+      }
+    },
+
+    apply: function() {
+      try {
+        var elements = document.querySelectorAll('[data-i18n]');
+        for (var i = 0; i < elements.length; i++) {
+          var key = elements[i].getAttribute('data-i18n');
+          var translation = i18n.t(key);
+          elements[i].textContent = translation;
+        }
+        var placeholders = document.querySelectorAll('[data-i18n-placeholder]');
+        for (var j = 0; j < placeholders.length; j++) {
+          var pKey = placeholders[j].getAttribute('data-i18n-placeholder');
+          placeholders[j].setAttribute('placeholder', i18n.t(pKey));
+        }
+      } catch (err) {
+        console.error('Apply i18n error:', err);
+      }
+    },
+
+    detectLang: function() {
+      try {
+        var savedLang = util.getCookie('hotspot_lang');
+        if (savedLang) return savedLang;
+
+        var browserLang = navigator.language || navigator.userLanguage || 'en';
+        browserLang = browserLang.split('-')[0];
+        return browserLang === 'ar' ? 'ar' : 'en';
+      } catch (err) {
+        return 'en';
+      }
+    }
+  };
+
+  var status = {
+    init: function() {
+      try {
+        var statusData = document.getElementById('status-data');
+        if (!statusData) return;
+
+        var data = JSON.parse(statusData.textContent);
+        status.updateDisplay(data);
+        status.startCountdowns(data);
+      } catch (err) {
+        console.error('Status init error:', err);
+      }
+    },
+
+    startCountdowns: function(data) {
+      try {
+        if (data.sessionTimeLeft) {
+          ui.initCountdown(data.sessionTimeLeft, 'session-countdown', function() {
+            ui.showToast('Session expired', 'warning');
+          });
+        }
+
+        if (data.refreshTimeout) {
+          ui.initCountdown(data.refreshTimeout, 'refresh-countdown');
+        }
+      } catch (err) {
+        console.error('Start countdowns error:', err);
+      }
+    },
+
+    updateDisplay: function(data) {
+      try {
+        var bytesIn = document.getElementById('bytes-in');
+        if (bytesIn && data.bytesIn) {
+          bytesIn.textContent = util.formatBytes(data.bytesIn);
+        }
+
+        var bytesOut = document.getElementById('bytes-out');
+        if (bytesOut && data.bytesOut) {
+          bytesOut.textContent = util.formatBytes(data.bytesOut);
+        }
+
+        var uptime = document.getElementById('uptime');
+        if (uptime && data.uptime) {
+          uptime.textContent = util.formatUptime(data.uptime);
+        }
+
+        var remainBytes = document.getElementById('remain-bytes');
+        if (remainBytes && data.remainBytes) {
+          remainBytes.textContent = util.formatBytes(data.remainBytes);
+        }
+
+        if (data.limitBytes && data.remainBytes) {
+          var used = data.limitBytes - data.remainBytes;
+          var percent = (used / data.limitBytes) * 100;
+          var progressFill = document.getElementById('usage-progress');
+          if (progressFill) {
+            progressFill.style.width = Math.min(percent, 100) + '%';
+          }
+        }
+      } catch (err) {
+        console.error('Update display error:', err);
+      }
+    }
+  };
+
+  return {
+    util: util,
+    ui: ui,
+    i18n: i18n,
+    status: status
+  };
+})();
+
+// Handle "Continue Now" button click — full-page navigation
+function handleContinue(link) {
+  var url = link.getAttribute('href');
+  if (url) {
+    window.location.href = url;
+  }
+  return false;
+}
+
+// IMMEDIATE redirect — this is the iOS CNA critical path
+(function() {
+  var redirectUrl = "$(link-redirect)" || "$(link-orig)";
+
+  // Open status popup if requested (only works in full browsers)
+  $(if popup)
+  if (window.open) {
+    window.open("$(link-status)", "hotspot_status", "width=800,height=600,scrollbars=yes");
+  }
+  $(endif)
+
+  // Countdown then redirect — MUST be full-page navigation, not AJAX
+  var seconds = 3;
+  var countdownEl = document.getElementById('countdown');
+  var countdownSecEl = document.getElementById('countdown-seconds');
+  var timer = setInterval(function() {
+    seconds--;
+    if (countdownEl) countdownEl.textContent = seconds;
+    if (countdownSecEl) countdownSecEl.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(timer);
+      // MUST be full-page navigation — not AJAX
+      window.location.href = redirectUrl;
+    }
+  }, 1000);
+})();
+
+// Page-specific initialization
+document.addEventListener('DOMContentLoaded', function() {
+  Hotspot.ui.initTheme();
+  Hotspot.ui.initLang();
+  Hotspot.i18n.apply();
+});
+  </script>
+
+</body>
+</html>

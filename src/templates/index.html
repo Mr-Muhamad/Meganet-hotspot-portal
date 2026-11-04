@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting...</title>
+  <script>
+    {% if lang == 'ar' %}
+    window.location.replace('./login.html');
+    {% else %}
+    window.location.replace('./ar/login.html');
+    {% endif %}
+  </script>
+</head>
+<body>
+  <p>Redirecting to login page...</p>
+  <p>If you are not redirected, <a href="{% if lang == 'ar' %}./login.html{% else %}./ar/login.html{% endif %}">click here</a>.</p>
+</body>
+</html>

@@ -158,7 +158,10 @@
     "configuration error": "خطأ في الإعدادات.",
     "web browser did not send challenge response": "المتصفح لم يرسل استجابة التشفير، يرجى تفعيل JavaScript.",
     "enable javascript": "يرجى تفعيل JavaScript.",
-    "shutting down": "خدمة نقطة الاتصال قيد الإيقاف، حاول بعد قليل."
+    "shutting down": "خدمة نقطة الاتصال قيد الإيقاف، حاول بعد قليل.",
+    "invalid calling-station-id": "عذراً، تعذر التحقق من بيانات جهازك (MAC)، يرجى المحاولة مرة أخرى.",
+    "transfer limit reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "traffic limit is reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك."
   },
   "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
   "support": {

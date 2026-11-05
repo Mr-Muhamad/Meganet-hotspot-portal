@@ -116,7 +116,9 @@ node scripts/preview.mjs --port 9000           # different port (default 8765)
 
 The startup output lists every page URL in both languages. Pages under `/ar/`
 stay Arabic and pages at the root stay English (the server sets the language
-cookie for you). `index`, `alogin`, and `logout` navigate away by design —
+cookie for you; `--no-pin-lang` hands the language decision back to the portal,
+which is what the E2E tests use to exercise its Arabic-first redirect).
+`index`, `alogin`, and `logout` navigate away by design —
 index detects the browser language, alogin redirects after 3 s (iOS CNA path),
 logout after 5 s.
 

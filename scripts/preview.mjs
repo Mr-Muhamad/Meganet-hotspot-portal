@@ -12,6 +12,7 @@
  *   node scripts/preview.mjs --scenario chap     # CHAP login mode
  *   node scripts/preview.mjs --scenario unlimited# session without byte quota
  *   node scripts/preview.mjs --port 9000         # custom port (default 8765)
+ *   node scripts/preview.mjs --no-pin-lang       # don't pin language cookie (E2E)
  *   node scripts/preview.mjs --open              # open the browser after starting
  *
  * Then open any page, e.g. http://127.0.0.1:8765/ar/login.html
@@ -162,14 +163,15 @@ const MIME = {
 };
 
 function parseArgs() {
-  const args = { port: 8765, scenario: 'default', open: false };
+  const args = { port: 8765, scenario: 'default', open: false, pinLang: true };
   for (let i = 2; i < process.argv.length; i++) {
     const a = process.argv[i];
     if (a === '--port') args.port = Number(process.argv[++i]);
     else if (a === '--scenario') args.scenario = process.argv[++i];
     else if (a === '--open') args.open = true;
+    else if (a === '--no-pin-lang') args.pinLang = false;
     else if (a === '--help' || a === '-h') {
-      console.log(`Usage: node scripts/preview.mjs [--port N] [--scenario default|error|chap|unlimited|captive] [--open]`);
+      console.log(`Usage: node scripts/preview.mjs [--port N] [--scenario default|error|chap|unlimited|captive] [--no-pin-lang] [--open]`);
       process.exit(0);
     }
   }
@@ -192,10 +194,13 @@ const server = createServer(async (req, res) => {
     let filePath = join(ROOT, urlPath);
     if (urlPath.endsWith('/')) filePath = join(filePath, 'index.html');
 
-    // Hand the portal the language cookie matching the URL so pages don't
-    // auto-redirect (ui.initLang defaults to 'ar' when the cookie is absent).
-    const lang = urlPath.startsWith('/ar/') ? 'ar' : 'en';
-    res.setHeader('Set-Cookie', `hotspot_lang=${lang}; Path=/; Max-Age=86400; SameSite=Lax`);
+    // Pin the language cookie to the URL so pages don't auto-redirect while
+    // reviewing (ui.initLang defaults to 'ar' when the cookie is absent).
+    // --no-pin-lang hands the language decision back to the portal (E2E).
+    if (args.pinLang) {
+      const lang = urlPath.startsWith('/ar/') ? 'ar' : 'en';
+      res.setHeader('Set-Cookie', `hotspot_lang=${lang}; Path=/; Max-Age=86400; SameSite=Lax`);
+    }
 
     let data = await readFile(filePath);
     const ext = extname(filePath).toLowerCase();

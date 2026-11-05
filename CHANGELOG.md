@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed dead `enableTrial` config key (never referenced by any code)
 - Removed legacy one-off patch scripts and `test-visual.html` (preserved in git history)
 - Removed unreferenced root binary artifacts (`icon.png`, `icon1.png`, `iloveimg-compressed.zip`)
+- **Inline styles migrated to CSS modules**: 113 inline `style=""` attributes across templates → 13 (all that remain are JS-driven or MikroTik/Nunjucks conditionals, e.g. `$(if session-time-left)` panels); new semantic classes live in `src/css/media.css` (verified via computed-style checks after migration)
 - Updated `README.md` and `ARCHITECTURE.md` to document the current build system, `src/static/` layer, `config.json` theming, and `dist/`-based deployment
 - Initialized git repository
 

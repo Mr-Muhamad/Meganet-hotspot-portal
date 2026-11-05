@@ -61,14 +61,14 @@
       </div>
       {% endfor %}
     {% else %}
-      <p style="grid-column: 1/-1; text-align: center; color: var(--color-text-muted);">No plans available</p>
+      <p class="plans-empty">No plans available</p>
     {% endif %}
   </div>
 
   <div class="plans-footer">
-    <p class="text-muted text-sm text-center" style="margin-top: var(--space-lg); margin-bottom: var(--space-sm);" data-i18n="plans_cta_hint">Choose your plan and contact support to activate it</p>
-    <button class="btn btn-primary btn-block" onclick="toggleSupportModal()" style="display: flex; align-items: center; justify-content: center; gap: var(--space-xs); width: 100%; margin-bottom: var(--space-md);" data-i18n="request_activation">Request Activation</button>
-    <a href="./login.html" class="btn btn-secondary btn-block" style="text-align: center; display: block;" data-i18n="back_to_login">Back to Login</a>
+    <p class="text-muted text-sm text-center plans-cta-hint" data-i18n="plans_cta_hint">Choose your plan and contact support to activate it</p>
+    <button class="btn btn-primary btn-block plans-cta-btn" onclick="toggleSupportModal()" data-i18n="request_activation">Request Activation</button>
+    <a href="./login.html" class="btn btn-secondary btn-block plans-back-btn" data-i18n="back_to_login">Back to Login</a>
   </div>
 </div>
 {% endblock %}

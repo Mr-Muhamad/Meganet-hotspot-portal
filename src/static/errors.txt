@@ -1,34 +1,34 @@
-# MikroTik Hotspot Error Messages — Bilingual (EN / AR)
+# MikroTik Hotspot Error Messages — English
 # MikroTik Hotspot Portal 2026
 
 # Internal errors
-internal-error = Internal error: $(error-orig) / خطأ داخلي: $(error-orig)
-config-error = Configuration error: $(error-orig) / خطأ في الإعدادات: $(error-orig)
+internal-error = Internal error: $(error-orig)
+config-error = Configuration error: $(error-orig)
 
 # Authentication errors
-not-logged-in = You are not logged in (IP: $(ip)) / أنت غير مسجل الدخول (IP: $(ip))
-invalid-username = Invalid username or password / اسم المستخدم أو كلمة المرور غير صحيحة
-wrong-mac-username = This account cannot be used from this device / لا يمكن استخدام هذا الحساب من هذا الجهاز
-invalid-mac = User $(username) is not allowed from this MAC address / المستخدم $(username) غير مسموح من عنوان MAC هذا
-chap-missing = JavaScript is required for secure login. Please enable JavaScript. / JavaScript مطلوب لتسجيل الدخول الآمن. يرجى تفعيل JavaScript.
+not-logged-in = You are not logged in (IP: $(ip))
+invalid-username = Invalid username or password
+wrong-mac-username = This account cannot be used from this device
+invalid-mac = User $(username) is not allowed from this MAC address
+chap-missing = JavaScript is required for secure login. Please enable JavaScript.
 
 # Session limits
-user-session-limit = No more sessions allowed for user $(username) / لا يُسمح بجلسات إضافية للمستخدم $(username)
-license-session-limit = Session limit reached: $(error-orig) / تم الوصول إلى حد الجلسات: $(error-orig)
+user-session-limit = No more sessions allowed for user $(username)
+license-session-limit = Session limit reached: $(error-orig)
 
 # Account limits
-uptime-limit = User $(username) has reached uptime limit / المستخدم $(username) وصل إلى حد وقت الاستخدام
-traffic-limit = User $(username) has reached traffic limit / المستخدم $(username) وصل إلى حد البيانات
-account-expired = Account expired for user $(username) / انتهى حساب المستخدم $(username)
+uptime-limit = User $(username) has reached uptime limit
+traffic-limit = User $(username) has reached traffic limit
+account-expired = Account expired for user $(username)
 
 # Network errors
-ippool-empty = Cannot assign IP address - no free addresses / لا يمكن تعيين عنوان IP - لا توجد عناوين حرة
-shutting-down = Hotspot service is shutting down / يتم إيقاف خدمة نقطة الاتصال
+ippool-empty = Cannot assign IP address - no free addresses
+shutting-down = Hotspot service is shutting down
 
 # RADIUS errors
-radius-timeout = Authentication server is not responding / خادم المصادقة لا يستجيب
-auth-in-progress = Already authorizing, please wait / جارٍ المصادقة بالفعل، يرجى الانتظار
+radius-timeout = Authentication server is not responding
+auth-in-progress = Already authorizing, please wait
 radius-reply = $(error-orig)
 
 # General
-simultaneous-session-limit = You already have an active session. Please log out first. / لديك جلسة نشطة بالفعل. يرجى تسجيل الخروج أولاً.
+simultaneous-session-limit = You already have an active session. Please log out first.

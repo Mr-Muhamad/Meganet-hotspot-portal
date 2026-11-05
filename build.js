@@ -179,23 +179,28 @@ function generatePage(page, lang, options = {}) {
 }
 
 // Copy static RouterOS-required pages verbatim (NEVER minified — they contain
-// line-sensitive $(if ...) directives and $(if popup) inside <script> that
-// html-minifier would break). alogin.html is self-bilingual, so it is also
-// mirrored into ar/ for language-routed lookups.
-function copyStaticPages(distDir, arDir) {
+// line-sensitive $(if ...) directives and a RouterOS-parsed format).
+// Subdirectories are preserved (e.g. src/static/ar/errors.txt → dist/ar/errors.txt)
+// so RouterOS language routing (target=ar) finds the localized variants.
+function copyStaticPages(distDir) {
   const staticDir = path.join(__dirname, 'src', 'static');
   if (!fs.existsSync(staticDir)) return;
 
-  fs.readdirSync(staticDir).forEach(file => {
-    const srcPath = path.join(staticDir, file);
-    if (!fs.statSync(srcPath).isFile()) return;
-
-    fs.copyFileSync(srcPath, path.join(distDir, file));
-    if (file === 'alogin.html') {
-      fs.copyFileSync(srcPath, path.join(arDir, file));
-    }
-    console.log(`✓ Copied static ${file}`);
-  });
+  const walk = (dir, relPath) => {
+    fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+      const srcPath = path.join(dir, entry.name);
+      const rel = relPath ? path.join(relPath, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        walk(srcPath, rel);
+      } else {
+        const destPath = path.join(distDir, rel);
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`✓ Copied static ${rel}`);
+      }
+    });
+  };
+  walk(staticDir, '');
 }
 
 // Copy static assets
@@ -292,7 +297,7 @@ function build(options = {}) {
   }
 
   copyAssets();
-  copyStaticPages(distDir, arDir);
+  copyStaticPages(distDir);
 
   console.log('\n✨ Build complete!\n');
 }

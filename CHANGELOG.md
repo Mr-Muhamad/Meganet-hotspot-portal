@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **CHAP login**: `md5.js` was referenced at a non-existent path (`assets/js/md5.js`) — now resolved correctly for both EN and AR pages, so the CHAP hash path works
+- **Consolidated duplicate error-translation code**: `ui.js` carried a hardcoded 29-key Arabic error dictionary (`mapRouterErrorToArabic`) while a newer config-driven implementation was added in parallel — merged into ONE implementation: `util.translateError()` (URL-artifact cleanup for RouterOS GET-passed errors, documented RouterOS formats with usernames by regex, longest-key-first keyword map with whole-message replacement to avoid mixed-language output; unknown messages pass through cleaned but unchanged) driven by a single 47-key `radiusErrorTranslations` map in `config.json`, injected as `window.HotspotErrorMap` by the login template; `ui.translateRouterError()` is now a thin wrapper that caches the raw error in `data-raw-error` for correct re-translation on language toggle
 - **Clone prevention**: auto-login read the form element before it was defined, so `enableClonePrevention: false` was ignored during auto-login
 - **i18n**: added missing `redirecting` and `seconds` keys (Arabic logout page showed hardcoded English); added `captive_notice` to the Arabic dictionary; removed a duplicate `expired_alert_text` key
 - **Build completeness**: `redirect.html`, `alogin.html`, and `errors.txt` (RouterOS localized error messages) are now copied from `src/static/` on every build (previously lost on a clean rebuild)

@@ -117,104 +117,32 @@ var ui = {
     return null;
   },
 
+  /**
+   * Translate the login error message to the current page language.
+   * Thin wrapper around util.translateError(): preserves the raw error text in
+   * the data-raw-error attribute so re-toggling the language re-translates
+   * from the original (never from an already-translated string).
+   * The keyword map is injected by the login template (window.HotspotErrorMap,
+   * built from config.json radiusErrorTranslations).
+   */
   translateRouterError: function() {
     try {
       var errorEl = document.getElementById('errorMessage');
       if (!errorEl) return;
 
-      var currentLang = document.documentElement.getAttribute('lang') || 'en';
       var rawError = errorEl.getAttribute('data-raw-error') || errorEl.textContent.trim();
-      
+      if (!rawError) return;
       if (!errorEl.getAttribute('data-raw-error')) {
         errorEl.setAttribute('data-raw-error', rawError);
       }
 
-      if (!rawError) return;
-
-      // Clean up URL encoding plus signs and formatting issues
-      var cleanError = rawError.replace(/\+/g, ' ');
-      
-      // Decode percent encodings safely
-      try {
-        cleanError = decodeURIComponent(cleanError);
-      } catch (e) {
-        // Fallback: replace common encodings manually and strip any malformed hex patterns (e.g. %FFF)
-        cleanError = cleanError.replace(/%2[fF]/g, '/')
-                               .replace(/%20/g, ' ')
-                               .replace(/%[a-zA-Z0-9]{2,}/g, '');
-      }
-
-      // Strip remaining sequence patterns of malformed %FFF or repeating % blocks
-      cleanError = cleanError.replace(/(?:\s*[\/%]*[fF]{3,}[%]*)+/g, '')
-                             .replace(/\s*\/[\s\/]*/g, ' ')
-                             .replace(/\s+/g, ' ')
-                             .trim();
-
-      if (currentLang === 'ar') {
-        errorEl.textContent = ui.mapRouterErrorToArabic(cleanError);
-      } else {
-        errorEl.textContent = cleanError;
-      }
+      var currentLang = document.documentElement.getAttribute('lang') || 'en';
+      var map = (typeof window !== 'undefined' && window.HotspotErrorMap) || {};
+      errorEl.textContent = util.translateError(rawError, map, currentLang);
     } catch (err) {
       console.error('Translate router error error:', err);
     }
   },
-
-  mapRouterErrorToArabic: function(error) {
-    if (!error) return "";
-    var err = error.toLowerCase();
-    
-    var dictionary = {
-      // === 1. أخطاء الحساب وبيانات الدخول ===
-      "invalid username or password": "اسم المستخدم أو كلمة المرور غير صحيحة.",
-      "username or password wrong": "اسم المستخدم أو كلمة المرور غير صحيحة.",
-      "invalid password": "كلمة المرور المدخلة غير صحيحة.",
-      "invalid username": "اسم المستخدم غير صحيح.",
-      "not found": "عذراً، هذا الحساب غير مسجل في نظامنا.",
-      "doesn't exist": "عذراً، هذا الحساب غير مسجل في نظامنا.",
-      "disabled": "هذا الحساب معطل حالياً، يرجى مراجعة إدارة الشبكة.",
-      "not local": "هذا الحساب غير مسجل محلياً في خادم الشبكة.",
-
-      // === 2. أخطاء الأجهزة المتعددة والـ MAC Address ===
-      "already logged in": "جهازك مسجل دخول حالياً بالشبكة. لو حابب تسجل من جهاز تاني، افصل القديم أولاً.",
-      "simultaneous": "جهازك مسجل دخول حالياً بالشبكة. لو حابب تسجل من جهاز تاني، افصل القديم أولاً.",
-      "mac address is not yours": "عذراً، هذا الحساب مرتبط بجهاز آخر ولا يمكن استخدامه هنا.",
-      "not allowed to log in from this mac": "غير مسموح بتسجيل الدخول من هذا الجهاز.",
-      "no more sessions are allowed for user": "عذراً، لقد تم الوصول للحد الأقصى من الجلسات المفتوحة لهذا المستخدم.",
-
-      // === 3. أخطاء انتهاء الاشتراكات وحجم البيانات ===
-      "uptime limit reached": "انتهت صلاحية وقت الحساب المسموح بها.",
-      "reached uptime limit": "انتهت صلاحية وقت الحساب المسموح بها.",
-      "traffic limit reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
-      "reached traffic limit": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
-      "profile": "انتهت صلاحية الباقة الخاصة بك أو لا توجد باقة نشطة.",
-      "active profile": "انتهت صلاحية الباقة الخاصة بك أو لا توجد باقة نشطة.",
-      "no valid profile": "انتهت صلاحية باقة الاشتراك الحالية.",
-      "credit limit reached": "انتهى رصيد حسابك، يرجى تجديد الاشتراك.",
-
-      // === 4. أخطاء الفترة التجريبية (Trial Mode) ===
-      "trial time limit reached": "انتهت الفترة التجريبية المجانية المتاحة لجهازك اليوم.",
-      "trial limit reached": "لقد استهلكت فترة التجربة المجانية المتاحة لك.",
-
-      // === 5. أخطاء الشبكة والاتصال بالخوادم ===
-      "responding": "خادم الشبكة لا يستجيب حالياً، يرجى المحاولة لاحقاً.",
-      "already authorizing": "جاري التحقق من الحساب بالفعل، يرجى المحاولة لاحقاً.",
-      "radius server is not responding": "خادم التحقق (RADIUS) لا يستجيب، يرجى المحاولة لاحقاً.",
-      "internal-error": "حدث خطأ داخلي في النظام، يرجى إبلاغ الإدارة.",
-      "ippool-empty": "الشبكة ممتلئة بالكامل حالياً، يرجى الانتظار والمحاولة لاحقاً.",
-      "no more free addresses": "الشبكة ممتلئة بالكامل حالياً، يرجى الانتظار والمحاولة لاحقاً."
-    };
-
-    for (var keyword in dictionary) {
-      if (dictionary.hasOwnProperty(keyword) && err.indexOf(keyword) !== -1) {
-        return dictionary[keyword];
-      }
-    }
-
-    return error;
-  },
-
-
 
   initCountdown: function(seconds, elementId, callback) {
     try {

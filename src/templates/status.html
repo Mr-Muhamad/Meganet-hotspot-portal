@@ -15,36 +15,36 @@
 
       <div class="card">
         <div class="card-header">
-          <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-sm); margin-bottom: var(--space-xs);">
-            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0;">
+          <div class="status-header">
+            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
             </svg>
-            <h1 class="card-header__title" data-i18n="status_title" style="margin: 0;">Session Status</h1>
+            <h1 class="card-header__title" data-i18n="status_title">Session Status</h1>
           </div>
           <p class="card-header__subtitle"><span id="device-os-display">$(username-esc)</span> &mdash; $(ip)</p>
         </div>
 
         <div class="card-body">
           <!-- PWA Install Banner -->
-          <div class="stat-card--pwa" id="pwaBanner" style="display: none; width: 100%;">
-            <button class="pwa-banner__close" onclick="dismissPwaBanner(event)" aria-label="Dismiss" style="position: absolute; top: var(--space-sm); right: var(--space-sm); background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: var(--space-xs);">
+          <div class="stat-card--pwa" id="pwaBanner" style="display: none;">
+            <button class="pwa-banner__close" onclick="dismissPwaBanner(event)" aria-label="Dismiss">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
-            <div style="display: flex; align-items: flex-start; gap: var(--space-md); width: 100%;">
-              <div class="pwa-banner__icon-wrapper" style="background: var(--color-primary-bg); color: var(--color-primary); padding: var(--space-sm); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="pwa-banner__body">
+              <div class="pwa-banner__icon-wrapper">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
               </div>
-              <div style="flex: 1; display: flex; flex-direction: column; gap: var(--space-xs); text-align: start; padding-right: var(--space-md);">
-                <div class="pwa-banner__title" style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-base); color: var(--color-text);" data-i18n="pwa_banner_title">Install Network App</div>
-                <div class="pwa-banner__desc" style="font-size: var(--font-size-xs); color: var(--color-text-muted); line-height: var(--line-height-normal);" data-i18n="pwa_banner_desc">Add this portal to your Home Screen to easily monitor your consumption and speed at any time.</div>
-                <button class="btn btn-primary btn-sm" onclick="toggleInstallModal()" style="margin-top: var(--space-xs); width: fit-content; padding: 6px var(--space-md); font-size: var(--font-size-xs); border-radius: var(--radius-sm);" data-i18n="pwa_banner_btn">Install Now</button>
+              <div class="pwa-banner__text">
+                <div class="pwa-banner__title" data-i18n="pwa_banner_title">Install Network App</div>
+                <div class="pwa-banner__desc" data-i18n="pwa_banner_desc">Add this portal to your Home Screen to easily monitor your consumption and speed at any time.</div>
+                <button class="btn btn-primary btn-sm pwa-banner__btn" onclick="toggleInstallModal()" data-i18n="pwa_banner_btn">Install Now</button>
               </div>
             </div>
           </div>
@@ -61,7 +61,7 @@
             $(if limit-bytes-total)
             <div class="session-countdown__progress-container" id="quota-progress-container">
               <div class="progress-bar">
-                <div class="progress-bar__fill progress-bar__fill--animated" id="quota-remaining-progress-fill" style="width: 100%;"></div>
+                <div class="progress-bar__fill progress-bar__fill--animated" id="quota-remaining-progress-fill"></div>
               </div>
               <div class="session-countdown__percentage" id="quota-remaining-percentage">--</div>
             </div>
@@ -88,8 +88,8 @@
               </svg>
               <div class="stat-card__label" data-i18n="time_remaining">Time Remaining</div>
               <div class="stat-card__value" id="session-time-left" data-seconds="$(session-time-left-secs)">$(session-time-left)</div>
-              <div class="progress-bar" id="time-remaining-progress-container" style="display: none; margin-top: var(--space-xs);">
-                <div class="progress-bar__fill progress-bar__fill--animated" id="time-remaining-progress-fill" style="width: 100%;"></div>
+              <div class="progress-bar time-remaining-progress-container" id="time-remaining-progress-container" style="display: none;">
+                <div class="progress-bar__fill progress-bar__fill--animated" id="time-remaining-progress-fill"></div>
               </div>
             </div>
 
@@ -135,41 +135,41 @@
                 <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
               </svg>
               <div class="stat-card__label" data-i18n="smart_usage_assistant">Smart Usage Assistant</div>
-              <div class="stat-card__value" id="smart-usage-tip" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-normal); line-height: var(--line-height-normal); text-align: start; margin-top: var(--space-xs);">
+              <div class="stat-card__value smart-usage-value" id="smart-usage-tip">
                 --
               </div>
-              <div class="smart-usage-activities" id="smart-usage-activities" style="display: none; margin-top: var(--space-sm); border-top: 1px solid var(--color-border); padding-top: var(--space-sm); width: 100%;">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); width: 100%;">
+              <div class="smart-usage-activities" id="smart-usage-activities">
+                <div class="activities-grid">
                   <!-- Social & Chatting Badge -->
-                  <div class="activity-badge" style="background: rgba(34, 197, 94, 0.03); border: 1px solid rgba(34, 197, 94, 0.1); padding: var(--space-sm); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-xs); text-align: start; transition: transform var(--transition-normal), border-color var(--transition-normal); cursor: default;">
-                    <span style="font-size: 10px; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="filter: drop-shadow(0 0 3px rgba(34, 197, 94, 0.4));">
+                  <div class="activity-badge">
+                    <span class="activity-badge__label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" class="activity-badge__icon">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
                       <span data-i18n="browsing_estimate">Browsing:</span>
                     </span>
-                    <span id="browsing-hours" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text);">--</span>
+                    <span id="browsing-hours" class="activity-badge__value">--</span>
                   </div>
                   <!-- Eco SD Video Badge -->
-                  <div class="activity-badge" style="background: rgba(234, 179, 8, 0.03); border: 1px solid rgba(234, 179, 8, 0.1); padding: var(--space-sm); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-xs); text-align: start; transition: transform var(--transition-normal), border-color var(--transition-normal); cursor: default;">
-                    <span style="font-size: 10px; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" style="filter: drop-shadow(0 0 3px rgba(234, 179, 8, 0.4));">
+                  <div class="activity-badge activity-badge--warning">
+                    <span class="activity-badge__label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" class="activity-badge__icon">
                         <polygon points="23 7 16 12 23 17 23 7"></polygon>
                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                       </svg>
                       <span data-i18n="video_sd_estimate">SD Video:</span>
                     </span>
-                    <span id="video-sd-hours" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text);">--</span>
+                    <span id="video-sd-hours" class="activity-badge__value">--</span>
                   </div>
                   <!-- HD Video Badge -->
-                  <div class="activity-badge" style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.1); padding: var(--space-sm); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-xs); text-align: start; transition: transform var(--transition-normal), border-color var(--transition-normal); cursor: default;">
-                    <span style="font-size: 10px; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4));">
+                  <div class="activity-badge activity-badge--danger">
+                    <span class="activity-badge__label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" class="activity-badge__icon">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                       </svg>
                       <span data-i18n="video_hd_estimate">HD Video:</span>
                     </span>
-                    <span id="video-hd-hours" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text);">--</span>
+                    <span id="video-hd-hours" class="activity-badge__value">--</span>
                   </div>
                 </div>
               </div>
@@ -178,33 +178,33 @@
           </div>
         </div>
 
-        <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md); align-items: center; justify-content: center; border-top: 1px solid var(--color-border); padding-top: var(--space-md); margin-top: var(--space-md);">
+        <div class="card-footer status-card-footer">
           {% if config.features.enableTechDetails %}
           <!-- Collapsible Technical Details -->
-          <div class="tech-details" style="width: 100%;">
-            <button class="tech-details__trigger" onclick="toggleTechDetails()" aria-expanded="false" style="width: 100%; display: flex; align-items: center; justify-content: space-between; background: none; border: none; color: var(--color-text-muted); font-size: var(--font-size-sm); cursor: pointer; padding: var(--space-xs) 0;">
+          <div class="tech-details">
+            <button class="tech-details__trigger" onclick="toggleTechDetails()" aria-expanded="false">
               <span data-i18n="technical_details">Technical Details</span>
-              <svg class="tech-details__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; transition: transform var(--transition-normal);">
+              <svg class="tech-details__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </button>
-            <div class="tech-details__content" id="techDetailsContent" hidden style="margin-top: var(--space-sm); width: 100%;">
-              <div class="tech-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); width: 100%;">
-                <div class="tech-item" style="text-align: start;">
-                  <span class="tech-item__label" style="font-size: 10px; color: var(--color-text-muted);" data-i18n="username">Username</span>
-                  <div class="tech-item__value" id="tech-username" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text); margin-top: 2px;">$(username-esc)</div>
+            <div class="tech-details__content" id="techDetailsContent" hidden>
+              <div class="tech-grid">
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="username">Username</span>
+                  <div class="tech-item__value" id="tech-username">$(username-esc)</div>
                 </div>
-                <div class="tech-item" style="text-align: start;">
-                  <span class="tech-item__label" style="font-size: 10px; color: var(--color-text-muted);" data-i18n="ip_address">IP Address</span>
-                  <div class="tech-item__value" id="tech-ip" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text); margin-top: 2px; cursor: pointer;" onclick="copyToClipboard('$(ip)', 'IP')">$(ip)</div>
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="ip_address">IP Address</span>
+                  <div class="tech-item__value tech-item__value--clickable" id="tech-ip" onclick="copyToClipboard('$(ip)', 'IP')">$(ip)</div>
                 </div>
-                <div class="tech-item" style="text-align: start;">
-                  <span class="tech-item__label" style="font-size: 10px; color: var(--color-text-muted);" data-i18n="mac_address">MAC Address</span>
-                  <div class="tech-item__value" id="tech-mac" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text); margin-top: 2px; cursor: pointer;" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')">$(mac-esc)</div>
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="mac_address">MAC Address</span>
+                  <div class="tech-item__value tech-item__value--clickable" id="tech-mac" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')">$(mac-esc)</div>
                 </div>
-                <div class="tech-item" style="text-align: start;">
-                  <span class="tech-item__label" style="font-size: 10px; color: var(--color-text-muted);" data-i18n="uptime">Uptime</span>
-                  <div class="tech-item__value" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text); margin-top: 2px;">$(uptime)</div>
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="uptime">Uptime</span>
+                  <div class="tech-item__value">$(uptime)</div>
                 </div>
               </div>
             </div>
@@ -212,8 +212,8 @@
           {% endif %}
 
           <!-- Logout Section -->
-          <div class="logout-section" style="display: flex; gap: var(--space-sm); width: 100%;">
-            <a href="$(link-logout)" class="btn btn-secondary btn-block" id="logout-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: var(--space-xs); flex: 1;">
+          <div class="logout-section status-actions">
+            <a href="$(link-logout)" class="btn btn-secondary btn-block" id="logout-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
@@ -221,7 +221,7 @@
               </svg>
               <span data-i18n="logout">Logout</span>
             </a>
-            <button class="btn btn-primary btn-block" onclick="refreshStatus()" style="display: flex; align-items: center; justify-content: center; gap: var(--space-xs); flex: 1;">
+            <button class="btn btn-primary btn-block" onclick="refreshStatus()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -231,8 +231,8 @@
           </div>
 
           <!-- Plans & Pricing Link -->
-          <div class="plans-link-compact" style="width: 100%; text-align: center;">
-            <a href="./plans.html" class="plans-link" id="viewPlansLink" style="display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-sm); text-decoration: none; color: var(--color-primary); font-weight: var(--font-weight-medium);">
+          <div class="plans-link-compact">
+            <a href="./plans.html" class="plans-link" id="viewPlansLink">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>

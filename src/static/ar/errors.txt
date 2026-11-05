@@ -28,7 +28,9 @@ shutting-down = يتم إيقاف خدمة نقطة الاتصال
 # أخطاء RADIUS
 radius-timeout = خادم المصادقة لا يستجيب
 auth-in-progress = جارٍ المصادقة بالفعل، يرجى الانتظار
-radius-reply = $(error-orig)
+# النص الخام يُعرض كما هو، والقالب يترجم رسائل User Manager المعروفة
+# من جهة العميل (راجع config.json → radiusErrorTranslations).
+radius-reply = رسالة من خادم المصادقة: $(error-orig)
 
 # عام
 simultaneous-session-limit = لديك جلسة نشطة بالفعل. يرجى تسجيل الخروج أولاً.

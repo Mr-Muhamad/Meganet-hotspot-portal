@@ -195,6 +195,15 @@
         normalPanels.forEach(p => p.style.display = 'block');
         {% endif %}
 
+        // Translate RADIUS/User Manager error messages (arrive raw in English)
+        var errorEl = document.getElementById('errorMessage');
+        if (errorEl && errorEl.textContent.trim()) {
+          errorEl.textContent = util.translateError(
+            errorEl.textContent,
+            {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | dump | safe }}{% else %}{}{% endif %}
+          );
+        }
+
         // Decode footer MAC address if present on login page
         ui.loadAnnouncements();
         var footerMac = document.getElementById('footer-mac-display');

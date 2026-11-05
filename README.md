@@ -183,6 +183,7 @@ All visual branding is driven by **`config.json`** — edit it, run `npm run bui
 | `theme.enableNetworkBackground` | Interactive animated canvas background |
 | `general.networkName` | Network name shown in the header |
 | `general.poweredByText` / `poweredByUrl` / `poweredByName` | Footer branding |
+| `radiusErrorTranslations` | English→Arabic map for RADIUS/User Manager error messages on the Arabic login page (longest-key-first substring match; unknown messages pass through unchanged) |
 
 Base design tokens live in `src/css/variables.css` and `src/css/theme.css`.
 

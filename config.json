@@ -127,6 +127,41 @@
     "blockDurationMinutes_hints": "مدة حظر العميل (بالدقائق) عند تجاوزه عدد المحاولات الخاطئة"
   },
 
+  "_comment_radius_errors": "=== ترجمة رسائل أخطاء خادم المصادقة (RADIUS / User Manager) ===",
+  "radiusErrorTranslations": {
+    "_comment": "الرسائل الإنجليزية القادمة من خادم المصادقة (User Manager) لا تُترجم تلقائياً. المفتاح = جزء إنجليزي يُطابَق inside نص الخطأ (تطابق جزئي، الأطول أولاً)، القيمة = البديل العربي. الرسائل غير المعروفة تُعرض كما هي. أضف نصوص راوترك الفعلية هنا عند توفرها.",
+    "invalid username or password": "اسم المستخدم أو كلمة المرور غير صحيح",
+    "password mismatch": "كلمة المرور غير صحيحة",
+    "user not found": "المستخدم غير موجود",
+    "account expired for user": "انتهت صلاحية حساب المستخدم",
+    "account expired": "انتهت صلاحية الحساب",
+    "user expired": "انتهت صلاحية المستخدم",
+    "uptime limit is reached for user": "وصل حد وقت الاستخدام للمستخدم",
+    "uptime limit is reached": "تم الوصول إلى حد وقت الاستخدام",
+    "uptime limit": "حد وقت الاستخدام",
+    "traffic limit is reached for user": "وصل حد البيانات للمستخدم",
+    "traffic limit is reached": "تم الوصول إلى حد البيانات",
+    "traffic limit": "حد البيانات",
+    "byte limit is reached": "تم الوصول إلى حد البيانات",
+    "byte limit": "حد البيانات",
+    "no more sessions are allowed for user": "لا يُسمح بجلسات إضافية للمستخدم",
+    "no more sessions are allowed": "لا يُسمح بجلسات إضافية",
+    "no more sessions": "لا يُسمح بجلسات إضافية",
+    "session limit reached": "تم الوصول إلى حد الجلسات",
+    "session limit": "حد الجلسات",
+    "radius server is not responding": "خادم المصادقة لا يستجيب",
+    "already authorizing": "جارٍ المصادقة بالفعل، يرجى الانتظار",
+    "cannot assign ip address": "لا يمكن تعيين عنوان IP",
+    "no more free addresses": "لا توجد عناوين IP حرة",
+    "configuration error": "خطأ في الإعدادات",
+    "internal error": "خطأ داخلي",
+    "shutting down": "الخدمة قيد الإيقاف",
+    "hotspot service is shutting down": "خدمة نقطة الاتصال قيد الإيقاف",
+    "not allowed to log in from this mac": "غير مسموح بتسجيل الدخول من هذا الماك",
+    "web browser did not send challenge response": "المتصفح لم يرسل استجابة التشفير",
+    "enable javascript": "يرجى تفعيل JavaScript"
+  },
+
   "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
   "support": {
     "agents": [

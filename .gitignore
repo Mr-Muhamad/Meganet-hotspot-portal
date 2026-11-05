@@ -37,3 +37,7 @@ npm-debug.log*
 /icon.png
 /icon1.png
 *.zip
+
+# Playwright run artifacts
+test-results/
+playwright-report/

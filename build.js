@@ -243,6 +243,18 @@ function copyAssets() {
 function build(options = {}) {
   console.log('🔨 Building MikroTik Hotspot Portal...\n');
 
+  // Gate: refuse to emit dist/ on an invalid config.json (typos like a wrong
+  // loginMode silently degrade the portal).
+  const { validateConfigFile } = require('./scripts/validate-config.js');
+  const { errors: configErrors } = validateConfigFile();
+  if (configErrors.length) {
+    console.error(`✖ config.json failed validation (${configErrors.length} error${configErrors.length === 1 ? '' : 's'}):`);
+    configErrors.forEach(e => console.error(`  - ${e}`));
+    console.error('Run "npm run validate:config" for details. Aborting build.');
+    process.exitCode = 1;
+    return;
+  }
+
   const distDir = path.join(__dirname, 'dist');
   if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, { recursive: true });

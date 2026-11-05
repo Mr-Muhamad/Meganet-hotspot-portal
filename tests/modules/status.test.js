@@ -344,6 +344,26 @@ document.body.appendChild(mockSmartUsageCard);
       expect(mockConnectionStatusVal.textContent).toBe('Offline');
       expect(mockConnectionStatusVal.classList.contains('color-danger')).toBe(true);
     });
+
+    // Regression: a bare relative 'api.json' 404s on /ar/ pages (one
+    // directory deep) and the card wrongly reported "Offline".
+    test.each([
+      ['/status.html', 'api.json'],
+      ['/ar/status.html', '../api.json']
+    ])('probes the right path from %s', (pathname, expectedUrl) => {
+      const urls = [];
+      global.fetch = (url) => {
+        urls.push(url);
+        return Promise.reject(new Error('mocked network'));
+      };
+      try {
+        window.history.replaceState({}, '', pathname);
+        statusModule.checkConnectionQuality();
+        expect(urls[0]).toContain(expectedUrl + '?t=');
+      } finally {
+        delete global.fetch;
+      }
+    });
   });
 
   describe('formatEstimate', () => {

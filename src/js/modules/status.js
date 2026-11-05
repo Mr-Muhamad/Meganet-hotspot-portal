@@ -508,8 +508,11 @@ var statusModule = {
       var startTime = Date.now();
 
       // Fetch a small local resource to measure round-trip time (ping)
-      // We add a cache buster query parameter
-      fetch('api.json?t=' + startTime)
+      // Arabic pages live one directory deeper (/ar/), so the request path
+      // must match — a bare relative 'api.json' 404s there and the card would
+      // wrongly report "Offline".
+      var apiPath = window.location.pathname.indexOf('/ar/') !== -1 ? '../api.json' : 'api.json';
+      fetch(apiPath + '?t=' + startTime)
         .then(function(response) {
           if (!response.ok) throw new Error('status not ok');
           var latency = Date.now() - startTime;

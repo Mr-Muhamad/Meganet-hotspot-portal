@@ -1,0 +1,34 @@
+# رسائل أخطاء MikroTik Hotspot — العربية
+# MikroTik Hotspot Portal 2026
+
+# أخطاء داخلية
+internal-error = خطأ داخلي: $(error-orig)
+config-error = خطأ في الإعدادات: $(error-orig)
+
+# أخطاء المصادقة
+not-logged-in = أنت غير مسجل الدخول (IP: $(ip))
+invalid-username = اسم المستخدم أو كلمة المرور غير صحيحة
+wrong-mac-username = لا يمكن استخدام هذا الحساب من هذا الجهاز
+invalid-mac = المستخدم $(username) غير مسموح من عنوان MAC هذا
+chap-missing = JavaScript مطلوب لتسجيل الدخول الآمن. يرجى تفعيل JavaScript.
+
+# حدود الجلسة
+user-session-limit = لا يُسمح بجلسات إضافية للمستخدم $(username)
+license-session-limit = تم الوصول إلى حد الجلسات: $(error-orig)
+
+# حدود الحساب
+uptime-limit = المستخدم $(username) وصل إلى حد وقت الاستخدام
+traffic-limit = المستخدم $(username) وصل إلى حد البيانات
+account-expired = انتهى حساب المستخدم $(username)
+
+# أخطاء الشبكة
+ippool-empty = لا يمكن تعيين عنوان IP - لا توجد عناوين حرة
+shutting-down = يتم إيقاف خدمة نقطة الاتصال
+
+# أخطاء RADIUS
+radius-timeout = خادم المصادقة لا يستجيب
+auth-in-progress = جارٍ المصادقة بالفعل، يرجى الانتظار
+radius-reply = $(error-orig)
+
+# عام
+simultaneous-session-limit = لديك جلسة نشطة بالفعل. يرجى تسجيل الخروج أولاً.

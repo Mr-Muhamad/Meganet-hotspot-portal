@@ -276,6 +276,17 @@ These `$(variable)` placeholders are injected by RouterOS at runtime:
 - **macOS CNA**: Fixed 900×572 viewport, no window resize, limited JS APIs
 - **Android CNA**: Generally full browser, but some OEMs use restricted WebViews
 
+**Features that silently degrade without `localStorage`** (all guarded with try/catch, so the page never breaks):
+
+| Feature | Behavior in CNA |
+|---|---|
+| Auto-login with last voucher | Never activates — user enters the code each time |
+| Login attempt rate limiting | Counter resets on every page load |
+| PWA banner dismissal | Banner reappears on each visit |
+| Voucher/normal mode memory | Always defaults to voucher |
+
+The rate limiter is a UX guard only — real brute-force protection must be server-side (RouterOS firewall rules or RADIUS policy).
+
 ---
 
 ## Performance

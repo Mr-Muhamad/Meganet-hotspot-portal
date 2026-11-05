@@ -171,6 +171,64 @@ var util = {
   },
 
   /**
+   * Translate a hotspot error message to the page language.
+   *
+   * RADIUS/User Manager rejects arrive as raw English Reply-Message text via
+   * $(error-orig) — errors.txt can only wrap them, not translate dynamic
+   * content. This performs the actual translation:
+   *   1. documented RouterOS formats with a username (regex, full grammar)
+   *   2. configurable substring map (longest key first, replaces fragment only)
+   * Unknown messages pass through unchanged (safe fallback).
+   *
+   * @param {string} text - The raw error message (from $(error-orig)/$(error))
+   * @param {Object} map - { englishFragment: arabicTranslation } map
+   * @param {string} [lang] - Override language (defaults to <html lang>)
+   * @returns {string} Translated message, or original when not matching/English
+   */
+  translateError: function(text, map, lang) {
+    if (!text || typeof text !== 'string') return text;
+    if (!lang) {
+      lang = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('lang')) || 'en';
+    }
+    if (lang !== 'ar' || !map || typeof map !== 'object') return text;
+
+    // 1. Documented RouterOS error formats carrying a username
+    var patterns = [
+      [/user\s+([^\s]+)\s+has reached uptime limit/i, 'المستخدم $1 وصل إلى حد وقت الاستخدام'],
+      [/user\s+([^\s]+)\s+has reached traffic limit/i, 'المستخدم $1 وصل إلى حد البيانات'],
+      [/no more sessions are allowed for user\s+([^\s]+)/i, 'لا يُسمح بجلسات إضافية للمستخدم $1'],
+      [/user\s+([^\s]+)\s+is not allowed to log in from this MAC address/i, 'المستخدم $1 غير مسموح بتسجيل الدخول من عنوان MAC هذا'],
+      [/you are not logged in \(ip\s+([^)]+)\)/i, 'أنت غير مسجل الدخول (IP: $1)'],
+      [/session limit reached \(([^)]+)\)/i, 'تم الوصول إلى حد الجلسات ($1)'],
+      [/internal error \(([^)]+)\)/i, 'خطأ داخلي ($1)'],
+      [/configuration error \(([^)]+)\)/i, 'خطأ في الإعدادات ($1)'],
+      [/web browser did not send challenge response \(([^)]+)\)/i, 'المتصفح لم يرسل استجابة التشفير ($1)']
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      if (patterns[i][0].test(text)) {
+        return text.replace(patterns[i][0], patterns[i][1]);
+      }
+    }
+
+    // 2. Configurable substring map — longest keys first so specific phrases
+    //    win over generic ones; only the matched fragment is replaced, so
+    //    dynamic values (usernames, IPs) survive.
+    var keys = Object.keys(map)
+      .filter(function(k) { return k.charAt(0) !== '_' && map[k]; })
+      .sort(function(a, b) { return b.length - a.length; });
+    var lower = text.toLowerCase();
+    for (var j = 0; j < keys.length; j++) {
+      var key = keys[j];
+      if (lower.indexOf(key.toLowerCase()) !== -1) {
+        var idx = lower.indexOf(key.toLowerCase());
+        return text.slice(0, idx) + map[key] + text.slice(idx + key.length);
+      }
+    }
+
+    return text;
+  },
+
+  /**
    * Safe redirect with countdown
    * @param {string} url - URL to redirect to
    * @param {number} seconds - Seconds until redirect

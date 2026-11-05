@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build completeness**: `redirect.html`, `alogin.html`, and `errors.txt` (RouterOS localized error messages) are now copied from `src/static/` on every build (previously lost on a clean rebuild)
 - **Error message localization**: `errors.txt` was a single bilingual file ("English / عربي" on every line), so RouterOS showed every error in both languages at once; it is now split into `src/static/errors.txt` (English) and `src/static/ar/errors.txt` (Arabic) — RouterOS language routing (`target=ar`) now serves properly localized messages, and subdirectories under `src/static/` are preserved by the build
 
+### Added
+- **RADIUS / User Manager error translation**: error messages arriving via `radius-reply` (raw English Reply-Message text) are now translated to Arabic on the login page. Added `util.translateError()` (documented RouterOS formats with usernames handled by regex; configurable substring map, longest-key-first, fragment-only replacement so dynamic values survive; English pages unaffected; unknown messages pass through unchanged) driven by a new `radiusErrorTranslations` map in `config.json`, and the Arabic `errors.txt` now wraps `radius-reply` with a translated prefix
+
 ### Changed
 - **alogin.html is now a full template** extending `base.html` — it inherits the config-driven theme, header/footer, and support/install modals like every other page (was a standalone page with its own hardcoded styles); the MikroTik `$(if popup)` status-popup logic and the 3-second iOS CNA redirect path are preserved
 - **index.html now detects the browser language** (Arabic browsers → `ar/login.html`, otherwise → `login.html`) instead of the previous hard-coded language swap, with a `<noscript>` fallback and manual links

@@ -28,6 +28,9 @@ shutting-down = Hotspot service is shutting down
 # RADIUS errors
 radius-timeout = Authentication server is not responding
 auth-in-progress = Already authorizing, please wait
+# The raw reply text is shown; this template also translates known
+# RADIUS/User Manager messages client-side (see config.json
+# radiusErrorTranslations).
 radius-reply = $(error-orig)
 
 # General

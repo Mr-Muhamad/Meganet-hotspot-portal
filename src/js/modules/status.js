@@ -148,9 +148,7 @@ var statusModule = {
 
           if (quotaRemainingPercentage) {
             var percentFormatted = Math.round(percentRemaining);
-            var lang = document.documentElement.getAttribute('lang') || 'en';
-            var remainingWord = lang === 'ar' ? 'متبقي' : 'remaining';
-            quotaRemainingPercentage.textContent = percentFormatted + '% ' + remainingWord;
+            quotaRemainingPercentage.textContent = percentFormatted + '% ' + i18n.t('remaining');
           }
 
           // Apply warning/danger styles to the value text too
@@ -497,47 +495,46 @@ var statusModule = {
     try {
       var valEl = document.getElementById('connection-status-val');
       if (!valEl) return;
-      
-      var isAr = (document.documentElement.getAttribute('lang') || 'en') === 'ar';
-      valEl.textContent = isAr ? 'جاري الفحص...' : 'Checking...';
+
+      valEl.textContent = i18n.t('status_checking');
       valEl.className = 'stat-card__value';
-      
+
       if (typeof fetch === 'undefined') {
-        valEl.textContent = isAr ? 'غير متصل' : 'Offline';
+        valEl.textContent = i18n.t('status_offline');
         valEl.classList.add('color-danger');
         return;
       }
-      
+
       var startTime = Date.now();
-      
+
       // Fetch a small local resource to measure round-trip time (ping)
       // We add a cache buster query parameter
       fetch('api.json?t=' + startTime)
         .then(function(response) {
           if (!response.ok) throw new Error('status not ok');
           var latency = Date.now() - startTime;
-          
+
           var qualityText = '';
           var colorClass = '';
-          
+
           if (latency < 50) {
-            qualityText = isAr ? 'ممتاز (' + latency + 'ms)' : 'Excellent (' + latency + 'ms)';
+            qualityText = i18n.t('status_excellent') + ' (' + latency + 'ms)';
             colorClass = 'color-success';
           } else if (latency < 150) {
-            qualityText = isAr ? 'جيد (' + latency + 'ms)' : 'Good (' + latency + 'ms)';
+            qualityText = i18n.t('status_good') + ' (' + latency + 'ms)';
             colorClass = 'color-warning';
           } else {
-            qualityText = isAr ? 'ضعيف (' + latency + 'ms)' : 'Poor (' + latency + 'ms)';
+            qualityText = i18n.t('status_poor') + ' (' + latency + 'ms)';
             colorClass = 'color-danger';
           }
-          
+
           valEl.textContent = qualityText;
           if (colorClass) {
             valEl.classList.add(colorClass);
           }
         })
         .catch(function(err) {
-          valEl.textContent = isAr ? 'غير متصل' : 'Offline';
+          valEl.textContent = i18n.t('status_offline');
           valEl.classList.add('color-danger');
         });
     } catch (err) {

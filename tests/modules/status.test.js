@@ -10,9 +10,28 @@ const ui = {
   initCountdown: jest.fn()
 };
 
+// Mock i18n module (translates the connection-quality strings)
+const i18n = {
+  data: {
+    en: {
+      status_checking: 'Checking...',
+      status_offline: 'Offline',
+      status_excellent: 'Excellent',
+      status_good: 'Good',
+      status_poor: 'Poor'
+    }
+  },
+  currentLang: 'en',
+  t: function(key) {
+    var lang = this.data[this.currentLang];
+    return lang && lang[key] !== undefined ? lang[key] : key;
+  }
+};
+
 // Expose globals for status.js to access
 global.util = util;
 global.ui = ui;
+global.i18n = i18n;
 
 describe('Hotspot.status', () => {
   let mockUptime;

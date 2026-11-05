@@ -96,6 +96,32 @@ Meganet-New-hotspot/
 
 ---
 
+## Local Preview
+
+`scripts/preview.mjs` serves `dist/` with **realistic demo data** — every RouterOS
+template variable (`$(ip)`, `$(username-esc)`, `$(uptime)`, `$(bytes-in-nice)`
+and friends) and every conditional (`$(if error)`, `$(if chap-id)`,
+`$(if session-time-left)` …) is substituted so you can review the portal exactly
+as a connected user would see it — including the Arabic (RTL) variants.
+
+```
+npm run preview                  # connected user (10 GiB quota, mid-session)
+npm run preview:open             # same, and open the browser
+npm run preview:error            # login page showing a RADIUS error
+node scripts/preview.mjs --scenario chap       # CHAP login mode
+node scripts/preview.mjs --scenario unlimited  # session without byte quota
+node scripts/preview.mjs --scenario captive    # captive-portal detected client
+node scripts/preview.mjs --port 9000           # different port (default 8765)
+```
+
+The startup output lists every page URL in both languages. Pages under `/ar/`
+stay Arabic and pages at the root stay English (the server sets the language
+cookie for you). `index`, `alogin`, and `logout` navigate away by design —
+index detects the browser language, alogin redirects after 3 s (iOS CNA path),
+logout after 5 s.
+
+---
+
 ## Installation
 
 ### RouterOS v6

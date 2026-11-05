@@ -49,11 +49,16 @@
       <div class="header__brand">
         <span class="header__logo">{{ logoInline | safe }}</span>
         <span class="header__name" style="margin-right: var(--space-xs);">{% if config.general.networkName %}{{ config.general.networkName }}{% else %}$(identity){% endif %}</span>
-        <!-- Mini Status Dot Indicator -->
+        {% if page == 'status' or page == 'alogin' %}
+        <!-- Mini Status Dot Indicator — shown only where the connection is
+             genuinely active (status: authenticated session, alogin: right
+             after a successful login). Hidden elsewhere so it never claims
+             "Active" on the login/error/expired pages. -->
         <div style="display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); margin-left: 4px;">
           <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; animation: status-pulse-dot 1.5s infinite ease-in-out;"></span>
           <span style="font-size: 9px; color: #10b981; font-weight: bold; line-height: 1;" data-i18n="status_active">Active</span>
         </div>
+        {% endif %}
       </div>
       <div class="header__actions">
         {% if config.features.enableLanguageToggle %}

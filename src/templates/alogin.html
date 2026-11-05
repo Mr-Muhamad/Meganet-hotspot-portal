@@ -4,7 +4,7 @@
       <div class="card">
         <div class="card-header">
           <!-- Success checkmark icon -->
-          <div style="display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-md); width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--color-primary-bg); color: var(--color-success);">
+          <div class="success-icon-wrapper">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -15,13 +15,13 @@
 
         <div class="card-body">
           <!-- Username display -->
-          <div class="text-center text-muted text-sm" style="margin-bottom: var(--space-md);">
-            <span data-i18n="username">Username</span>: <strong style="color: var(--color-text);">$(username-esc)</strong>
+          <div class="text-center text-muted text-sm alogin-user-info">
+            <span data-i18n="username">Username</span>: <strong>$(username-esc)</strong>
           </div>
 
           <!-- Countdown display -->
-          <div id="countdown" aria-live="polite" style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); text-align: center; margin: var(--space-md) 0;">3</div>
-          <p class="text-center text-muted text-sm" role="status" style="margin-bottom: var(--space-lg);">
+          <div id="countdown" aria-live="polite" class="alogin-countdown">3</div>
+          <p class="text-center text-muted text-sm alogin-countdown-label" role="status">
             <span data-i18n="redirecting">Redirecting in</span>
             <span id="countdown-seconds">3</span>
             <span data-i18n="seconds">seconds</span>
@@ -37,7 +37,7 @@
           </a>
 
           <!-- Captive Portal / CNA Warning -->
-          <div class="alert alert-warning" role="alert" style="margin-top: var(--space-md); margin-bottom: 0;">
+          <div class="alert alert-warning alogin-cna-warning" role="alert">
             <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
@@ -47,7 +47,7 @@
           </div>
 
           <!-- Open in full browser hint -->
-          <p class="text-center text-muted text-sm" style="margin-top: var(--space-md);" data-i18n="open_full_browser">
+          <p class="text-center text-muted text-sm alogin-browser-hint" data-i18n="open_full_browser">
             For best experience, open in full browser
           </p>
         </div>

@@ -455,12 +455,14 @@ Potential integrations and features for extended deployments:
 ## Development
 
 ```
-npm install        # install build/test dependencies
-npm run build      # production build (minified) → dist/
-npm run build:dev  # development build (no minification)
-npm run watch      # rebuild on src/ changes
-npm test           # Jest unit tests
-npm run validate   # check dist/ completeness, MikroTik vars, a11y markers
+npm install             # install build/test dependencies
+npm run build           # production build (minified) → dist/ (aborts on invalid config.json)
+npm run build:dev       # development build (no minification)
+npm run watch           # rebuild on src/ changes
+npm test                # Jest unit tests (incl. config schema + i18n health)
+npm run validate        # check dist/ completeness, MikroTik vars, a11y markers
+npm run validate:config # check config.json against its schema
+npm run preview         # serve dist/ with realistic demo data (see Local Preview)
 ```
 
 Key invariants:

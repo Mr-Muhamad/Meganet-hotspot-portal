@@ -16,7 +16,8 @@
     "validate": "node scripts/validate-templates.js",
     "preview": "node scripts/preview.mjs",
     "preview:open": "node scripts/preview.mjs --open",
-    "preview:error": "node scripts/preview.mjs --scenario error"
+    "preview:error": "node scripts/preview.mjs --scenario error",
+    "validate:config": "node scripts/validate-config.js"
   },
   "keywords": [
     "mikrotik",

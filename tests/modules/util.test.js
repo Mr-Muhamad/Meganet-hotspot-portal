@@ -182,14 +182,14 @@ describe('Hotspot.util', () => {
       expect(util.translateError('uptime limit reached', map)).not.toBe('uptime limit reached');
     });
 
-    test('translates exact substring match in Arabic', () => {
+    test('translates exact match in Arabic (whole-message replacement)', () => {
       expect(util.translateError('invalid username or password', map, 'ar'))
         .toBe('اسم المستخدم أو كلمة المرور غير صحيح');
     });
 
-    test('translates fragment only, preserving dynamic values', () => {
+    test('replaces whole message on partial match (no mixed-language output)', () => {
       expect(util.translateError('server says: uptime limit for now', map, 'ar'))
-        .toBe('server says: حد وقت الاستخدام for now');
+        .toBe('حد وقت الاستخدام');
     });
 
     test('translates documented RouterOS uptime-limit format with username', () => {
@@ -241,6 +241,28 @@ describe('Hotspot.util', () => {
       expect(util.translateError('uptime limit', {}, 'ar')).toBe('uptime limit');
       expect(util.translateError('', map, 'ar')).toBe('');
       expect(util.translateError(null, map, 'ar')).toBeNull();
+    });
+
+    test('cleans URL-encoded errors: "+" for spaces', () => {
+      expect(util.translateError('invalid+username+or+password', map, 'ar'))
+        .toBe('اسم المستخدم أو كلمة المرور غير صحيح');
+      expect(util.translateError('invalid+username', map, 'en'))
+        .toBe('invalid username');
+    });
+
+    test('cleans URL-encoded errors: percent-decoding', () => {
+      expect(util.translateError('uptime%20limit%20reached', map, 'ar'))
+        .toBe('حد وقت الاستخدام');
+    });
+
+    test('cleans malformed percent sequences (%FFF corruption)', () => {
+      expect(util.translateError('invalid username or password%FFF', map, 'ar'))
+        .toBe('اسم المستخدم أو كلمة المرور غير صحيح');
+    });
+
+    test('collapses stray slashes from corrupted encodings', () => {
+      expect(util.translateError('uptime limit///reached', map, 'ar'))
+        .toBe('حد وقت الاستخدام');
     });
   });
 });

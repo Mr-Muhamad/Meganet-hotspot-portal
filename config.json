@@ -9,55 +9,40 @@
     "poweredByName": "ميجا نت للحلول التقنية",
     "poweredByName_hints": "الاسم الظاهر للرابط في الفوتر (مثال: 'MikroTik' أو اسم شركتك)"
   },
-
   "_comment_theme": "=== إعدادات التصميم البصري والألوان (ألوان نيون فخمة) ===",
   "theme": {
     "primaryColor": "#22c55e",
     "primaryColor_hints": "اللون الأساسي للشبكة بصيغة Hex (مثال: الأخضر #22c55e، الأزرق #0070f3، البرتقالي #ff4e00)",
-    
     "backgroundColor": "#020617",
     "backgroundColor_hints": "درجة لون الخلفية الكلي الداكن للشبكة (مثال: أسود كحلي #020617، أو أسود خالص #000000)",
-    
     "cardRadius": "16px",
     "cardRadius_hints": "درجة انحناء حواف الكروت والأزرار (حادة 0px، مستديرة خفيفة 8px، مستديرة جداً 16px)",
-    
     "enableNetworkBackground": true,
     "enableNetworkBackground_hints": "تفعيل (true) أو إيقاف (false) خلفية الشبكة العصبية التفاعلية المتحركة بالـ Canvas"
   },
-
   "_comment_features": "=== إعدادات الوظائف المتاحة في البوابة ===",
   "features": {
     "loginMode": "voucher_only",
     "loginMode_hints": "طريقة تسجيل الدخول: 'both' (كود شحن وباقة)، 'voucher_only' (كود شحن فقط)، 'normal_only' (باقة فقط)",
-    
     "voucherPasswordMode": "same",
     "voucherPasswordMode_hints": "وضع كلمة المرور للكروت: 'same' (الباسورد يطابق الكود)، 'empty' (الباسورد يترك فارغاً)",
-    
     "enableQRScanner": true,
     "enableQRScanner_hints": "إظهار (true) أو إخفاء (false) زر مسح الكارت عبر كاميرا الموبايل",
-    
     "kbBase": 1000,
     "kbBase_hints": "معيار حساب الكيلوبايت: 1000 (شائع تجارياً في كروت الشحن) أو 1024 (المعيار الهندسي للحاسوب)",
-    
     "enableSmartAssistant": true,
     "enableSmartAssistant_hints": "إظهار (true) أو إخفاء (false) مساعد الاستهلاك الذكي في صفحة الحالة",
-    
     "quotaDisplayFormat": "MB",
     "quotaDisplayFormat_hints": "صيغة عرض الرصيد المتبقي بصفحة الحالة: 'GB' (جيجا بايت)، أو 'MB' (ميجا بايت)",
-    
     "enableTechDetails": true,
     "enableTechDetails_hints": "تفعيل (true) أو إيقاف (false) إمكانية فتح صندوق التفاصيل التقنية (IP, MAC) للمشترك",
-    
     "enableClonePrevention": true,
     "enableClonePrevention_hints": "حماية كروت الشحن من السرقة ومشاركة الحسابات لمنع تشغيل الكارت على جهازين بنفس الوقت",
-    
     "enableLanguageToggle": true,
     "enableLanguageToggle_hints": "تفعيل (true) أو إخفاء (false) زر تغيير لغة البوابة بالهيدر لتثبيت واجهة لغة واحدة للمشتركين",
-    
     "qrScannerUrl": "https://laksa19.github.io/myqr",
     "qrScannerUrl_hints": "رابط تطبيق الويب المعتمد لمسح الـ QR ومسح الكروت عبر الكاميرا"
   },
-
   "_comment_plans": "=== قائمة أسعار وباقات الاشتراكات للشبكة ===",
   "plans": [
     {
@@ -117,51 +102,64 @@
       "icon": "crown"
     }
   ],
-
   "_comment_security": "=== إعدادات الحماية ومكافحة التخمين للسرقة ===",
   "security": {
     "maxAttempts": 3,
     "maxAttempts_hints": "عدد محاولات تسجيل الدخول الخاطئة المسموح بها قبل حظر الجهاز",
-    
     "blockDurationMinutes": 2,
     "blockDurationMinutes_hints": "مدة حظر العميل (بالدقائق) عند تجاوزه عدد المحاولات الخاطئة"
   },
-
   "_comment_radius_errors": "=== ترجمة رسائل أخطاء خادم المصادقة (RADIUS / User Manager) ===",
   "radiusErrorTranslations": {
-    "_comment": "الرسائل الإنجليزية القادمة من خادم المصادقة (User Manager) لا تُترجم تلقائياً. المفتاح = جزء إنجليزي يُطابَق inside نص الخطأ (تطابق جزئي، الأطول أولاً)، القيمة = البديل العربي. الرسائل غير المعروفة تُعرض كما هي. أضف نصوص راوترك الفعلية هنا عند توفرها.",
-    "invalid username or password": "اسم المستخدم أو كلمة المرور غير صحيح",
-    "password mismatch": "كلمة المرور غير صحيحة",
-    "user not found": "المستخدم غير موجود",
-    "account expired for user": "انتهت صلاحية حساب المستخدم",
-    "account expired": "انتهت صلاحية الحساب",
-    "user expired": "انتهت صلاحية المستخدم",
-    "uptime limit is reached for user": "وصل حد وقت الاستخدام للمستخدم",
-    "uptime limit is reached": "تم الوصول إلى حد وقت الاستخدام",
-    "uptime limit": "حد وقت الاستخدام",
-    "traffic limit is reached for user": "وصل حد البيانات للمستخدم",
-    "traffic limit is reached": "تم الوصول إلى حد البيانات",
-    "traffic limit": "حد البيانات",
-    "byte limit is reached": "تم الوصول إلى حد البيانات",
-    "byte limit": "حد البيانات",
-    "no more sessions are allowed for user": "لا يُسمح بجلسات إضافية للمستخدم",
-    "no more sessions are allowed": "لا يُسمح بجلسات إضافية",
-    "no more sessions": "لا يُسمح بجلسات إضافية",
-    "session limit reached": "تم الوصول إلى حد الجلسات",
-    "session limit": "حد الجلسات",
-    "radius server is not responding": "خادم المصادقة لا يستجيب",
-    "already authorizing": "جارٍ المصادقة بالفعل، يرجى الانتظار",
-    "cannot assign ip address": "لا يمكن تعيين عنوان IP",
-    "no more free addresses": "لا توجد عناوين IP حرة",
-    "configuration error": "خطأ في الإعدادات",
-    "internal error": "خطأ داخلي",
-    "shutting down": "الخدمة قيد الإيقاف",
-    "hotspot service is shutting down": "خدمة نقطة الاتصال قيد الإيقاف",
-    "not allowed to log in from this mac": "غير مسموح بتسجيل الدخول من هذا الماك",
-    "web browser did not send challenge response": "المتصفح لم يرسل استجابة التشفير",
-    "enable javascript": "يرجى تفعيل JavaScript"
+    "_comment": "رسائل خادم المصادقة (User Manager) تصل إنجليزية خام عبر radius-reply ولا تُترجم تلقائياً. المفتاح = كلمة/جملة إنجليزية تُطابَق داخل نص الخطأ (تطابق جزئي، الأطول أولاً، واستبدال الرسالة كاملة بالترجمة). الرسائل غير المعروفة تُعرض كما هي. عدّل/أضف نصوص راوترك الفعلية هنا بدون كود.",
+    "invalid username or password": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+    "username or password wrong": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+    "invalid password": "كلمة المرور المدخلة غير صحيحة.",
+    "invalid username": "اسم المستخدم غير صحيح.",
+    "user not found": "عذراً، هذا الحساب غير مسجل في نظامنا.",
+    "not found": "عذراً، هذا الحساب غير مسجل في نظامنا.",
+    "doesn't exist": "عذراً، هذا الحساب غير مسجل في نظامنا.",
+    "disabled": "هذا الحساب معطل حالياً، يرجى مراجعة إدارة الشبكة.",
+    "not local": "هذا الحساب غير مسجل محلياً في خادم الشبكة.",
+    "already logged in": "جهازك مسجل دخول حالياً بالشبكة. لو حابب تسجل من جهاز تاني، افصل القديم أولاً.",
+    "simultaneous": "جهازك مسجل دخول حالياً بالشبكة. لو حابب تسجل من جهاز تاني، افصل القديم أولاً.",
+    "mac address is not yours": "عذراً، هذا الحساب مرتبط بجهاز آخر ولا يمكن استخدامه هنا.",
+    "not allowed to log in from this mac": "غير مسموح بتسجيل الدخول من هذا الجهاز.",
+    "no more sessions are allowed for user": "عذراً، لقد تم الوصول للحد الأقصى من الجلسات المفتوحة لهذا المستخدم.",
+    "no more sessions are allowed": "عذراً، لقد تم الوصول للحد الأقصى من الجلسات المفتوحة.",
+    "no more sessions": "لا يُسمح بجلسات إضافية.",
+    "session limit reached": "تم الوصول إلى حد الجلسات.",
+    "session limit": "حد الجلسات.",
+    "uptime limit is reached for user": "انتهت صلاحية وقت الحساب المسموح بها للمستخدم.",
+    "uptime limit reached": "انتهت صلاحية وقت الحساب المسموح بها.",
+    "reached uptime limit": "انتهت صلاحية وقت الحساب المسموح بها.",
+    "uptime limit": "حد وقت الاستخدام.",
+    "traffic limit is reached for user": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "traffic limit reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "reached traffic limit": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "traffic limit": "حد البيانات.",
+    "byte limit is reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "byte limit": "حد البيانات.",
+    "active profile": "انتهت صلاحية الباقة الخاصة بك أو لا توجد باقة نشطة.",
+    "no valid profile": "انتهت صلاحية باقة الاشتراك الحالية.",
+    "account expired for user": "انتهت صلاحية حساب المستخدم.",
+    "account expired": "انتهت صلاحية الحساب.",
+    "user expired": "انتهت صلاحية المستخدم.",
+    "credit limit reached": "انتهى رصيد حسابك، يرجى تجديد الاشتراك.",
+    "trial time limit reached": "انتهت الفترة التجريبية المجانية المتاحة لجهازك اليوم.",
+    "trial limit reached": "لقد استهلكت فترة التجربة المجانية المتاحة لك.",
+    "radius server is not responding": "خادم التحقق (RADIUS) لا يستجيب، يرجى المحاولة لاحقاً.",
+    "is not responding": "خادم الشبكة لا يستجيب حالياً، يرجى المحاولة لاحقاً.",
+    "already authorizing": "جاري التحقق من الحساب بالفعل، يرجى المحاولة لاحقاً.",
+    "cannot assign ip address": "الشبكة ممتلئة بالكامل حالياً، يرجى الانتظار والمحاولة لاحقاً.",
+    "no more free addresses": "الشبكة ممتلئة بالكامل حالياً، يرجى الانتظار والمحاولة لاحقاً.",
+    "internal error": "حدث خطأ داخلي في النظام، يرجى إبلاغ الإدارة.",
+    "internal-error": "حدث خطأ داخلي في النظام، يرجى إبلاغ الإدارة.",
+    "configuration error": "خطأ في الإعدادات.",
+    "web browser did not send challenge response": "المتصفح لم يرسل استجابة التشفير، يرجى تفعيل JavaScript.",
+    "enable javascript": "يرجى تفعيل JavaScript.",
+    "shutting down": "خدمة نقطة الاتصال قيد الإيقاف، حاول بعد قليل."
   },
-
   "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
   "support": {
     "agents": [

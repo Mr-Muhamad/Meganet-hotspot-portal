@@ -174,13 +174,17 @@
 {% block scripts %}
   <script src="{% if lang == 'ar' %}../{% endif %}md5.js"></script>
   <script>
+    // RADIUS/User Manager error translation map (from config.json).
+    // Consumed by ui.translateRouterError() during initLang()/toggleLang().
+    window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | dump | safe }}{% else %}{}{% endif %};
+
     // Initialize modules
     (function() {
       try {
         i18n.init();
         ui.initTheme();
         ui.initLang();
-        
+
         // Dynamically override active panel on start based on config
         auth.init();
         {% if config.features.loginMode == 'voucher_only' %}
@@ -194,15 +198,6 @@
         var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
         normalPanels.forEach(p => p.style.display = 'block');
         {% endif %}
-
-        // Translate RADIUS/User Manager error messages (arrive raw in English)
-        var errorEl = document.getElementById('errorMessage');
-        if (errorEl && errorEl.textContent.trim()) {
-          errorEl.textContent = util.translateError(
-            errorEl.textContent,
-            {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | dump | safe }}{% else %}{}{% endif %}
-          );
-        }
 
         // Decode footer MAC address if present on login page
         ui.loadAnnouncements();

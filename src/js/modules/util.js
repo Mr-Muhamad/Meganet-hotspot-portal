@@ -176,21 +176,39 @@ var util = {
    * RADIUS/User Manager rejects arrive as raw English Reply-Message text via
    * $(error-orig) — errors.txt can only wrap them, not translate dynamic
    * content. This performs the actual translation:
+   *   0. clean up URL-encoded error strings (RouterOS passes them via GET)
    *   1. documented RouterOS formats with a username (regex, full grammar)
-   *   2. configurable substring map (longest key first, replaces fragment only)
-   * Unknown messages pass through unchanged (safe fallback).
+   *   2. configurable keyword map (longest key first, whole-message replace —
+   *      avoids mixed-language output for partially-matching messages)
+   * Unknown messages pass through cleaned but unchanged (safe fallback).
    *
    * @param {string} text - The raw error message (from $(error-orig)/$(error))
-   * @param {Object} map - { englishFragment: arabicTranslation } map
+   * @param {Object} map - { englishKeyword: arabicTranslation } map
    * @param {string} [lang] - Override language (defaults to <html lang>)
-   * @returns {string} Translated message, or original when not matching/English
+   * @returns {string} Translated message, or cleaned original when not matching
    */
   translateError: function(text, map, lang) {
     if (!text || typeof text !== 'string') return text;
     if (!lang) {
       lang = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('lang')) || 'en';
     }
-    if (lang !== 'ar' || !map || typeof map !== 'object') return text;
+
+    // 0. Clean URL-encoded artifacts (RouterOS passes errors via GET:
+    // '+' for spaces, percent-encoding, and occasional '%FFF' corruption)
+    var cleaned = text.replace(/\+/g, ' ');
+    try {
+      cleaned = decodeURIComponent(cleaned);
+    } catch (e) {
+      cleaned = cleaned.replace(/%2[fF]/g, '/')
+                       .replace(/%20/g, ' ')
+                       .replace(/%[a-zA-Z0-9]{2,}/g, '');
+    }
+    cleaned = cleaned.replace(/(?:\s*[\/%]*[fF]{3,}[%]*)+/g, '')
+                     .replace(/\s*\/[\s\/]*/g, ' ')
+                     .replace(/\s+/g, ' ')
+                     .trim();
+
+    if (lang !== 'ar' || !map || typeof map !== 'object') return cleaned;
 
     // 1. Documented RouterOS error formats carrying a username
     var patterns = [
@@ -205,27 +223,25 @@ var util = {
       [/web browser did not send challenge response \(([^)]+)\)/i, 'المتصفح لم يرسل استجابة التشفير ($1)']
     ];
     for (var i = 0; i < patterns.length; i++) {
-      if (patterns[i][0].test(text)) {
-        return text.replace(patterns[i][0], patterns[i][1]);
+      if (patterns[i][0].test(cleaned)) {
+        return cleaned.replace(patterns[i][0], patterns[i][1]);
       }
     }
 
-    // 2. Configurable substring map — longest keys first so specific phrases
-    //    win over generic ones; only the matched fragment is replaced, so
-    //    dynamic values (usernames, IPs) survive.
+    // 2. Configurable keyword map — longest keys first so specific phrases win
+    //    over generic ones; the whole message is replaced with the Arabic
+    //    translation (keeps output single-language).
     var keys = Object.keys(map)
       .filter(function(k) { return k.charAt(0) !== '_' && map[k]; })
       .sort(function(a, b) { return b.length - a.length; });
-    var lower = text.toLowerCase();
+    var lower = cleaned.toLowerCase();
     for (var j = 0; j < keys.length; j++) {
-      var key = keys[j];
-      if (lower.indexOf(key.toLowerCase()) !== -1) {
-        var idx = lower.indexOf(key.toLowerCase());
-        return text.slice(0, idx) + map[key] + text.slice(idx + key.length);
+      if (lower.indexOf(keys[j].toLowerCase()) !== -1) {
+        return map[keys[j]];
       }
     }
 
-    return text;
+    return cleaned;
   },
 
   /**

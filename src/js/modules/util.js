@@ -216,6 +216,8 @@ var util = {
       [/user\s+([^\s]+)\s+has reached traffic limit/i, 'المستخدم $1 وصل إلى حد البيانات'],
       [/no more sessions are allowed for user\s+([^\s]+)/i, 'لا يُسمح بجلسات إضافية للمستخدم $1'],
       [/user\s+([^\s]+)\s+is not allowed to log in from this MAC address/i, 'المستخدم $1 غير مسموح بتسجيل الدخول من عنوان MAC هذا'],
+      // User Manager reject format: user <270029> not found
+      [/user\s+<([^>]+)>\s+not found/i, 'عذراً، الحساب <$1> غير مسجل في نظامنا.'],
       [/you are not logged in \(ip\s+([^)]+)\)/i, 'أنت غير مسجل الدخول (IP: $1)'],
       [/session limit reached \(([^)]+)\)/i, 'تم الوصول إلى حد الجلسات ($1)'],
       [/internal error \(([^)]+)\)/i, 'خطأ داخلي ($1)'],

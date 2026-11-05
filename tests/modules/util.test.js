@@ -264,5 +264,37 @@ describe('Hotspot.util', () => {
       expect(util.translateError('uptime limit///reached', map, 'ar'))
         .toBe('حد وقت الاستخدام');
     });
+
+    // Real RADIUS / User Manager reply messages observed on RouterOS v6 in
+    // production. Runs against the shipped config.json translation map so a
+    // regression shows up here, not on a customer's login screen.
+    describe('production RouterOS v6 / User Manager replies', () => {
+      const configMap = require('../../config.json').radiusErrorTranslations;
+
+      test.each([
+        ['invalid Calling-Station-Id'],
+        ['user <270029> not found'],
+        ['no valid profile found'],
+        ['transfer limit reached'],
+        ['traffic limit reached'],
+        ['your traffic limit is reached'],
+        ['simultaneous session limit reached'],
+        ['no more sessions are allowed for user']
+      ])('translates %s', (message) => {
+        const result = util.translateError(message, configMap, 'ar');
+        expect(result).not.toBe(message);
+        expect(result).toMatch(/[\u0600-\u06FF]/); // Arabic output
+      });
+
+      test('user <270029> not found keeps the username in the output', () => {
+        expect(util.translateError('user <270029> not found', configMap, 'ar'))
+          .toBe('عذراً، الحساب <270029> غير مسجل في نظامنا.');
+      });
+
+      test('your traffic limit is reached gets the full message, not the short key', () => {
+        expect(util.translateError('your traffic limit is reached', configMap, 'ar'))
+          .toBe(util.translateError('traffic limit reached', configMap, 'ar'));
+      });
+    });
   });
 });

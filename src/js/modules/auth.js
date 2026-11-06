@@ -68,20 +68,8 @@ var auth = {
 
       var voucherInput = document.getElementById('voucher');
       if (voucherInput) {
-        voucherInput.addEventListener('input', function(e) {
-          var val = voucherInput.value;
-          
-          // 1. Convert Eastern Arabic/Persian numerals to Western Arabic (English) numerals
-          var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
-          var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-          for (var i = 0; i < 10; i++) {
-            val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
-          }
-          
-          // 2. Remove all non-numeric characters
-          val = val.replace(/[^0-9]/g, '');
-          
-          // 3. Set the value back
+        voucherInput.addEventListener('input', function() {
+          var val = auth.normalizeVoucherText(voucherInput.value);
           if (voucherInput.value !== val) {
             voucherInput.value = val;
           }
@@ -98,16 +86,16 @@ var auth = {
       var qrBtn = document.getElementById('qrScanButton');
       if (qrBtn) {
         qrBtn.style.display = 'flex';
-        // Open the voucher scanner (self-hosted qr.html by default; the
-        // data-qr-scanner-url attribute may point elsewhere via config).
-        // The return URL is passed so a scanned bare code can come back here
-        // as ?voucher=<code> (link cards carry their own destination).
         qrBtn.addEventListener('click', function() {
-          var target = auth.buildQrScannerUrl(
-            qrBtn.getAttribute('data-qr-scanner-url'),
-            window.location.href
-          );
-          window.location.href = target;
+          var externalUrl = qrBtn.getAttribute('data-qr-scanner-url');
+          if (externalUrl) {
+            // config override: an external scanner page (needs its own walled
+            // garden entry); pass the return URL so it can send codes back.
+            window.location.href = auth.buildQrScannerUrl(externalUrl, window.location.href);
+          } else {
+            // default: the in-page scanner modal — no navigation at all
+            qrScanner.open();
+          }
         });
       }
 
@@ -568,6 +556,107 @@ var auth = {
 
   autoLoginTimer: null,
 
+  /**
+   * Normalize voucher text: convert Eastern Arabic/Persian numerals to ASCII
+   * digits and strip everything else (spaces, dashes, newlines from QR scans).
+   * @param {string} text - raw voucher text
+   * @returns {string} digits-only voucher code
+   */
+  normalizeVoucherText: function(text) {
+    try {
+      var val = String(text || '');
+      var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
+      var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+      for (var i = 0; i < 10; i++) {
+        val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
+      }
+      return val.replace(/[^0-9]/g, '');
+    } catch (err) {
+      console.error('Normalize voucher text error:', err);
+      return String(text || '').replace(/[^0-9]/g, '');
+    }
+  },
+
+  /**
+   * Fill the voucher field and start the cancellable 3-second auto-login
+   * countdown. Shared by the saved-voucher auto-login (triggerAutoLogin) and
+   * the QR scanner (a scanned code logs in the same way).
+   * @param {string} voucherValue - the code to log in with
+   */
+  beginAutoLogin: function(voucherValue) {
+    try {
+      var voucherInput = document.getElementById('voucher');
+      var form = document.getElementById('login-form');
+      if (!voucherInput || !form) return;
+
+      voucherInput.value = voucherValue;
+
+      var alertsContainer = document.getElementById('alerts');
+      if (!alertsContainer) return;
+
+      var oldAlert = document.getElementById('auto-login-alert');
+      if (oldAlert) oldAlert.remove();
+
+      var autoLoginDiv = document.createElement('div');
+      autoLoginDiv.className = 'alert alert-info';
+      autoLoginDiv.id = 'auto-login-alert';
+      autoLoginDiv.style.display = 'flex';
+      autoLoginDiv.style.alignItems = 'center';
+      autoLoginDiv.style.justifyContent = 'space-between';
+      autoLoginDiv.style.gap = 'var(--space-sm)';
+
+      var text = i18n.t('auto_login_countdown').split('{n}').join('<strong id="auto-login-sec">3</strong>');
+
+      autoLoginDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
+        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+        '<span class="alert__text">' + text + '</span>' +
+        '</div>' +
+        '<button type="button" id="cancel-auto-login-btn" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin:0;width:auto;">' + i18n.t('cancel') + '</button>';
+
+      alertsContainer.appendChild(autoLoginDiv);
+
+      var seconds = 3;
+      var secElement = document.getElementById('auto-login-sec');
+
+      var cancelBtn = document.getElementById('cancel-auto-login-btn');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          if (auth.autoLoginTimer) {
+            clearInterval(auth.autoLoginTimer);
+            auth.autoLoginTimer = null;
+          }
+          var alertEl = document.getElementById('auto-login-alert');
+          if (alertEl) alertEl.remove();
+        });
+      }
+
+      auth.autoLoginTimer = setInterval(function() {
+        seconds--;
+        if (secElement) secElement.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(auth.autoLoginTimer);
+          auth.autoLoginTimer = null;
+
+          var alertEl = document.getElementById('auto-login-alert');
+          if (alertEl) alertEl.remove();
+
+          // Set form inputs and submit
+          var usernameInput = document.getElementById('username');
+          var passwordInput = document.getElementById('password');
+          if (usernameInput && passwordInput) {
+            usernameInput.value = voucherValue;
+            passwordInput.value = voucherValue;
+          }
+
+          // Submit form
+          auth.submitLoginForm(form);
+        }
+      }, 1000);
+    } catch (err) {
+      console.error('Auto login error:', err);
+    }
+  },
+
   triggerAutoLogin: function() {
     try {
       // Don't auto-login if there is an error message showing (to prevent infinite loops)
@@ -599,76 +688,10 @@ var auth = {
 
       // Check if the current page has the voucher input and form
       var voucherInput = document.getElementById('voucher');
+      var form = document.getElementById('login-form');
       if (!voucherInput || !form) return;
 
-      // Set input value
-      voucherInput.value = lastVoucher;
-
-      // Create a nice status container for auto-login countdown
-      var alertsContainer = document.getElementById('alerts');
-      if (!alertsContainer) return;
-
-      var autoLoginDiv = document.createElement('div');
-      autoLoginDiv.className = 'alert alert-info';
-      autoLoginDiv.id = 'auto-login-alert';
-      autoLoginDiv.style.display = 'flex';
-      autoLoginDiv.style.alignItems = 'center';
-      autoLoginDiv.style.justifyContent = 'space-between';
-      autoLoginDiv.style.gap = 'var(--space-sm)';
-
-      var currentLang = document.documentElement.getAttribute('lang') || 'en';
-      var text = currentLang === 'ar' 
-        ? 'تسجيل دخول تلقائي بآخر كارت خلال <strong id="auto-login-sec">3</strong> ثوانٍ...' 
-        : 'Auto-connecting in <strong id="auto-login-sec">3</strong> seconds...';
-      
-      var btnText = currentLang === 'ar' ? 'إلغاء' : 'Cancel';
-
-      autoLoginDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
-        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
-        '<span class="alert__text">' + text + '</span>' +
-        '</div>' +
-        '<button type="button" id="cancel-auto-login-btn" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin:0;width:auto;">' + btnText + '</button>';
-
-      alertsContainer.appendChild(autoLoginDiv);
-
-      var seconds = 3;
-      var secElement = document.getElementById('auto-login-sec');
-      
-      var cancelBtn = document.getElementById('cancel-auto-login-btn');
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-          if (auth.autoLoginTimer) {
-            clearInterval(auth.autoLoginTimer);
-            auth.autoLoginTimer = null;
-          }
-          var alertEl = document.getElementById('auto-login-alert');
-          if (alertEl) alertEl.remove();
-        });
-      }
-
-      auth.autoLoginTimer = setInterval(function() {
-        seconds--;
-        if (secElement) secElement.textContent = seconds;
-        if (seconds <= 0) {
-          clearInterval(auth.autoLoginTimer);
-          auth.autoLoginTimer = null;
-          
-          var alertEl = document.getElementById('auto-login-alert');
-          if (alertEl) alertEl.remove();
-
-          // Set form inputs and submit
-          var usernameInput = document.getElementById('username');
-          var passwordInput = document.getElementById('password');
-          if (usernameInput && passwordInput) {
-            usernameInput.value = lastVoucher;
-            passwordInput.value = lastVoucher;
-          }
-          
-          // Submit form
-          auth.submitLoginForm(form);
-        }
-      }, 1000);
-
+      auth.beginAutoLogin(lastVoucher);
     } catch (err) {
       console.error('Auto login error:', err);
     }

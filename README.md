@@ -149,10 +149,10 @@ The resulting layout must be:
 
 ```
 hotspot-portal/
-├── login.html  status.html  alogin.html  logout.html  qr.html  …   (English, root)
+├── login.html  status.html  alogin.html  logout.html  …   (English, root)
 ├── redirect.html  error.html  errors.txt  md5.js  llqrcode.js  api.json
 ├── ar/                                                   (Arabic mirror)
-│   ├── login.html  status.html  …  qr.html  errors.txt
+│   ├── login.html  status.html  …  errors.txt
 ├── assets/  (icon, logo, agent photos)
 └── announcements.json  manifest.json
 ```
@@ -191,7 +191,7 @@ Unauthenticated clients can only reach hosts you allow. This portal has **no ext
 
 | Feature | Host | Where |
 |---|---|---|
-| QR card scanner with an **external** `qrScannerUrl` override | whatever you set | button on `login.html` (the default self-hosted `qr.html` needs no entry) |
+| QR card scanner with an **external** `qrScannerUrl` override | whatever you set | button on `login.html` (the default in-page scanner needs no entry) |
 | WhatsApp support (`config.support.agents`) | `wa.me` | support modal, all pages |
 
 Both are HTTPS, so they must go into the **layer-3** walled garden (`walled-garden/ip`) — the layer-7 `/ip/hotspot/walled-garden` only matches plain HTTP:
@@ -267,25 +267,27 @@ Multiple methods can be combined:
 | `loginMode` | Which panels the login page shows: `voucher_only`, `normal_only`, or `both` (tabbed) |
 | `voucherPasswordMode` | `same` (password = voucher) or `empty` (blank password) — controls what gets POSTed as the password |
 | `voucherMinLength` | Minimum voucher digits, e.g. `4`. Codes shorter than this are rejected inline **before** the form hits the router — no wasted round trip on a slow link. Lengths vary per code, so only a floor is enforced; omit or `null` to disable |
-| `enableQRScanner` / `qrScannerUrl` | Camera voucher scan button. Defaults to the **self-hosted `qr.html` scanner**; set `qrScannerUrl` only to delegate to an external scanner page, which then needs a walled-garden entry |
+| `enableQRScanner` / `qrScannerUrl` | In-page voucher scan modal on the login page. Set `qrScannerUrl` only to delegate to an external scanner page, which then needs a walled-garden entry |
 | `enableClonePrevention` | Remembers the last voucher for a 3-second auto-login countdown on the next visit (see the [storage caveat](#data-the-portal-stores-on-the-device)) |
 | `security.maxAttempts` / `blockDurationMinutes` | Client-side login throttle — UX deterrence only, see [Security](#client-side-login-throttling--what-it-is-and-is-not) |
 
 ### Voucher QR Scanning
 
-The login page's scan button opens **`qr.html`** — a scanner page hosted from the hotspot itself (same origin, no walled-garden entry needed). It supports both card-printing systems:
+The login page's scan button opens an **inline scanner modal right on the login page** — no navigation, no separate page. It supports both card-printing systems:
 
 | Card QR contains | What happens after scanning |
 |---|---|
-| A full URL (link card) | The browser goes straight to that URL, which is expected to end with `?voucher=<code>` — the login page auto-fills and submits |
-| Just the code digits | The scanner returns to the login page that opened it with `?voucher=<code>` appended |
+| A full URL (link card) | The browser goes straight to that URL, which is expected to end with `?voucher=<code>` (or carry `?username=&password=`) — the login page auto-fills and submits |
+| Just the code digits | The modal closes and the cancellable 3-second auto-login countdown starts with the scanned code |
 
 Two ways to scan, chosen automatically:
 
-- **Photograph the card** (universal) — works on every client: plain-HTTP hotspots, in-app webviews, and iOS CNA, since it needs no camera permission.
-- **Live camera** (progressive enhancement) — browsers only allow `getUserMedia` on a **secure (HTTPS) origin**, so this section appears solely on HTTPS-enabled hotspots. On a plain-HTTP setup the photo path is the only one shown — that is expected, not a bug.
+- **Photograph the card** (primary) — hands off to the phone's **native camera app** via a `capture="environment"` file input. That is not the browser's camera API, so it works on plain-HTTP hotspots and inside app webviews, with no permission prompt. Inside the stripped captive-portal mini-browsers (iOS CNA, Android "Sign in to network") the file picker may be unavailable — the modal always offers a **type the code manually** escape hatch.
+- **Live camera** (progressive enhancement) — browsers grant `getUserMedia` only on a **secure (HTTPS) origin**, so this section appears solely on HTTPS-enabled hotspots. On a plain-HTTP setup the photo path is the only one shown — that is expected, not a bug, and no portal code can change it.
 
-Decoding uses the vendored [jsqrcode](https://github.com/laksa19/myqr) decoder (`llqrcode.js`, Apache-2.0) served from the hotspot directory like `md5.js`. To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) and won't understand the `?return=` parameter, so bare-code cards stop round-tripping.
+Decoding uses the vendored [jsqrcode](https://github.com/laksa19/myqr) decoder (`llqrcode.js`, Apache-2.0), lazy-loaded from the hotspot directory on first open so the login page payload stays lean. To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)).
+
+**The most reliable QR flow for captive-portal users needs no in-page camera at all**: print **link cards** (mikhmon format below). The phone's own Camera app recognizes the QR from the lock screen and opens the encoded URL — bypassing every portal-browser restriction on iOS and Android alike — and the portal auto-logs-in.
 
 #### Link-card URL format (mikhmon-compatible)
 

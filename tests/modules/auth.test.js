@@ -305,6 +305,94 @@ describe('Hotspot.auth', () => {
     });
   });
 
+  describe('normalizeVoucherText', () => {
+    test('keeps ASCII digits', () => {
+      expect(auth.normalizeVoucherText('1234567890')).toBe('1234567890');
+    });
+
+    test('converts Eastern Arabic and Persian numerals', () => {
+      expect(auth.normalizeVoucherText('١٢٣٤٥')).toBe('12345');
+      expect(auth.normalizeVoucherText('۰۱۲۳۴')).toBe('01234');
+    });
+
+    test('strips spaces, dashes, letters, and newlines (QR scan artifacts)', () => {
+      expect(auth.normalizeVoucherText(' 12-34 ab\n')).toBe('1234');
+    });
+
+    test('handles null/undefined without throwing', () => {
+      expect(auth.normalizeVoucherText(null)).toBe('');
+      expect(auth.normalizeVoucherText(undefined)).toBe('');
+    });
+  });
+
+  describe('beginAutoLogin', () => {
+    const i18nModule = require('../../src/js/modules/i18n.js');
+
+    let alertsContainer;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      global.i18n = i18nModule;
+      i18nModule.data = {
+        en: {
+          auto_login_countdown: 'Auto-connecting in <strong id="auto-login-sec">{n}</strong> seconds…',
+          cancel: 'Cancel'
+        }
+      };
+      i18nModule.currentLang = 'en';
+
+      alertsContainer = document.createElement('div');
+      alertsContainer.id = 'alerts';
+      document.body.appendChild(alertsContainer);
+    });
+
+    afterEach(() => {
+      delete global.i18n;
+      if (auth.autoLoginTimer) {
+        clearInterval(auth.autoLoginTimer);
+        auth.autoLoginTimer = null;
+      }
+      jest.useRealTimers();
+    });
+
+    test('fills the voucher, shows a cancellable countdown, and submits', () => {
+      const submitSpy = jest.fn();
+      mockForm.requestSubmit = submitSpy;
+
+      auth.beginAutoLogin('9876543210');
+
+      expect(mockVoucher.value).toBe('9876543210');
+      expect(document.getElementById('auto-login-alert')).not.toBeNull();
+      expect(document.getElementById('auto-login-sec').textContent).toBe('3');
+
+      jest.advanceTimersByTime(3100);
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+      expect(mockUsernameInput.value).toBe('9876543210');
+      expect(mockPasswordInput.value).toBe('9876543210');
+      expect(document.getElementById('auto-login-alert')).toBeNull();
+    });
+
+    test('the cancel button stops the countdown before submitting', () => {
+      const submitSpy = jest.fn();
+      mockForm.requestSubmit = submitSpy;
+
+      auth.beginAutoLogin('9876543210');
+      document.getElementById('cancel-auto-login-btn').click();
+
+      jest.advanceTimersByTime(5000);
+      expect(submitSpy).not.toHaveBeenCalled();
+      expect(document.getElementById('auto-login-alert')).toBeNull();
+    });
+
+    test('replaces a previous countdown alert instead of stacking them', () => {
+      mockForm.requestSubmit = jest.fn();
+      auth.beginAutoLogin('1111');
+      auth.beginAutoLogin('2222');
+      expect(document.querySelectorAll('#auto-login-alert')).toHaveLength(1);
+      expect(mockVoucher.value).toBe('2222');
+    });
+  });
+
   describe('setLoadingState', () => {
     test('enables loading state', () => {
       const submitBtn = document.createElement('button');

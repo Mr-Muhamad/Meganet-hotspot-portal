@@ -79,8 +79,7 @@ function buildJS(page) {
   }
 
   const pageModules = {
-    'login': ['i18n', 'rate-limiter', 'auth', 'ui'],
-    'qr': ['i18n', 'ui'],
+    'login': ['i18n', 'rate-limiter', 'auth', 'qr-scanner', 'ui'],
     'status': ['i18n', 'rate-limiter', 'status', 'ui'],
     'logout': ['i18n', 'ui'],
     'error': ['i18n', 'ui'],
@@ -103,6 +102,7 @@ function buildJS(page) {
     js += "window.Hotspot.status = statusModule;\n";
   } else if (page === 'login') {
     js += "window.Hotspot.auth = auth;\n";
+    js += "window.Hotspot.qrScanner = qrScanner;\n";
     // Inject dynamic config values to rate limiter
     if (config.security) {
       js += `if (rateLimiter) {\n`;
@@ -262,7 +262,7 @@ function build(options = {}) {
   }
 
   console.log('📄 Building English pages...');
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin', 'qr'].forEach(page => {
+  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
       const html = generatePage(page, 'en', options);
       const outputPath = path.join(distDir, `${page}.html`);
@@ -277,7 +277,7 @@ function build(options = {}) {
   const arDir = path.join(distDir, 'ar');
   fs.mkdirSync(arDir, { recursive: true });
 
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin', 'qr'].forEach(page => {
+  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
       const html = generatePage(page, 'ar', options);
       const outputPath = path.join(arDir, `${page}.html`);

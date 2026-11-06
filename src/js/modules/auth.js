@@ -122,16 +122,28 @@ var auth = {
         var voucherInput = document.getElementById('voucher');
         if (voucherInput) {
           voucherInput.value = voucherParam;
-          var form = document.getElementById('login-form');
-          if (form) {
-            setTimeout(function() {
-              if (typeof doLogin === 'function') {
-                if (doLogin()) form.submit();
-              } else {
-                form.submit();
-              }
-            }, 500);
+        }
+        var usernameInput = document.getElementById('username');
+        if (usernameInput && !voucherInput) {
+          usernameInput.value = voucherParam;
+        }
+
+        // A scanned link card may carry its own password (mikhmon prints
+        // /login?username=X&password=Y). Stash it so onFormSubmit prefers it
+        // over copying the voucher into the password field.
+        var passwordParam = urlParams.get('password');
+        if (passwordParam) {
+          var scannedForm = document.getElementById('login-form');
+          if (scannedForm) {
+            scannedForm.setAttribute('data-scanned-password', passwordParam);
           }
+        }
+
+        var form = document.getElementById('login-form');
+        if (form && (voucherInput || usernameInput)) {
+          setTimeout(function() {
+            auth.submitLoginForm(form);
+          }, 500);
         }
       }
 
@@ -245,6 +257,33 @@ var auth = {
       if (voucherInput) voucherInput.focus();
     } catch (err) {
       console.error('Show voucher min length error:', err);
+    }
+  },
+
+  /**
+   * Submit the login form programmatically in a way that behaves like a real
+   * button press. Plain HTMLFormElement.submit() bypasses ALL submit handlers —
+   * the voucher→username/password copy in onFormSubmit, the rate limiter, the
+   * minimum-length guard, and the CHAP onsubmit="return doLogin()" hashing —
+   * so an auto-login used to reach the router with username/password empty
+   * and RouterOS ignoring the bare `voucher` field. requestSubmit() fixes that;
+   * the submit() fallback preserves the old (CHAP-only) path for legacy
+   * browsers.
+   * @param {HTMLFormElement} form - the login form
+   */
+  submitLoginForm: function(form) {
+    if (!form) return;
+    try {
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else if (typeof doLogin === 'function') {
+        if (doLogin()) form.submit();
+      } else {
+        form.submit();
+      }
+    } catch (err) {
+      console.error('Submit login form error:', err);
+      try { form.submit(); } catch (err2) { /* give up quietly */ }
     }
   },
 
@@ -423,9 +462,14 @@ var auth = {
         // Check password mode: same (username = password) or empty (password = empty)
         var form = document.getElementById('login-form');
         var pwMode = form ? (form.getAttribute('data-voucher-password-mode') || 'same') : 'same';
-        
-        if (pwMode === 'empty') {
+        // A scanned link card (mikhmon format: ?username=X&password=Y) carries
+        // its own password — prefer it over the configured copy/blank default.
+        var scannedPassword = form ? form.getAttribute('data-scanned-password') : null;
+
+        if (pwMode === 'empty' && !scannedPassword) {
           passwordInput.value = '';
+        } else if (scannedPassword) {
+          passwordInput.value = scannedPassword;
         } else {
           passwordInput.value = voucherValue;
         }
@@ -621,13 +665,7 @@ var auth = {
           }
           
           // Submit form
-          if (typeof doLogin === 'function') {
-            if (doLogin()) {
-              form.submit();
-            }
-          } else {
-            form.submit();
-          }
+          auth.submitLoginForm(form);
         }
       }, 1000);
 

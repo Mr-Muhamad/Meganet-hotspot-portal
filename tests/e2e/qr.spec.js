@@ -73,3 +73,31 @@ test('a photographed link card is decoded to the URL it carries', async ({ page 
 
   expect(decoded).toBe('http://10.5.50.1/login.html?voucher=1234567890');
 });
+
+// These two check what the router actually receives: the auto-login submits
+// the form ~500 ms after load, so we intercept the POST rather than racing
+// the field values before the page navigates away.
+test('a mikhmon-format link (?username=X&password=Y) logs in with the carried password', async ({ page }) => {
+  // mikhmon prints cards whose QR encodes
+  // http://<dnsname>/login?username=<u>&password=<p> — the portal must honor
+  // the carried password instead of copying the voucher into it.
+  const request = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.goto(`${DEFAULT}/login.html?username=ahmed2015&password=secret99`)
+  ]).then(([req]) => req);
+
+  const body = request.postData();
+  expect(body).toContain('username=ahmed2015');
+  expect(body).toContain('password=secret99');
+});
+
+test('a plain voucher link (?voucher=X) keeps copying the code as the password', async ({ page }) => {
+  const request = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.goto(`${DEFAULT}/ar/login.html?voucher=1234567890`)
+  ]).then(([req]) => req);
+
+  const body = request.postData();
+  expect(body).toContain('username=1234567890');
+  expect(body).toContain('password=1234567890');
+});

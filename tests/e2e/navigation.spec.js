@@ -20,7 +20,8 @@ test('the plans page links back to login', async ({ page }) => {
   await expect(page.locator('.plans-back-btn')).toHaveAttribute('href', './login.html');
 });
 
-test('index redirects to the Arabic login for a cookie-less visitor', async ({ page }) => {
+test('index redirects to the Arabic login for an Arabic-browser visitor', async ({ page }) => {
+  // default client is ar-EG (see playwright.config.js)
   await page.goto(`${DEFAULT}/index.html`);
   await expect(page).toHaveURL(/\/ar\/login\.html/);
 });

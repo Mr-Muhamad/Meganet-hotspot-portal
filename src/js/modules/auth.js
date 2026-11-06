@@ -175,6 +175,68 @@ var auth = {
     }
   },
 
+  /**
+   * Localize a remaining-block duration ("1 minute and 20 seconds").
+   * @param {number} remainingMs - milliseconds left
+   * @returns {string} localized duration
+   */
+  formatRetryTime: function(remainingMs) {
+    try {
+      var totalSeconds = Math.ceil(remainingMs / 1000);
+      var minutes = Math.floor(totalSeconds / 60);
+      var seconds = totalSeconds % 60;
+
+      var parts = [];
+      if (minutes > 0) {
+        parts.push(i18n.t(minutes === 1 ? 'time_minute_one' : 'time_minutes', { n: minutes }));
+      }
+      if (seconds > 0) {
+        parts.push(i18n.t(seconds === 1 ? 'time_second_one' : 'time_seconds', { n: seconds }));
+      }
+      if (parts.length === 0) {
+        parts.push(i18n.t('time_second_one', { n: 1 }));
+      }
+      if (parts.length === 1) {
+        return parts[0];
+      }
+      return i18n.t('time_and', { a: parts[0], b: parts[1] });
+    } catch (err) {
+      console.error('Format retry time error:', err);
+      return '';
+    }
+  },
+
+  /**
+   * Show an inline alert when the voucher does not match the configured
+   * length, focusing the field for a quick correction.
+   * @param {number} expectedLength - configured features.voucherLength
+   */
+  showVoucherLengthError: function(expectedLength) {
+    try {
+      var alertsContainer = document.getElementById('alerts');
+      if (!alertsContainer) return;
+
+      var oldAlert = document.getElementById('voucher-length-alert');
+      if (oldAlert) oldAlert.remove();
+
+      var alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-error';
+      alertDiv.id = 'voucher-length-alert';
+      alertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
+        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+        '<span class="alert__text">' + i18n.t('voucher_length_error', { n: expectedLength }) + '</span>' +
+        '</div>';
+
+      alertsContainer.appendChild(alertDiv);
+      alertsContainer.scrollIntoView({ behavior: 'smooth' });
+
+      var voucherInput = document.getElementById('voucher');
+      if (voucherInput) voucherInput.focus();
+    } catch (err) {
+      console.error('Show voucher length error:', err);
+    }
+  },
+
   handleRateLimit: function(limitStatus) {
     try {
       var loginButton = document.getElementById('loginButton');
@@ -191,28 +253,10 @@ var auth = {
       rateAlertDiv.className = 'alert alert-error';
       rateAlertDiv.id = 'rate-limit-alert';
 
-      var currentLang = document.documentElement.getAttribute('lang') || 'en';
       var timeRemainingMs = limitStatus.remainingTime;
 
       var updateAlertText = function(remainingMs) {
-        var seconds = Math.ceil(remainingMs / 1000);
-        var minutes = Math.floor(seconds / 60);
-        seconds = seconds % 60;
-        
-        var timeStrAr = '';
-        if (minutes > 0) {
-          timeStrAr = minutes + ' دقيقة' + (seconds > 0 ? ' و ' + seconds + ' ثانية' : '');
-        } else {
-          timeStrAr = seconds + ' ثانية';
-        }
-        var timeStrEn = minutes > 0 
-          ? minutes + ' minute' + (minutes > 1 ? 's' : '') + (seconds > 0 ? ' and ' + seconds + ' second' + (seconds > 1 ? 's' : '') : '')
-          : seconds + ' second' + (seconds > 1 ? 's' : '');
-
-        var msg = currentLang === 'ar'
-          ? 'لقد تجاوزت الحد الأقصى للمحاولات. يرجى المحاولة مرة أخرى بعد ' + timeStrAr + '.'
-          : 'Too many attempts. Please try again in ' + timeStrEn + '.';
-
+        var msg = i18n.t('rate_limit_message', { time: auth.formatRetryTime(remainingMs) });
         rateAlertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
           '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
           '<span class="alert__text">' + msg + '</span>' +
@@ -324,6 +368,18 @@ var auth = {
           return;
         }
         rateLimiter.recordAttempt('device');
+      }
+
+      // Voucher length check (config: features.voucherLength) — catches
+      // typos before a slow round trip to the router. Empty/unset disables it.
+      if (mode === 'voucher' && voucherInput) {
+        var lenForm = document.getElementById('login-form');
+        var expectedVoucherLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-length'), 10) : NaN;
+        if (expectedVoucherLength && voucherInput.value.trim().length !== expectedVoucherLength) {
+          e.preventDefault();
+          auth.showVoucherLengthError(expectedVoucherLength);
+          return;
+        }
       }
 
       if (mode === 'voucher' && voucherInput && usernameInput && passwordInput) {

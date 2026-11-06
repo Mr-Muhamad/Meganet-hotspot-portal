@@ -76,6 +76,13 @@
     "pwa_banner_desc": "Add this portal to your Home Screen to easily monitor your remaining data and connection speed at any time.",
     "pwa_banner_btn": "Install Now",
     "qr_scan_btn_text": "Scan Card QR Code",
-    "plans_cta_hint": "Choose your plan and contact support to activate it"
+    "plans_cta_hint": "Choose your plan and contact support to activate it",
+    "voucher_length_error": "Voucher codes are {n} digits — please check the code and try again.",
+    "rate_limit_message": "Too many attempts. Please try again in {time}.",
+    "time_and": "{a} and {b}",
+    "time_minute_one": "{n} minute",
+    "time_minutes": "{n} minutes",
+    "time_second_one": "{n} second",
+    "time_seconds": "{n} seconds"
   }
 }

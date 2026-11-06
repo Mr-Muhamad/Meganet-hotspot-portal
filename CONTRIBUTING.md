@@ -89,7 +89,6 @@ mikrotik-hotspot-portal/
 │   │   ├── ui.js                # UI management
 │   │   ├── i18n.js              # Internationalization
 │   │   ├── status.js            # Status display
-│   │   ├── validator.js         # Input validation
 │   │   └── rate-limiter.js      # Rate limiting
 │   └── i18n/                    # Translations
 │       ├── en.json              # English
@@ -164,7 +163,7 @@ Examples:
 feat(auth): add rate limiting for login attempts
 fix(css): correct RTL layout issues
 docs(readme): update installation instructions
-test(validator): add input validation tests
+test(auth): add voucher length validation tests
 ```
 
 ## Pull Request Process
@@ -197,7 +196,7 @@ test(validator): add input validation tests
 npm test
 
 # Run specific test file
-npm test -- tests/modules/validator.test.js
+npm test -- tests/modules/auth.test.js
 
 # Run tests in watch mode
 npm run test:watch

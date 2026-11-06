@@ -47,7 +47,8 @@
                 $(if chap-id) onsubmit="return doLogin()" $(endif)
                 autocomplete="on" novalidate
                 data-voucher-password-mode="{% if config.features.voucherPasswordMode %}{{ config.features.voucherPasswordMode }}{% else %}same{% endif %}"
-                data-clone-prevention="{% if config.features.enableClonePrevention %}true{% else %}false{% endif %}">
+                data-clone-prevention="{% if config.features.enableClonePrevention %}true{% else %}false{% endif %}"
+                data-voucher-length="{% if config.features.voucherLength %}{{ config.features.voucherLength }}{% endif %}">
 
             <!-- Hidden fields required by MikroTik -->
             <input type="hidden" name="dst" value="$(link-orig)">

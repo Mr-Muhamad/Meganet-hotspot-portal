@@ -98,6 +98,17 @@ var auth = {
       var qrBtn = document.getElementById('qrScanButton');
       if (qrBtn) {
         qrBtn.style.display = 'flex';
+        // Open the voucher scanner (self-hosted qr.html by default; the
+        // data-qr-scanner-url attribute may point elsewhere via config).
+        // The return URL is passed so a scanned bare code can come back here
+        // as ?voucher=<code> (link cards carry their own destination).
+        qrBtn.addEventListener('click', function() {
+          var target = auth.buildQrScannerUrl(
+            qrBtn.getAttribute('data-qr-scanner-url'),
+            window.location.href
+          );
+          window.location.href = target;
+        });
       }
 
       // Check query parameters for auto-login from native camera scan
@@ -234,6 +245,26 @@ var auth = {
       if (voucherInput) voucherInput.focus();
     } catch (err) {
       console.error('Show voucher min length error:', err);
+    }
+  },
+
+  /**
+   * Build the scanner URL the QR button navigates to. The return URL (the
+   * current login page, query preserved minus any hash) is appended so the
+   * scanner can send a scanned bare voucher code back as ?voucher=<code>.
+   * @param {string} scannerUrl - scanner target from data-qr-scanner-url
+   * @param {string} currentUrl - the page the button sits on
+   * @returns {string} fully-qualified scanner URL
+   */
+  buildQrScannerUrl: function(scannerUrl, currentUrl) {
+    try {
+      var target = scannerUrl || 'qr.html';
+      var separator = target.indexOf('?') === -1 ? '?' : '&';
+      var here = String(currentUrl || '').split('#')[0];
+      return target + separator + 'return=' + encodeURIComponent(here);
+    } catch (err) {
+      console.error('Build QR scanner URL error:', err);
+      return scannerUrl || 'qr.html';
     }
   },
 

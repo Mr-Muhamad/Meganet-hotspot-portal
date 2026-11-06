@@ -47,10 +47,6 @@ describe('config schema validation', () => {
   mistake('a whatsapp number containing "+"', 'support.agents[0].whatsapp', c => { c.support.agents[0].whatsapp = '+201212208788'; });
   mistake('an unsupported kbBase', 'features.kbBase', c => { c.features.kbBase = 512; });
   mistake('a missing section', 'plans', c => { delete c.plans; });
-  mistake('enableQRScanner without qrScannerUrl', 'features', c => {
-    c.features.enableQRScanner = true;
-    delete c.features.qrScannerUrl;
-  });
   mistake('a non-string radius error translation', 'radiusErrorTranslations.bad key', c => { c.radiusErrorTranslations['bad key'] = 42; });
   mistake('a missing required string', 'general.networkName', c => { delete c.general.networkName; });
   mistake('a voucherMinLength below 1', 'features.voucherMinLength', c => { c.features.voucherMinLength = 0; });

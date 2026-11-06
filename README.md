@@ -149,10 +149,10 @@ The resulting layout must be:
 
 ```
 hotspot-portal/
-├── login.html  status.html  alogin.html  logout.html  …   (English, root)
-├── redirect.html  error.html  errors.txt  md5.js  api.json
+├── login.html  status.html  alogin.html  logout.html  qr.html  …   (English, root)
+├── redirect.html  error.html  errors.txt  md5.js  llqrcode.js  api.json
 ├── ar/                                                   (Arabic mirror)
-│   ├── login.html  status.html  …  errors.txt
+│   ├── login.html  status.html  …  qr.html  errors.txt
 ├── assets/  (icon, logo, agent photos)
 └── announcements.json  manifest.json
 ```
@@ -191,17 +191,16 @@ Unauthenticated clients can only reach hosts you allow. This portal has **no ext
 
 | Feature | Host | Where |
 |---|---|---|
-| QR card scanner (`enableQRScanner`) | `laksa19.github.io` | button on `login.html` |
+| QR card scanner with an **external** `qrScannerUrl` override | whatever you set | button on `login.html` (the default self-hosted `qr.html` needs no entry) |
 | WhatsApp support (`config.support.agents`) | `wa.me` | support modal, all pages |
 
 Both are HTTPS, so they must go into the **layer-3** walled garden (`walled-garden/ip`) — the layer-7 `/ip/hotspot/walled-garden` only matches plain HTTP:
 
 ```routeros
-/ip hotspot walled-garden ip add dst-host=laksa19.github.io action=accept comment="meganet-portal"
 /ip hotspot walled-garden ip add dst-host=wa.me action=accept comment="meganet-portal"
 ```
 
-Skip either and the QR button and support chat simply fail for a not-yet-logged-in user. Tag entries with a `comment=` so future re-runs can be cleaned up idempotently:
+Skip the WhatsApp entry and the support chat simply fails for a not-yet-logged-in user. Tag entries with a `comment=` so future re-runs can be cleaned up idempotently:
 
 ```routeros
 /ip hotspot walled-garden ip remove [find comment="meganet-portal"]
@@ -268,9 +267,25 @@ Multiple methods can be combined:
 | `loginMode` | Which panels the login page shows: `voucher_only`, `normal_only`, or `both` (tabbed) |
 | `voucherPasswordMode` | `same` (password = voucher) or `empty` (blank password) — controls what gets POSTed as the password |
 | `voucherMinLength` | Minimum voucher digits, e.g. `4`. Codes shorter than this are rejected inline **before** the form hits the router — no wasted round trip on a slow link. Lengths vary per code, so only a floor is enforced; omit or `null` to disable |
-| `enableQRScanner` / `qrScannerUrl` | Camera voucher scan button; the target host needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) |
+| `enableQRScanner` / `qrScannerUrl` | Camera voucher scan button. Defaults to the **self-hosted `qr.html` scanner**; set `qrScannerUrl` only to delegate to an external scanner page, which then needs a walled-garden entry |
 | `enableClonePrevention` | Remembers the last voucher for a 3-second auto-login countdown on the next visit (see the [storage caveat](#data-the-portal-stores-on-the-device)) |
 | `security.maxAttempts` / `blockDurationMinutes` | Client-side login throttle — UX deterrence only, see [Security](#client-side-login-throttling--what-it-is-and-is-not) |
+
+### Voucher QR Scanning
+
+The login page's scan button opens **`qr.html`** — a scanner page hosted from the hotspot itself (same origin, no walled-garden entry needed). It supports both card-printing systems:
+
+| Card QR contains | What happens after scanning |
+|---|---|
+| A full URL (link card) | The browser goes straight to that URL, which is expected to end with `?voucher=<code>` — the login page auto-fills and submits |
+| Just the code digits | The scanner returns to the login page that opened it with `?voucher=<code>` appended |
+
+Two ways to scan, chosen automatically:
+
+- **Photograph the card** (universal) — works on every client: plain-HTTP hotspots, in-app webviews, and iOS CNA, since it needs no camera permission.
+- **Live camera** (progressive enhancement) — browsers only allow `getUserMedia` on a **secure (HTTPS) origin**, so this section appears solely on HTTPS-enabled hotspots. On a plain-HTTP setup the photo path is the only one shown — that is expected, not a bug.
+
+Decoding uses the vendored [jsqrcode](https://github.com/laksa19/myqr) decoder (`llqrcode.js`, Apache-2.0) served from the hotspot directory like `md5.js`. To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) and won't understand the `?return=` parameter, so bare-code cards stop round-tripping.
 
 ### Theme Customization
 

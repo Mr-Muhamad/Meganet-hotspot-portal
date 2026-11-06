@@ -250,6 +250,29 @@ describe('Hotspot.auth', () => {
     });
   });
 
+  describe('buildQrScannerUrl', () => {
+    test('targets the self-hosted scanner by default and encodes the return URL', () => {
+      const url = auth.buildQrScannerUrl('qr.html', 'http://10.5.50.1/login.html');
+      expect(url).toBe('qr.html?return=' + encodeURIComponent('http://10.5.50.1/login.html'));
+    });
+
+    test('honors an external scanner override from config', () => {
+      const url = auth.buildQrScannerUrl('https://example.org/myqr', 'http://10.5.50.1/ar/login.html');
+      expect(url.startsWith('https://example.org/myqr?return=')).toBe(true);
+      expect(decodeURIComponent(url.split('return=')[1])).toBe('http://10.5.50.1/ar/login.html');
+    });
+
+    test('appends with & when the target already carries a query', () => {
+      const url = auth.buildQrScannerUrl('qr.html?lang=en', 'http://10.5.50.1/login.html');
+      expect(url.startsWith('qr.html?lang=en&return=')).toBe(true);
+    });
+
+    test('drops the hash so the return URL is clean', () => {
+      const url = auth.buildQrScannerUrl('qr.html', 'http://10.5.50.1/login.html#caps');
+      expect(decodeURIComponent(url.split('return=')[1])).toBe('http://10.5.50.1/login.html');
+    });
+  });
+
   describe('setLoadingState', () => {
     test('enables loading state', () => {
       const submitBtn = document.createElement('button');

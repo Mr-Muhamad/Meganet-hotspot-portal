@@ -31,15 +31,22 @@ function collectTemplateKeys() {
   return keys;
 }
 
-// Programmatic lookups: i18n.t('key') called from the JS modules bundled by build.js.
+// Programmatic lookups: i18n.t('key') called from the JS modules bundled by build.js
+// AND from inline <script> blocks in the templates (e.g. the QR scanner page calls
+// i18n.t() for its status messages with no data-i18n attribute).
 // build.js concatenates util.js + page modules, so all of these resolve at runtime.
 // Keys may be picked via a ternary (i18n.t(n === 1 ? 'one' : 'other', {...})), so
 // the whole call is matched first, then every string literal inside it is collected.
 function collectProgrammaticKeys() {
   const keys = new Set();
+  const sources = [];
   const modulesDir = path.join(ROOT, 'src', 'js', 'modules');
-  fs.readdirSync(modulesDir).forEach(file => {
-    const source = fs.readFileSync(path.join(modulesDir, file), 'utf8');
+  fs.readdirSync(modulesDir).forEach(file =>
+    sources.push(fs.readFileSync(path.join(modulesDir, file), 'utf8')));
+  fs.readdirSync(TEMPLATES_DIR).forEach(file =>
+    sources.push(fs.readFileSync(path.join(TEMPLATES_DIR, file), 'utf8')));
+
+  sources.forEach(source => {
     const callRe = /i18n\.t\(\s*['"]([^'"]+)['"]\s*[,)]/g;
     let match;
     while ((match = callRe.exec(source)) !== null) keys.add(match[1]);

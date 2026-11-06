@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div class="card">
+        <div class="card-header">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <line x1="14" y1="14" x2="21" y2="21"/>
+            <line x1="21" y1="14" x2="14" y2="21"/>
+          </svg>
+          <h1 class="card-header__title" data-i18n="qr_scan_title">Scan Voucher Card</h1>
+          <p class="card-header__subtitle" data-i18n="qr_scan_subtitle">Photograph the card or scan it with the camera</p>
+        </div>
+
+        <div class="card-body">
+          <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display: none;">
+
+          <!-- Photo path: works everywhere, including plain-HTTP hotspots,
+               in-app webviews, and iOS CNA (no permissions needed). -->
+          <button type="button" class="btn btn-primary btn-block" id="qr-photo-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span data-i18n="qr_scan_photo_btn">Photograph the card</span>
+          </button>
+
+          <!-- Live camera: progressive enhancement only. Browsers forbid
+               getUserMedia on plain HTTP origins, so this section is hidden
+               unless the hotspot is served over HTTPS (window.isSecureContext). -->
+          <div id="qr-camera-section" style="display: none; margin-top: var(--space-md);">
+            <video id="qr-video" autoplay playsinline style="width: 100%; max-width: 320px; border-radius: var(--card-radius, 16px); display: block; margin: 0 auto;"></video>
+            <p class="text-muted text-sm text-center" style="margin-top: var(--space-sm);" data-i18n="qr_scan_camera_hint">Point the camera at the card code</p>
+          </div>
+
+          <div id="qr-status" class="text-center" style="margin-top: var(--space-md);" role="status" aria-live="polite"></div>
+
+          <div class="text-center mt-lg">
+            <a href="#" id="qr-back-link" class="text-muted text-sm" data-i18n="qr_scan_back">Back to login</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decoding canvas for live-camera frames (kept hidden) -->
+      <canvas id="qr-canvas" width="320" height="240" style="display: none;"></canvas>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% if lang == 'ar' %}../{% endif %}llqrcode.js"></script>
+  <script>
+    // Voucher QR scanner — self-hosted replacement for the external myqr page.
+    // Two card systems are supported:
+    //   1. Link cards  — the QR encodes a full URL → navigate straight to it
+    //   2. Code cards  — the QR encodes just the digits → go back to the login
+    //                    page that opened the scanner, appending ?voucher=<code>
+    (function() {
+      try {
+        i18n.init();
+        ui.initTheme();
+        ui.initLang();
+
+        var params = new URLSearchParams(window.location.search);
+        var returnTarget = params.get('return') || '';
+
+        // Fallback when no return URL was passed: derive the login page next to us.
+        if (!returnTarget || !/^https?:\/\//i.test(returnTarget)) {
+          var here = window.location.pathname;          // …/qr.html or /ar/qr.html
+          var isAr = here.indexOf('/ar/') !== -1;
+          returnTarget = (isAr ? '../login.html' : './login.html');
+        }
+
+        // Exposed for tests (tests/e2e/qr.spec.js).
+        window.qrScanner = {
+          returnTarget: returnTarget,
+
+          /** Decide where a decoded card sends the user. */
+          buildTarget: function(text) {
+            var cleaned = String(text).trim();
+            // Link card: the QR itself carries the destination.
+            if (/^https?:\/\//i.test(cleaned)) return cleaned;
+            // Code card: hand the digits back to the login page.
+            var sep = returnTarget.indexOf('?') === -1 ? '?' : '&';
+            return returnTarget + sep + 'voucher=' + encodeURIComponent(cleaned);
+          }
+        };
+
+        var statusEl = document.getElementById('qr-status');
+
+        function status(text, isError) {
+          if (!statusEl) return;
+          statusEl.textContent = text;
+          statusEl.style.color = isError ? 'var(--color-danger, #ef4444)' : 'var(--text-muted, #94a3b8)';
+        }
+
+        function handleResult(text) {
+          try {
+            window.location.href = window.qrScanner.buildTarget(text);
+          } catch (err) {
+            console.error('QR redirect error:', err);
+            status(i18n.t('qr_scan_failed'), true);
+          }
+        }
+
+        if (typeof qrcode === 'undefined') {
+          status(i18n.t('qr_scan_unavailable'), true);
+        } else {
+          qrcode.callback = handleResult;
+
+          // Photo path (primary, universal).
+          var fileInput = document.getElementById('qr-file-input');
+          var photoBtn = document.getElementById('qr-photo-btn');
+          if (photoBtn && fileInput) {
+            photoBtn.addEventListener('click', function() { fileInput.click(); });
+            fileInput.addEventListener('change', function(e) {
+              var file = e.target.files && e.target.files[0];
+              if (!file) return;
+              status(i18n.t('qr_scan_reading'));
+              var reader = new FileReader();
+              reader.onload = function(ev) {
+                try {
+                  qrcode.decode(ev.target.result);
+                  // decode() throws synchronously on unreadable images.
+                } catch (err) {
+                  console.error('QR decode error:', err);
+                  status(i18n.t('qr_scan_failed'), true);
+                  fileInput.value = '';  // allow picking the same file twice
+                }
+              };
+              reader.onerror = function() { status(i18n.t('qr_scan_failed'), true); };
+              reader.readAsDataURL(file);
+            });
+          }
+
+          // Live camera (only on a secure context — the browser blocks
+          // getUserMedia on the plain-HTTP origin most hotspots use).
+          var cameraSection = document.getElementById('qr-camera-section');
+          if (cameraSection && window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            cameraSection.style.display = 'block';
+            var video = document.getElementById('qr-video');
+            var canvas = document.getElementById('qr-canvas');
+            var ctx = canvas && canvas.getContext('2d');
+            var scanning = false;
+
+            function captureFrame() {
+              if (!scanning || !video || !ctx || !canvas) return;
+              try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                qrcode.decode();           // no-arg form reads #qr-canvas
+              } catch (err) {
+                // Unreadable frame — keep trying; the classic decoder throws.
+              }
+              if (scanning) setTimeout(captureFrame, 400);
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+              .then(function(stream) {
+                video.srcObject = stream;
+                scanning = true;
+                captureFrame();
+              })
+              .catch(function(err) {
+                console.error('Camera error:', err);
+                cameraSection.style.display = 'none';  // fall back to the photo path
+              });
+          }
+        }
+
+        var backLink = document.getElementById('qr-back-link');
+        if (backLink) backLink.href = returnTarget;
+      } catch (err) {
+        console.error('QR page init error:', err);
+      }
+    })();
+  </script>
+{% endblock %}

@@ -189,10 +189,7 @@ function validate(config) {
   }
 
   // --- cross-field rules --------------------------------------------------
-
-  if (config.features?.enableQRScanner && !config.features?.qrScannerUrl) {
-    errors.push('features: enableQRScanner is true but qrScannerUrl is not set (the QR button needs a target URL)');
-  }
+  // (qrScannerUrl is optional: the default is the self-hosted qr.html scanner)
 
   // --- asset cross-check (non-fatal) --------------------------------------
 

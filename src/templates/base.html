@@ -231,7 +231,7 @@
           <div class="support-person-card">
             <div class="support-person-card__avatar">
               {% if agent.image %}
-              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image }}" alt="{{ agent.name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image }}" alt="{{ agent.name }}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
               {% endif %}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="support-person-card__avatar-fallback" style="{% if agent.image %}display: none;{% endif %}">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>

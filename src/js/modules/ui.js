@@ -53,8 +53,11 @@ var ui = {
     try {
       var savedLang = util.getCookie('hotspot_lang');
       if (!savedLang) {
-        savedLang = 'ar';
-        util.setCookie('hotspot_lang', 'ar', 365);
+        // First visit: follow the browser's language, defaulting to Arabic.
+        // RouterOS serves login.html directly to intercepted clients, so
+        // this page — not index.html — is where most visitors land.
+        savedLang = i18n.detectLang();
+        util.setCookie('hotspot_lang', savedLang, 365);
       }
 
       var isArabicDir = window.location.pathname.indexOf('/ar/') !== -1;
@@ -234,6 +237,15 @@ var ui = {
     try {
       var canvas = document.getElementById('network-bg');
       if (!canvas) return;
+
+      // Accessibility: skip the animated particle background entirely when
+      // the visitor asked the OS to reduce motion (README claims WCAG AA —
+      // the canvas stays static-free instead of only being dimmable).
+      var reducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+      if (reducedMotionQuery && reducedMotionQuery.matches) {
+        canvas.style.display = 'none';
+        return;
+      }
 
       var ctx = canvas.getContext('2d');
       var particles = [];

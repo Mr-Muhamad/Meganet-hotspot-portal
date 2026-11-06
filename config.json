@@ -41,7 +41,9 @@
     "enableLanguageToggle": true,
     "enableLanguageToggle_hints": "تفعيل (true) أو إخفاء (false) زر تغيير لغة البوابة بالهيدر لتثبيت واجهة لغة واحدة للمشتركين",
     "qrScannerUrl": "https://laksa19.github.io/myqr",
-    "qrScannerUrl_hints": "رابط تطبيق الويب المعتمد لمسح الـ QR ومسح الكروت عبر الكاميرا"
+    "qrScannerUrl_hints": "رابط تطبيق الويب المعتمد لمسح الـ QR ومسح الكروت عبر الكاميرا",
+    "voucherLength": null,
+    "voucherLength_hints": "عدد أرقام كود الشحن (مثال: 10). عند ضبطه، يُتحقق من الطول قبل إرسال النموذج لتفادي رحلة فاشلة للراوتر. اتركه فارغاً (null) لتعطيل التحقق"
   },
   "_comment_plans": "=== قائمة أسعار وباقات الاشتراكات للشبكة ===",
   "plans": [
@@ -104,7 +106,7 @@
   ],
   "_comment_security": "=== إعدادات الحماية ومكافحة التخمين للسرقة ===",
   "security": {
-    "maxAttempts": 3,
+    "maxAttempts": 5,
     "maxAttempts_hints": "عدد محاولات تسجيل الدخول الخاطئة المسموح بها قبل حظر الجهاز",
     "blockDurationMinutes": 2,
     "blockDurationMinutes_hints": "مدة حظر العميل (بالدقائق) عند تجاوزه عدد المحاولات الخاطئة"
@@ -161,7 +163,8 @@
     "shutting down": "خدمة نقطة الاتصال قيد الإيقاف، حاول بعد قليل.",
     "invalid calling-station-id": "عذراً، تعذر التحقق من بيانات جهازك (MAC)، يرجى المحاولة مرة أخرى.",
     "transfer limit reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
-    "traffic limit is reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك."
+    "traffic limit is reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
+    "unknown user profile": "هناك مشكلة فى الباقه."
   },
   "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
   "support": {

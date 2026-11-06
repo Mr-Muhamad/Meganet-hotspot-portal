@@ -82,7 +82,6 @@ src/js/modules/
 ├── ui.js              # UI management
 ├── i18n.js            # Internationalization
 ├── status.js          # Status display
-├── validator.js       # Input validation
 └── rate-limiter.js    # Rate limiting
 ```
 
@@ -179,7 +178,7 @@ Redirect (success/error)
 ```
 User Input
     ↓
-Client-Side Validation (validator.js)
+Client-Side Validation (HTML pattern/required + auth.js pre-submit checks)
     ↓
 XSS Sanitization
     ↓

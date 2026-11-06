@@ -37,6 +37,10 @@ module.exports = defineConfig({
     channel: 'msedge',
     headless: true,
     viewport: { width: 390, height: 844 }, // phone-sized, like real hotspot clients
+    // The portal follows the browser language on the first visit; the default
+    // client is an Arabic one (the primary audience). Tests that need an
+    // English browser create their own context with locale 'en-US'.
+    locale: 'ar-EG',
     actionTimeout: 10_000,
     navigationTimeout: 10_000
   },

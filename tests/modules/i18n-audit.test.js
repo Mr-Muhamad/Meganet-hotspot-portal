@@ -33,14 +33,21 @@ function collectTemplateKeys() {
 
 // Programmatic lookups: i18n.t('key') called from the JS modules bundled by build.js.
 // build.js concatenates util.js + page modules, so all of these resolve at runtime.
+// Keys may be picked via a ternary (i18n.t(n === 1 ? 'one' : 'other', {...})), so
+// the whole call is matched first, then every string literal inside it is collected.
 function collectProgrammaticKeys() {
   const keys = new Set();
   const modulesDir = path.join(ROOT, 'src', 'js', 'modules');
   fs.readdirSync(modulesDir).forEach(file => {
     const source = fs.readFileSync(path.join(modulesDir, file), 'utf8');
-    const callRe = /i18n\.t\(\s*['"]([^'"]+)['"]\s*\)/g;
+    const callRe = /i18n\.t\(\s*['"]([^'"]+)['"]\s*[,)]/g;
     let match;
     while ((match = callRe.exec(source)) !== null) keys.add(match[1]);
+    // Ternary-chosen keys: i18n.t(cond ? 'a' : 'b', ...)
+    const ternaryRe = /i18n\.t\((?:[^()]*?)\?[^()]*?:\s*['"]([^'"]+)['"]/g;
+    while ((match = ternaryRe.exec(source)) !== null) keys.add(match[1]);
+    const ternaryTrueRe = /i18n\.t\([^()]*?\?\s*['"]([^'"]+)['"]/g;
+    while ((match = ternaryTrueRe.exec(source)) !== null) keys.add(match[1]);
   });
   return keys;
 }

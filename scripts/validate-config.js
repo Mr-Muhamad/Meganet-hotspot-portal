@@ -52,7 +52,8 @@ const SCHEMA = {
       enableSmartAssistant: { type: 'boolean' },
       enableTechDetails: { type: 'boolean' },
       enableClonePrevention: { type: 'boolean' },
-      enableLanguageToggle: { type: 'boolean' }
+      enableLanguageToggle: { type: 'boolean' },
+      voucherLength: { type: 'number', min: 1, hint: 'voucher code length checked client-side before submit — omit/null to disable' }
     }
   },
   plans: {

@@ -70,6 +70,31 @@ describe('Hotspot.i18n', () => {
       i18n.data = null;
       expect(i18n.t('welcome')).toBe('welcome');
     });
+
+    test('substitutes {placeholder} tokens from the params object', () => {
+      // Re-mock the element with a string carrying placeholders.
+      document.getElementById = jest.fn().mockReturnValue({
+        textContent: JSON.stringify({ en: { countdown: 'Redirecting in {n} seconds' } })
+      });
+      i18n.init();
+      expect(i18n.t('countdown', { n: 5 })).toBe('Redirecting in 5 seconds');
+    });
+
+    test('substitutes multiple tokens', () => {
+      document.getElementById = jest.fn().mockReturnValue({
+        textContent: JSON.stringify({ en: { pair: '{a} and {b}' } })
+      });
+      i18n.init();
+      expect(i18n.t('pair', { a: '1 minute', b: '30 seconds' })).toBe('1 minute and 30 seconds');
+    });
+
+    test('leaves unmatched placeholders alone', () => {
+      document.getElementById = jest.fn().mockReturnValue({
+        textContent: JSON.stringify({ en: { partial: '{n} codes left in {queue}' } })
+      });
+      i18n.init();
+      expect(i18n.t('partial', { n: 3 })).toBe('3 codes left in {queue}');
+    });
   });
 
   describe('setLang', () => {
@@ -89,8 +114,19 @@ describe('Hotspot.i18n', () => {
   });
 
   describe('detectLang', () => {
+    const withBrowserLanguage = (lang) => {
+      Object.defineProperty(window.navigator, 'language', { get: () => lang, configurable: true });
+    };
+
     beforeEach(() => {
+      // auth.js / ui.js resolve `util` as a free global at runtime — define it
+      // so detectLang reaches the browser-language branch instead of its catch.
+      global.util = util;
       i18n.init();
+    });
+
+    afterEach(() => {
+      delete global.util;
     });
 
     test('returns a language code', () => {
@@ -98,9 +134,28 @@ describe('Hotspot.i18n', () => {
       expect(['en', 'ar']).toContain(result);
     });
 
-    test('returns Arabic by default', () => {
-      const result = i18n.detectLang();
-      expect(result).toBe('ar');
+    test('follows a supported browser language', () => {
+      withBrowserLanguage('en-US');
+      expect(i18n.detectLang()).toBe('en');
+    });
+
+    test('falls back to Arabic for an unsupported browser language', () => {
+      withBrowserLanguage('fr-FR');
+      expect(i18n.detectLang()).toBe('ar');
+    });
+
+    test('a saved cookie wins over the browser language', () => {
+      withBrowserLanguage('en-US');
+      document.cookie = 'hotspot_lang=ar; path=/';
+      expect(i18n.detectLang()).toBe('ar');
+    });
+
+    test('falls back to Arabic when navigator access throws', () => {
+      Object.defineProperty(window.navigator, 'language', {
+        get() { throw new Error('mocked'); },
+        configurable: true
+      });
+      expect(i18n.detectLang()).toBe('ar');
     });
   });
 });

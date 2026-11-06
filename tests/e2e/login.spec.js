@@ -9,11 +9,34 @@ const { test, expect } = require('@playwright/test');
 const DEFAULT = 'http://127.0.0.1:8790';
 const ERROR = 'http://127.0.0.1:8791';
 
-test('a first-time visitor with no cookie is redirected to the Arabic portal', async ({ page }) => {
-  await page.goto(`${DEFAULT}/login.html`);
-  await expect(page).toHaveURL(/\/ar\/login\.html/);
-  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+test('a first-time visitor with an Arabic browser is redirected to the Arabic portal', async ({ browser }) => {
+  // Locale decides the redirect: on the first visit (no cookie) the portal
+  // follows the browser language, defaulting to Arabic for unsupported ones.
+  const context = await browser.newContext({ locale: 'ar-EG' });
+  const page = await context.newPage();
+  try {
+    await page.goto(`${DEFAULT}/login.html`);
+    await expect(page).toHaveURL(/\/ar\/login\.html/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  } finally {
+    await context.close();
+  }
+});
+
+test('a first-time visitor with an English browser stays on the English login', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'en-US' });
+  const page = await context.newPage();
+  try {
+    await page.goto(`${DEFAULT}/login.html`);
+    await expect(page).toHaveURL(`${DEFAULT}/login.html`);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    // the choice is remembered for the next visit
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === 'hotspot_lang')?.value).toBe('en');
+  } finally {
+    await context.close();
+  }
 });
 
 test('an English-pinned visitor stays on the English login', async ({ context, page }) => {

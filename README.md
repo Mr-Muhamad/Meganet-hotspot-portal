@@ -261,6 +261,17 @@ Multiple methods can be combined:
 /ip hotspot set [find] login-by=http-pap,http-chap,cookie,mac
 ```
 
+### Login Settings (`config.json` → `features`)
+
+| Key | Purpose |
+|---|---|
+| `loginMode` | Which panels the login page shows: `voucher_only`, `normal_only`, or `both` (tabbed) |
+| `voucherPasswordMode` | `same` (password = voucher) or `empty` (blank password) — controls what gets POSTed as the password |
+| `voucherLength` | Voucher digit count, e.g. `10`. When set, a wrong-length code is rejected inline **before** the form hits the router — no wasted round trip on a slow link. Omit or `null` to disable |
+| `enableQRScanner` / `qrScannerUrl` | Camera voucher scan button; the target host needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) |
+| `enableClonePrevention` | Remembers the last voucher for a 3-second auto-login countdown on the next visit (see the [storage caveat](#data-the-portal-stores-on-the-device)) |
+| `security.maxAttempts` / `blockDurationMinutes` | Client-side login throttle — UX deterrence only, see [Security](#client-side-login-throttling--what-it-is-and-is-not) |
+
 ### Theme Customization
 
 All visual branding is driven by **`config.json`** — edit it, run `npm run build`, and the values are injected into every page as CSS custom property overrides. No HTML editing required:
@@ -283,10 +294,10 @@ Dark mode is automatic via `@media (prefers-color-scheme: dark)`.
 
 The portal ships with **English (LTR)** and **Arabic (RTL)**.
 
-The build produces every page twice: English at the root of `dist/` and Arabic under `dist/ar/` (with `dir="rtl"` and `lang="ar"`). MikroTik routes clients to the matching directory based on the hotspot server's language handling.
+The build produces every page twice: English at the root of `dist/` and Arabic under `dist/ar/` (with `dir="rtl"` and `lang="ar"`).
 
-- `index.html` detects the browser language and forwards Arabic browsers to `ar/login.html`, everyone else to `login.html` (with a `<noscript>` fallback and manual links).
-- The header language toggle (`features.enableLanguageToggle`) switches languages at runtime and remembers the choice via cookie.
+- **First visit**: every page detects the browser language (`navigator.language`) and redirects to the matching directory, defaulting to Arabic for languages the portal doesn't ship. RouterOS serves `login.html` directly to intercepted clients, so the detection runs there too — not just on `index.html` (which carries the same logic with a `<noscript>` fallback and manual links).
+- **Later visits**: the choice (first visit or header toggle, `features.enableLanguageToggle`) is remembered via the `hotspot_lang` cookie for a year.
 - Translation strings live in `src/i18n/en.json` (contains both `en` and `ar` sections) and `src/i18n/ar.json` (overrides the Arabic section at build time).
 
 **To add a new language** (e.g., French):
@@ -297,16 +308,15 @@ The build produces every page twice: English at the root of `dist/` and Arabic u
 
 ### Walled Garden
 
-To allow external resources (if needed), configure the walled garden:
+Unauthenticated clients can only reach hosts you allow. The portal itself needs **no external CSS/JS/font/CDN hosts**, but its pre-login pages do link out to two HTTPS hosts — the QR scanner (`laksa19.github.io`) and WhatsApp support (`wa.me`). Both must be in the **layer-3** list to work before login:
 
 ```routeros
-/ip hotspot walled-garden add dst-host=*.google.com
-/ip hotspot walled-garden add dst-host=*.gstatic.com
-/ip hotspot walled-garden add dst-host=*.apple.com
-/ip hotspot walled-garden add dst-host=captive.apple.com
+# layer 3 — required for HTTPS destinations
+/ip hotspot walled-garden ip add dst-host=laksa19.github.io action=accept
+/ip hotspot walled-garden ip add dst-host=wa.me action=accept
 ```
 
-**Note**: This portal requires **zero external resources**, so walled garden entries are only needed if you add custom external fonts, analytics, or CDN resources.
+The layer-7 `/ip hotspot walled-garden` only matches plain HTTP and will not unblock HTTPS sites. See [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features) for the full pattern.
 
 Common walled garden entries for captive portal detection:
 - `captive.apple.com` — iOS/macOS detection

@@ -17,7 +17,13 @@ var i18n = {
     }
   },
 
-  t: function(key) {
+  /**
+   * Translate a key, optionally substituting {placeholder} tokens.
+   * @param {string} key - dot path into the dictionary (e.g. 'rate_limit_message')
+   * @param {object} [params] - values to interpolate, e.g. { n: 10 }
+   * @returns {string} translation, or the key itself when missing
+   */
+  t: function(key, params) {
     try {
       if (!i18n.data || !i18n.data[i18n.currentLang]) {
         return key;
@@ -32,6 +38,12 @@ var i18n = {
         } else {
           return key;
         }
+      }
+
+      if (typeof result === 'string' && params) {
+        Object.keys(params).forEach(function(name) {
+          result = result.split('{' + name + '}').join(String(params[name]));
+        });
       }
 
       return result;

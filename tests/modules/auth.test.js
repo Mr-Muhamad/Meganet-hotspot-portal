@@ -133,6 +133,112 @@ describe('Hotspot.auth', () => {
     });
   });
 
+  describe('formatRetryTime', () => {
+    const i18nModule = require('../../src/js/modules/i18n.js');
+
+    beforeEach(() => {
+      global.i18n = i18nModule;
+      i18nModule.data = {
+        en: {
+          time_and: '{a} and {b}',
+          time_minute_one: '{n} minute',
+          time_minutes: '{n} minutes',
+          time_second_one: '{n} second',
+          time_seconds: '{n} seconds'
+        }
+      };
+      i18nModule.currentLang = 'en';
+    });
+
+    afterEach(() => {
+      delete global.i18n;
+    });
+
+    test('builds "1 minute and 30 seconds" from 90s', () => {
+      expect(auth.formatRetryTime(90000)).toBe('1 minute and 30 seconds');
+    });
+
+    test('builds "2 minutes and 5 seconds" from 125s', () => {
+      expect(auth.formatRetryTime(125000)).toBe('2 minutes and 5 seconds');
+    });
+
+    test('seconds-only durations skip the minute part', () => {
+      expect(auth.formatRetryTime(40000)).toBe('40 seconds');
+    });
+
+    test('a zero duration falls back to "1 second" rather than an empty string', () => {
+      expect(auth.formatRetryTime(0)).toBe('1 second');
+    });
+  });
+
+  describe('voucher length validation', () => {
+    const i18nModule = require('../../src/js/modules/i18n.js');
+
+    let alertsContainer;
+
+    beforeEach(() => {
+      global.i18n = i18nModule;
+      i18nModule.data = {
+        en: { voucher_length_error: 'Voucher codes are {n} digits — please check the code and try again.' }
+      };
+      i18nModule.currentLang = 'en';
+
+      alertsContainer = document.createElement('div');
+      alertsContainer.id = 'alerts';
+      document.body.appendChild(alertsContainer);
+    });
+
+    afterEach(() => {
+      delete global.i18n;
+    });
+
+    test('blocks submit and shows an inline alert when the voucher is too short', () => {
+      mockForm.setAttribute('data-voucher-length', '10');
+      mockVoucher.value = '123';
+
+      const event = { preventDefault: jest.fn() };
+      auth.onFormSubmit(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(document.getElementById('voucher-length-alert')).not.toBeNull();
+      expect(alertsContainer.textContent).toContain('10 digits');
+      // the voucher was not copied into the hidden auth fields
+      expect(mockUsernameInput.value).toBe('');
+    });
+
+    test('lets a voucher of the configured length through to the router', () => {
+      mockForm.setAttribute('data-voucher-length', '10');
+      mockVoucher.value = '0123456789';
+
+      const event = { preventDefault: jest.fn() };
+      auth.onFormSubmit(event);
+
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(document.getElementById('voucher-length-alert')).toBeNull();
+      expect(mockUsernameInput.value).toBe('0123456789');
+    });
+
+    test('a wrong-length code is still accepted when no length is configured', () => {
+      mockVoucher.value = '123';
+
+      const event = { preventDefault: jest.fn() };
+      auth.onFormSubmit(event);
+
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(document.getElementById('voucher-length-alert')).toBeNull();
+      expect(mockUsernameInput.value).toBe('123');
+    });
+
+    test('replaces a previous voucher-length alert instead of stacking them', () => {
+      mockForm.setAttribute('data-voucher-length', '10');
+
+      auth.onFormSubmit({ preventDefault: jest.fn() });
+      auth.onFormSubmit({ preventDefault: jest.fn() });
+
+      expect(document.querySelectorAll('#voucher-length-alert')).toHaveLength(1);
+    });
+  });
+
   describe('setLoadingState', () => {
     test('enables loading state', () => {
       const submitBtn = document.createElement('button');

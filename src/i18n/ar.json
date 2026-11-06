@@ -84,18 +84,10 @@
     "time_minutes": "{n} دقيقة",
     "time_second_one": "{n} ثانية",
     "time_seconds": "{n} ثانية",
-    "qr_scan_title": "مسح كارت الشحن",
-    "qr_scan_subtitle": "صوّر الكارت أو امسحه بالكاميرا",
-    "qr_scan_photo_btn": "تصوير الكارت",
-    "qr_scan_camera_hint": "وجّه الكاميرا نحو كود الكارت",
     "qr_scan_reading": "جاري قراءة الكود…",
     "qr_scan_failed": "تعذرت قراءة الكود — حاول صورة أوضح",
     "qr_scan_unavailable": "تعذر تحميل قارئ QR. أدخل الكود يدوياً.",
-    "qr_scan_type_manually": "إدخال الكود يدوياً",
     "auto_login_countdown": "سيتم تسجيل الدخول خلال <strong id=\"auto-login-sec\">{n}</strong> ثوانٍ…",
-    "cancel": "إلغاء",
-    "qr_scan_unavailable_here": "المسح بالكاميرا غير متاح في نافذة تسجيل الدخول هذه.",
-    "qr_scan_use_phone_camera": "امسح الكارت بكاميرا هاتفك مباشرة (من شاشة القفل أو تطبيق الكاميرا) — الرابط على الكارت يسجّل دخولك تلقائياً.",
-    "qr_scan_open_browser": "افتح في المتصفح الكامل"
+    "cancel": "إلغاء"
   }
 }

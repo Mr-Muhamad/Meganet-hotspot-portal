@@ -3,10 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * The in-page voucher scanner: the login-page button opens a modal right
- * where the user stands (no navigation). A photographed card is decoded by
- * the vendored jsqrcode and a bare code starts the cancellable auto-login
- * countdown; a link-card URL navigates to the URL the QR itself carries.
+ * The minimum-click voucher scanner: one tap on the scan button opens the
+ * phone's NATIVE camera app (capture=environment file input), the photo is
+ * decoded by the vendored jsqrcode, and a bare code auto-logs-in in place.
+ * Inside the stripped captive-portal WebView the same tap jumps to the full
+ * browser (intent://) — Android shows its own confirmation screen there.
  *
  * Fixtures were generated with the Python `qrcode` package:
  *   voucher-code.png  → "1234567890"                      (code-only card)
@@ -16,32 +17,18 @@ const path = require('path');
 const DEFAULT = 'http://127.0.0.1:8790';
 const FIXTURES = path.join(__dirname, 'fixtures');
 
-test('the QR button opens the scanner in-place, without any navigation', async ({ page }) => {
+test('one tap on the scan button opens the native camera picker and auto-logs-in', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/login.html`);
+
+  // tap #1 (and the only one): the button fires the hidden file input —
+  // on a phone this is the rear camera app, no permission prompt.
+  const chooserPromise = page.waitForEvent('filechooser');
   await page.locator('#qrScanButton').click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(path.join(FIXTURES, 'voucher-code.png'));
 
-  // the modal opens right here — the URL must not change
-  await expect(page.locator('#qrModal')).toHaveClass(/support-modal--open/);
-  expect(page.url()).toContain('/ar/login.html');
-
-  // the vendored decoder is lazy-loaded on open, same-origin
-  await page.waitForFunction(() => typeof window.qrcode === 'object');
-  // the window.Hotspot assembly exposes the module
-  expect(await page.evaluate(() => typeof window.Hotspot.qrScanner)).toBe('object');
-});
-
-test('a photographed code card fills the voucher and auto-logs-in in-place', async ({ page }) => {
-  await page.goto(`${DEFAULT}/ar/login.html`);
-  await page.locator('#qrScanButton').click();
-  await page.waitForFunction(() => typeof window.qrcode === 'object');
-
-  // the full pipeline: photo → FileReader → jsqrcode → fill → 3s countdown
-  // → submitLoginForm → the POST the router actually receives
-  const request = await Promise.all([
-    page.waitForRequest((req) => req.method() === 'POST'),
-    page.locator('#qr-file-input').setInputFiles(path.join(FIXTURES, 'voucher-code.png'))
-  ]).then(([req]) => req);
-
+  // photo → decode → cancellable 3s countdown → the POST the router receives
+  const request = await page.waitForRequest((req) => req.method() === 'POST');
   const body = request.postData();
   expect(body).toContain('username=1234567890');
   expect(body).toContain('password=1234567890');
@@ -62,11 +49,11 @@ test('a link-card QR payload navigates to the URL it carries', async ({ page }) 
   await expect(page).toHaveURL(/voucher=55555/);
 });
 
-test('inside the stripped captive-portal WebView the modal becomes a guide, not a dead scanner', async ({ browser }) => {
-  // The system "Sign in to network" WebView swallows file-input taps (no
-  // onShowFileChooser) — the modal must hide the photo button and show the
-  // escape-to-full-browser guide instead. UA mimics the CaptivePortalLogin
-  // WebView observed on a real device.
+test('inside the stripped captive-portal WebView the scan tap escapes to the full browser', async ({ browser }) => {
+  // The system "Sign in to network" WebView swallows file inputs (no
+  // onShowFileChooser) — the scan tap must fire the intent:// escape
+  // immediately (verified on-device: Android then shows its own
+  // "CONTINUE ANYWAY VIA BROWSER" confirmation and Chrome opens).
   const captivePortalUA =
     'Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 (KHTML, like Gecko) ' +
     'Version/4.0 Chrome/119.0.6045.163 Mobile Safari/537.36';
@@ -74,25 +61,25 @@ test('inside the stripped captive-portal WebView the modal becomes a guide, not 
   const page = await context.newPage();
   try {
     await page.goto(`${DEFAULT}/ar/login.html`);
-    await page.locator('#qrScanButton').click();
+    await page.evaluate(() => {
+      window.__escapeTarget = null;
+      window.Hotspot.qrScanner.escapeNow = (target) => { window.__escapeTarget = target; };
+    });
 
-    await expect(page.locator('#qrModal')).toHaveClass(/support-modal--open/);
-    // the dead scanner UI is gone…
-    await expect(page.locator('#qr-photo-btn')).toBeHidden();
-    // …and the guide is up: honest message + escape to the full browser
-    await expect(page.locator('#qr-webview-guide')).toBeVisible();
-    await expect(page.locator('#qr-escape-btn')).toBeVisible();
+    let chooserOpened = false;
+    page.on('filechooser', () => { chooserOpened = true; });
+    await page.locator('#qrScanButton').click();
+    await page.waitForTimeout(400);
+
+    const target = await page.evaluate(() => window.__escapeTarget);
+    expect(target).toMatch(/^intent:\/\//);
+    expect(target).toContain('qrscan=1');
+    expect(target).toContain('S.browser_fallback_url=');
+    // the camera path must NOT have been attempted — it is dead in there
+    expect(chooserOpened).toBe(false);
   } finally {
     await context.close();
   }
-});
-
-test('a normal browser keeps the working photo scanner (no guide)', async ({ page }) => {
-  await page.goto(`${DEFAULT}/ar/login.html`);
-  await page.locator('#qrScanButton').click();
-
-  await expect(page.locator('#qr-photo-btn')).toBeVisible();
-  await expect(page.locator('#qr-webview-guide')).toBeHidden();
 });
 
 // These two check what the router actually receives for credential links:

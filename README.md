@@ -234,7 +234,7 @@ Walk through this once with a real device that has never connected before:
 1. **Intercept**: connect → the login page appears (in Arabic for Arabic browsers, English otherwise)
 2. **Variables**: view page source — no raw `$(...)` tokens anywhere; `$(username)`, `$(mac)` etc. are substituted server-side
 3. **Failed login**: the error appears in the user's language. If a RADIUS Reply-Message comes through in English, `util.translateError()` swaps it to Arabic client-side — verify with a bad voucher
-4. **QR scanner** (if enabled): the button opens the in-page scanner modal — in Chrome the photo path works; in the system captive-portal WebView the modal shows the guide (see [Voucher QR Scanning](#voucher-qr-scanning))
+4. **QR scanner** (if enabled): the button opens the native camera in one tap (Chrome) or escapes to the full browser via Android's confirmation screen (system captive-portal WebView) — see [Voucher QR Scanning](#voucher-qr-scanning)
 5. **Successful login**: `alogin.html` → status page shows real session data (uptime, bytes in/out)
 6. **Connection quality**: the quality card reports a latency (`… ms`) — if it says "Offline" on the Arabic status page, the `ar/` subdirectory upload from step 1 was incomplete
 7. **Logout**: status → logout → the logout page renders, and the session is gone on reconnect
@@ -282,21 +282,21 @@ Multiple methods can be combined:
 
 ### Voucher QR Scanning
 
-The login page's scan button opens an **inline scanner modal right on the login page** — no navigation, no separate page. It supports both card-printing systems:
+The scan button is built for **minimum clicks** — it opens the phone's camera in one tap and never leaves the login page. It supports both card-printing systems:
 
 | Card QR contains | What happens after scanning |
 |---|---|
 | A full URL (link card) | The browser goes straight to that URL, which is expected to end with `?voucher=<code>` (or carry `?username=&password=`) — the login page auto-fills and submits |
-| Just the code digits | The modal closes and the cancellable 3-second auto-login countdown starts with the scanned code |
+| Just the code digits | The cancellable 3-second auto-login countdown starts with the scanned code — done |
 
-Two ways to scan, chosen automatically:
+Two environments, two behaviors, both automatic:
 
-- **Photograph the card** (primary) — hands off to the phone's **native camera app** via a `capture="environment"` file input. That is not the browser's camera API, so it works on plain-HTTP hotspots and inside app webviews, with no permission prompt. One hard exception: the **system captive-portal mini-browser** (Android's "Sign in to network" WebView, where most phones land automatically) never implements the file-chooser hook, so photo taps are silently swallowed there — verified on-device. The scanner detects that environment (`; wv)` / `Version/4.0 Chrome` UA markers, excluding in-app browsers that do support uploads) and swaps the modal for an honest **guide**: it explains scanning isn't available in that window, points the user at their phone's own Camera app (see below), and offers an **"Open in full browser"** escape button (`intent://` to the device's default browser) that jumps to a real browser where everything works. The "type the code manually" link is always available as the last resort.
-- **Live camera** (progressive enhancement) — browsers grant `getUserMedia` only on a **secure (HTTPS) origin**, so this section appears solely on HTTPS-enabled hotspots. On a plain-HTTP setup the photo path is the only one shown — that is expected, not a bug, and no portal code can change it.
+- **Any real browser (Chrome, Safari, in-app webviews)** — one tap on "امسح كارت الشحن بالكاميرا" fires a `capture="environment"` file input: the phone's **native camera app** opens immediately (that is not the browser's camera API, so it needs no permission and works on plain HTTP). Photograph the card → the photo is decoded in-page (vendored [jsqrcode](https://github.com/laksa19/myqr), `llqrcode.js`, Apache-2.0, lazy-loaded) → the code fills and auto-logs-in. Decode failures surface as a toast; the user can re-shoot.
+- **The system captive-portal WebView** (Android's "Sign in to network", where most phones land automatically) — file inputs and the camera are OS-blocked there (verified on-device: no chooser, no permission, nothing). The same tap therefore **jumps straight to the full browser** via an `intent://` URL: Android shows its own one-time "CONTINUE ANYWAY VIA BROWSER" confirmation, the default browser opens the same page (marked with a pulsing scan button), and the second tap opens the camera. Two taps total, both unavoidable: the first is the user's, the second is Android's security screen.
 
-**The most reliable QR flow for captive-portal users needs no in-page camera at all**: the phone's own **Camera app** recognizes the printed card's QR from the lock screen and opens the encoded URL — bypassing every portal-browser restriction on iOS and Android alike — and the portal auto-logs-in. This is why the link-card format below is worth printing.
+**The absolute minimum-click flow needs no in-page scanning at all**: the phone's own **Camera app** recognizes the printed card's QR from the lock screen and opens the encoded URL — bypassing every portal-browser restriction on iOS and Android alike — and the portal auto-logs-in. This is why the link-card format below is worth printing.
 
-Decoding uses the vendored [jsqrcode](https://github.com/laksa19/myqr) decoder (`llqrcode.js`, Apache-2.0), lazy-loaded from the hotspot directory on first open so the login page payload stays lean. To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)).
+To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)).
 
 #### Link-card URL format (mikhmon-compatible)
 

@@ -92,11 +92,19 @@ var auth = {
             // config override: an external scanner page (needs its own walled
             // garden entry); pass the return URL so it can send codes back.
             window.location.href = auth.buildQrScannerUrl(externalUrl, window.location.href);
-          } else {
-            // default: the in-page scanner modal — no navigation at all
-            qrScanner.open();
+            return;
           }
+          // default: minimum-click flow — working browsers open the native
+          // camera app in one tap; the stripped captive-portal WebView jumps
+          // straight to the full browser (Hotspot.qrScanner.scanDirect).
+          qrScanner.scanDirect();
         });
+        // Guarded like rateLimiter above — the QR module loads after auth.js
+        // in the bundle; a missing module must never kill the voucher-param
+        // auto-login below.
+        if (typeof qrScanner !== 'undefined' && qrScanner.onPageLoad) {
+          qrScanner.onPageLoad();
+        }
       }
 
       // Check query parameters for auto-login from native camera scan

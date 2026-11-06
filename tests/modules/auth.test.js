@@ -273,6 +273,38 @@ describe('Hotspot.auth', () => {
     });
   });
 
+  describe('mikhmon-format link cards (?username=X&password=Y)', () => {
+    test('a scanned password overrides the voucher-as-password default', () => {
+      mockVoucher.value = 'ahmed2015';
+      mockForm.setAttribute('data-scanned-password', 'secret99');
+
+      const event = { preventDefault: jest.fn() };
+      auth.onFormSubmit(event);
+
+      expect(mockUsernameInput.value).toBe('ahmed2015');
+      expect(mockPasswordInput.value).toBe('secret99');
+    });
+
+    test('without a scanned password, the voucher is still copied (vc cards)', () => {
+      mockVoucher.value = '1234567890';
+
+      auth.onFormSubmit({ preventDefault: jest.fn() });
+
+      expect(mockUsernameInput.value).toBe('1234567890');
+      expect(mockPasswordInput.value).toBe('1234567890');
+    });
+
+    test('the scanned password wins even under voucherPasswordMode=empty', () => {
+      mockVoucher.value = 'ahmed2015';
+      mockForm.setAttribute('data-voucher-password-mode', 'empty');
+      mockForm.setAttribute('data-scanned-password', 'secret99');
+
+      auth.onFormSubmit({ preventDefault: jest.fn() });
+
+      expect(mockPasswordInput.value).toBe('secret99');
+    });
+  });
+
   describe('setLoadingState', () => {
     test('enables loading state', () => {
       const submitBtn = document.createElement('button');
@@ -331,14 +363,17 @@ describe('Hotspot.auth', () => {
       // Mock window.location using native history API (using relative path to keep same origin in JSDOM)
       window.history.pushState({}, '', '/login?voucher=987654');
 
-      // Mock form submit
+      // The auto-login goes through submitLoginForm(), which prefers
+      // requestSubmit() in real browsers (it fires the submit handlers — jsdom
+      // doesn't implement it, so stub both entry points).
       const mockSubmit = jest.fn();
+      mockForm.requestSubmit = mockSubmit;
       mockForm.submit = mockSubmit;
 
       auth.init();
 
       expect(mockVoucher.value).toBe('987654');
-      
+
       // Fast forward timers for form submit
       jest.advanceTimersByTime(600);
       expect(mockSubmit).toHaveBeenCalled();

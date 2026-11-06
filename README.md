@@ -287,6 +287,16 @@ Two ways to scan, chosen automatically:
 
 Decoding uses the vendored [jsqrcode](https://github.com/laksa19/myqr) decoder (`llqrcode.js`, Apache-2.0) served from the hotspot directory like `md5.js`. To point the button at a different scanner instead, set `features.qrScannerUrl` — the target then needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) and won't understand the `?return=` parameter, so bare-code cards stop round-tripping.
 
+#### Link-card URL format (mikhmon-compatible)
+
+The login page accepts credentials arriving on the link itself, for cards printed by [mikhmon](https://github.com/laksa19/mikhmonv3) or a similar generator:
+
+```
+http://<hotspot-address>/login?username=<code>&password=<password>
+```
+
+Both parameters are honored: `username` (or `voucher`) pre-fills the code, and a carried `password` is submitted as-is instead of the configured `voucherPasswordMode` copy — so both mikhmon card modes work: `vc` (username = password) and `up` (different username and password). `target=ar` may be appended to land directly on the Arabic pages (MikroTik-documented). Note that a link that logs in by itself carries the credential on the printed card — standard for printed vouchers, but by design.
+
 ### Theme Customization
 
 All visual branding is driven by **`config.json`** — edit it, run `npm run build`, and the values are injected into every page as CSS custom property overrides. No HTML editing required:

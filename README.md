@@ -206,17 +206,26 @@ Skip the WhatsApp entry and the support chat simply fails for a not-yet-logged-i
 /ip hotspot walled-garden ip remove [find comment="meganet-portal"]
 ```
 
-### 5. Captive-portal discovery (optional)
+### 5. Captive-portal discovery (recommended on Android 13+)
 
-`dist/api.json` is a RouterOS-templated [RFC 7710](https://datatracker.ietf.org/doc/html/rfc7710) API document — RouterOS substitutes `$(...)` inside it like any other file in the override directory, so no extra setup is needed for clients that probe for it. To also advertise the portal proactively, add DHCP option 114 ([RFC 8910](https://datatracker.ietf.org/doc/html/rfc8910)):
+`dist/api.json` is a RouterOS-templated API document answering **both** standards: [RFC 7710](https://datatracker.ietf.org/doc/html/rfc7710) (for probing clients) and **RFC 8908** (Captive Portal API — `captive`, `user-portal-url`, `can-extend-session`). RouterOS substitutes `$(...)` inside it like any other file in the override directory. Advertising it via DHCP option 114 ([RFC 8910](https://datatracker.ietf.org/doc/html/rfc8910)) does more than speed up portal detection: **on Android 13+ the system uses the API's `user-portal-url` to open the sign-in in the user's real browser instead of the stripped captive-portal WebView** — the same WebView where file inputs and the camera are dead (see [Voucher QR Scanning](#voucher-qr-scanning)).
+
+Replace `192.168.8.1` with your hotspot address, and mind the version difference:
 
 ```routeros
-/ip dhcp-server option add name=captive-portal code=114 force=yes value="'http://$(hotspot-address)/api.json'"
+# RouterOS v6 — no `force` parameter, and none is needed: v6 always sends
+# configured options. Options attach to the server directly (no option sets).
+/ip dhcp-server option add name=captive-portal code=114 value="'http://192.168.8.1/api.json'"
+/ip dhcp-server set [find] dhcp-option=captive-portal
+
+# RouterOS v7 — force=yes IS required: v7 sends only options the client asked
+# for, and no client requests code 114.
+/ip dhcp-server option add name=captive-portal code=114 force=yes value="'http://192.168.8.1/api.json'"
 /ip dhcp-server option sets add name=captive-portal-set options=captive-portal
 /ip dhcp-server set [find] dhcp-option-set=captive-portal-set
 ```
 
-`force=yes` is required — without it, clients whose DHCP Parameter Request List omits code 114 (iOS, Android) silently never see the option. Note that the hotspot subsystem is IPv4-only; IPv6 clients are not intercepted.
+The inner single quotes around the URL are mandatory (they make the value a text string, not a hex blob). On v6, `set [find] dhcp-option=…` replaces the server's whole option list — check `/ip dhcp-server print` first and merge manually if the server already carries options. Clients must renew their lease (toggle WiFi) to receive the option. Note that the hotspot subsystem is IPv4-only; IPv6 clients are not intercepted.
 
 ### 6. Post-deploy verification
 
@@ -225,7 +234,7 @@ Walk through this once with a real device that has never connected before:
 1. **Intercept**: connect → the login page appears (in Arabic for Arabic browsers, English otherwise)
 2. **Variables**: view page source — no raw `$(...)` tokens anywhere; `$(username)`, `$(mac)` etc. are substituted server-side
 3. **Failed login**: the error appears in the user's language. If a RADIUS Reply-Message comes through in English, `util.translateError()` swaps it to Arabic client-side — verify with a bad voucher
-4. **QR scanner** (if enabled): the button actually opens the scanner page (walled garden from step 4)
+4. **QR scanner** (if enabled): the button opens the in-page scanner modal — in Chrome the photo path works; in the system captive-portal WebView the modal shows the guide (see [Voucher QR Scanning](#voucher-qr-scanning))
 5. **Successful login**: `alogin.html` → status page shows real session data (uptime, bytes in/out)
 6. **Connection quality**: the quality card reports a latency (`… ms`) — if it says "Offline" on the Arabic status page, the `ar/` subdirectory upload from step 1 was incomplete
 7. **Logout**: status → logout → the logout page renders, and the session is gone on reconnect

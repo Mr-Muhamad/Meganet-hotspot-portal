@@ -62,6 +62,39 @@ test('a link-card QR payload navigates to the URL it carries', async ({ page }) 
   await expect(page).toHaveURL(/voucher=55555/);
 });
 
+test('inside the stripped captive-portal WebView the modal becomes a guide, not a dead scanner', async ({ browser }) => {
+  // The system "Sign in to network" WebView swallows file-input taps (no
+  // onShowFileChooser) — the modal must hide the photo button and show the
+  // escape-to-full-browser guide instead. UA mimics the CaptivePortalLogin
+  // WebView observed on a real device.
+  const captivePortalUA =
+    'Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+    'Version/4.0 Chrome/119.0.6045.163 Mobile Safari/537.36';
+  const context = await browser.newContext({ userAgent: captivePortalUA });
+  const page = await context.newPage();
+  try {
+    await page.goto(`${DEFAULT}/ar/login.html`);
+    await page.locator('#qrScanButton').click();
+
+    await expect(page.locator('#qrModal')).toHaveClass(/support-modal--open/);
+    // the dead scanner UI is gone…
+    await expect(page.locator('#qr-photo-btn')).toBeHidden();
+    // …and the guide is up: honest message + escape to the full browser
+    await expect(page.locator('#qr-webview-guide')).toBeVisible();
+    await expect(page.locator('#qr-escape-btn')).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test('a normal browser keeps the working photo scanner (no guide)', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+  await page.locator('#qrScanButton').click();
+
+  await expect(page.locator('#qr-photo-btn')).toBeVisible();
+  await expect(page.locator('#qr-webview-guide')).toBeHidden();
+});
+
 // These two check what the router actually receives for credential links:
 // the auto-login submits the form ~500 ms after load, so we intercept the
 // POST rather than racing the field values before the page navigates away.

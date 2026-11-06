@@ -53,4 +53,70 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner.routeScan(null).code).toBe('');
     });
   });
+
+  describe('buildEscapeIntentUrl', () => {
+    test('builds an intent URL for the default browser (no package pinning)', () => {
+      const url = qrScanner.buildEscapeIntentUrl('http://192.168.8.1/ar/login.html');
+      expect(url).toBe(
+        'intent://192.168.8.1/ar/login.html#Intent;scheme=http;' +
+        'S.browser_fallback_url=' + encodeURIComponent('http://192.168.8.1/ar/login.html') + ';end'
+      );
+    });
+
+    test('keeps https as the inner scheme', () => {
+      const url = qrScanner.buildEscapeIntentUrl('https://hotspot.example.net/login?voucher=1');
+      expect(url.startsWith('intent://hotspot.example.net/login?voucher=1#Intent;scheme=https;')).toBe(true);
+      expect(url.endsWith(';end')).toBe(true);
+    });
+
+    test('returns an empty string for an empty URL', () => {
+      expect(qrScanner.buildEscapeIntentUrl('')).toBe('');
+      expect(qrScanner.buildEscapeIntentUrl(null)).toBe('');
+    });
+  });
+
+  describe('_isStrippedWebView', () => {
+    const withUA = (ua) => {
+      Object.defineProperty(window.navigator, 'userAgent', { get: () => ua, configurable: true });
+    };
+
+    afterEach(() => {
+      Object.defineProperty(window.navigator, 'userAgent', { get: () => 'jsdom', configurable: true });
+    });
+
+    const CAPTIVE_PORTAL_UA =
+      'Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+      'Version/4.0 Chrome/119.0.6045.163 Mobile Safari/537.36';
+    const CHROME_UA =
+      'Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+      'Chrome/119.0.6045.163 Mobile Safari/537.36';
+    const FB_IAB_UA =
+      'Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+      'Version/4.0 Chrome/119.0.6045.163 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/440.0.0.42.129;]';
+
+    test('detects the system captive-portal WebView (Version/4.0 marker)', () => {
+      withUA(CAPTIVE_PORTAL_UA);
+      expect(qrScanner._isStrippedWebView()).toBe(true);
+    });
+
+    test('detects the legacy "; wv)" WebView marker', () => {
+      withUA('Mozilla/5.0 (Linux; Android 9; X) AppleWebKit/537.36 (KHTML, like Gecko); wv) Version/4.0 Chrome/90 Mobile Safari/537.36');
+      expect(qrScanner._isStrippedWebView()).toBe(true);
+    });
+
+    test('real Chrome is not a stripped WebView', () => {
+      withUA(CHROME_UA);
+      expect(qrScanner._isStrippedWebView()).toBe(false);
+    });
+
+    test('Facebook in-app browser implements the chooser — excluded', () => {
+      withUA(FB_IAB_UA);
+      expect(qrScanner._isStrippedWebView()).toBe(false);
+    });
+
+    test('desktop browsers pass through', () => {
+      withUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36');
+      expect(qrScanner._isStrippedWebView()).toBe(false);
+    });
+  });
 });

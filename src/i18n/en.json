@@ -76,6 +76,7 @@
     "pwa_banner_desc": "Add this portal to your Home Screen to easily monitor your remaining data and connection speed at any time.",
     "pwa_banner_btn": "Install Now",
     "qr_scan_btn_text": "Scan Card QR Code",
+    "qr_scan_webview_hint": "To open camera: tap Continue in the next prompt to launch browser",
     "plans_cta_hint": "Choose your plan and contact support to activate it",
     "voucher_min_length_error": "Voucher codes are at least {n} digits — please check the code and try again.",
     "rate_limit_message": "Too many attempts. Please try again in {time}.",

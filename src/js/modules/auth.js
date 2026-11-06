@@ -599,6 +599,12 @@ var auth = {
 
       voucherInput.value = voucherValue;
 
+      // Clear any running auto-login interval before starting a fresh one
+      if (auth.autoLoginTimer) {
+        clearInterval(auth.autoLoginTimer);
+        auth.autoLoginTimer = null;
+      }
+
       var alertsContainer = document.getElementById('alerts');
       if (!alertsContainer) return;
 

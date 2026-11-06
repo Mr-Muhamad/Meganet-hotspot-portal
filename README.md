@@ -11,7 +11,6 @@ A modern, lightweight captive portal template system designed for MikroTik route
 - **Modern minimalist UI** with automatic dark/light mode via `prefers-color-scheme`
 - **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates
 - **CHAP and PAP authentication** — with MD5 challenge-response support
-- **Trial login support** — configurable trial uptime via hotspot profile
 - **Arabic (RTL) and English (LTR) bilingual support** — with `dir="rtl"` and `lang="ar"`
 - **Mobile-first responsive design** — optimized for 360px+ viewports
 - **Captive portal browser compatible** — iOS CNA, macOS CNA (900×572), Android, Windows
@@ -124,60 +123,123 @@ logout after 5 s.
 
 ---
 
-## Installation
+## Deployment
 
-### RouterOS v6
+Everything below assumes you have built `dist/` first (see [Local Preview](#local-preview)):
 
-1. **Build first** (requires Node.js 16+):
-   ```
-   npm install
-   npm run build
-   ```
+```
+npm install
+npm run validate:config   # aborts the build on a broken config.json
+npm run build
+```
 
-2. **Upload the contents of `dist/`** to router flash storage via WinBox Files panel or FTP:
-   ```
-   /file print
-   # Upload all files from dist/ to flash/hotspot/
-   ```
+`dist/` is the **only** thing that goes on the router — `src/`, `config.json`, and `node_modules/` never leave your machine. Editing files directly on the router means your next rebuild silently overwrites them.
 
-3. **Configure hotspot server profile** to use custom templates:
-   ```routeros
-   /ip hotspot profile set [find name="hsprof1"] html-override-directory=flash/hotspot
-   ```
+### 1. Upload `dist/` to the router
 
-4. **Set login method** on the hotspot server:
-   ```routeros
-   # For PAP (simpler, compatible with all browsers):
-   /ip hotspot set [find] login-by=http-pap
-   
-   # For CHAP (more secure, requires md5.js):
-   /ip hotspot set [find] login-by=http-chap
-   ```
+Drag the **contents** of `dist/` (not the folder itself) into a new folder on the router, e.g. `hotspot-portal/`, via the WinBox **Files** panel, or FTP:
 
-5. **Verify** that MikroTik `$(variable)` injection works by visiting the login page and checking that `$(hostname)`, `$(link-login)`, etc. resolve correctly.
+```
+ftp> mkdir hotspot-portal
+ftp> cd hotspot-portal
+ftp> mput dist/*        # preserve the ar/ subdirectory and md5.js
+```
 
-### RouterOS v7
+The resulting layout must be:
 
-1. **Build first**, then **upload the contents of `dist/`** to router storage (flash or tmpfs):
-   ```routeros
-   /file print
-   # Upload all files from dist/ to flash/hotspot/
-   ```
+```
+hotspot-portal/
+├── login.html  status.html  alogin.html  logout.html  …   (English, root)
+├── redirect.html  error.html  errors.txt  md5.js  api.json
+├── ar/                                                   (Arabic mirror)
+│   ├── login.html  status.html  …  errors.txt
+├── assets/  (icon, logo, agent photos)
+└── announcements.json  manifest.json
+```
 
-2. **Configure hotspot profile** with HTML override:
-   ```routeros
-   /ip/hotspot/profile set [find name="hsprof1"] html-override-directory=flash/hotspot
-   ```
+`redirect.html`, `md5.js`, and `errors.txt` are required by RouterOS itself — a clean rebuild always emits them, but partial uploads commonly miss them.
 
-3. **Same login configuration** as v6:
-   ```routeros
-   /ip/hotspot set [find] login-by=http-pap
-   ```
+### 2. Point the hotspot profile at the folder
 
-4. **Optional**: Enable `api.json` endpoint for RFC 7710 captive portal detection:
-   ```routeros
-   /ip/hotspot set [find] use-radius=yes
-   ```
+> The property is `html-directory-override`. (`html-override-directory` is not a real RouterOS property and will be rejected.)
+
+```routeros
+# v6
+/ip hotspot profile set [find name="hsprof1"] html-directory-override=hotspot-portal
+
+# v7 — same property, REST-style path
+/ip/hotspot/profile set [find name="hsprof1"] html-directory-override=hotspot-portal
+```
+
+On flash-backed devices the folder lives under `flash/` but the property still takes the folder name as the router sees it — verify with `/file print` and keep the two in sync.
+
+### 3. Set the login method
+
+```routeros
+# CHAP (recommended — password never sent in the clear; needs md5.js, which ships in dist/)
+/ip hotspot set [find] login-by=http-chap
+
+# PAP (fallback for locked-down browsers)
+/ip hotspot set [find] login-by=http-pap
+```
+
+If you authenticate against User Manager or another RADIUS server, also set `use-radius=yes` — and note that with `use-radius=yes`, local `/ip hotspot user` entries are bypassed entirely.
+
+### 4. Walled garden — the step that silently breaks features
+
+Unauthenticated clients can only reach hosts you allow. This portal has **no external CSS/JS/font/CDN dependencies**, but two features on the pre-login pages do call out:
+
+| Feature | Host | Where |
+|---|---|---|
+| QR card scanner (`enableQRScanner`) | `laksa19.github.io` | button on `login.html` |
+| WhatsApp support (`config.support.agents`) | `wa.me` | support modal, all pages |
+
+Both are HTTPS, so they must go into the **layer-3** walled garden (`walled-garden/ip`) — the layer-7 `/ip/hotspot/walled-garden` only matches plain HTTP:
+
+```routeros
+/ip hotspot walled-garden ip add dst-host=laksa19.github.io action=accept comment="meganet-portal"
+/ip hotspot walled-garden ip add dst-host=wa.me action=accept comment="meganet-portal"
+```
+
+Skip either and the QR button and support chat simply fail for a not-yet-logged-in user. Tag entries with a `comment=` so future re-runs can be cleaned up idempotently:
+
+```routeros
+/ip hotspot walled-garden ip remove [find comment="meganet-portal"]
+```
+
+### 5. Captive-portal discovery (optional)
+
+`dist/api.json` is a RouterOS-templated [RFC 7710](https://datatracker.ietf.org/doc/html/rfc7710) API document — RouterOS substitutes `$(...)` inside it like any other file in the override directory, so no extra setup is needed for clients that probe for it. To also advertise the portal proactively, add DHCP option 114 ([RFC 8910](https://datatracker.ietf.org/doc/html/rfc8910)):
+
+```routeros
+/ip dhcp-server option add name=captive-portal code=114 force=yes value="'http://$(hotspot-address)/api.json'"
+/ip dhcp-server option sets add name=captive-portal-set options=captive-portal
+/ip dhcp-server set [find] dhcp-option-set=captive-portal-set
+```
+
+`force=yes` is required — without it, clients whose DHCP Parameter Request List omits code 114 (iOS, Android) silently never see the option. Note that the hotspot subsystem is IPv4-only; IPv6 clients are not intercepted.
+
+### 6. Post-deploy verification
+
+Walk through this once with a real device that has never connected before:
+
+1. **Intercept**: connect → the login page appears (in Arabic for Arabic browsers, English otherwise)
+2. **Variables**: view page source — no raw `$(...)` tokens anywhere; `$(username)`, `$(mac)` etc. are substituted server-side
+3. **Failed login**: the error appears in the user's language. If a RADIUS Reply-Message comes through in English, `util.translateError()` swaps it to Arabic client-side — verify with a bad voucher
+4. **QR scanner** (if enabled): the button actually opens the scanner page (walled garden from step 4)
+5. **Successful login**: `alogin.html` → status page shows real session data (uptime, bytes in/out)
+6. **Connection quality**: the quality card reports a latency (`… ms`) — if it says "Offline" on the Arabic status page, the `ar/` subdirectory upload from step 1 was incomplete
+7. **Logout**: status → logout → the logout page renders, and the session is gone on reconnect
+8. **Language toggle**: switching once persists across pages for that device
+
+### Updating the portal later
+
+1. Edit `config.json` / templates on your machine
+2. `npm run build`
+3. Re-upload `dist/` contents over the same folder (WinBox drag-drop replaces files)
+4. No router config changes are needed unless `config.json` changed feature flags that need walled-garden entries (new support agent hosts, a different `qrScannerUrl`)
+
+> Never keep a second copy of the templates in the router's default `hotspot/` directory — a profile without `html-directory-override` serves the old built-in files and the two copies will drift.
 
 ---
 
@@ -190,7 +252,7 @@ logout after 5 s.
 | HTTP-PAP | `login-by=http-pap` | Simplest, widest compatibility |
 | HTTP-CHAP | `login-by=http-chap` | Requires `md5.js`, challenge-response |
 | MAC Auth | `login-by=mac` | No login page shown, auto-auth |
-| Trial | Set `trial-uptime` in profile | Enables trial button on login page |
+| Trial | Set `trial-uptime` in profile | RouterOS-side only — these templates render no trial button |
 | Cookie | `login-by=cookie` | Returning user auto-login |
 | RADIUS | `use-radius=yes` | External auth server required |
 
@@ -345,6 +407,8 @@ All MikroTik `$(variable)` values are injected into HTML attribute or text conte
 - Using `innerHTML` with MikroTik values
 - Unescaped URL parameters in redirects
 
+Note that RouterOS has **no HTML-escape variant** for its variables (only `-esc` URL-encoding), so any new template work must keep `$(username)`-style values out of raw HTML attribute interpolation.
+
 ### Content Security Policy
 
 The portal is compatible with strict CSP headers:
@@ -352,13 +416,36 @@ The portal is compatible with strict CSP headers:
 Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'
 ```
 
+### Client-Side Login Throttling — What It Is and Is Not
+
+The `security` section in `config.json` (`maxAttempts`, `blockDurationMinutes`) drives a login-attempt throttle that runs entirely in the browser (`src/js/modules/rate-limiter.js`, persisted in the device's `localStorage`):
+
+- ✅ It **does**: stop a casual user from hammering the login form with guessed voucher codes — after `maxAttempts` failures the button is disabled for `blockDurationMinutes`
+- ❌ It **does not**: provide real brute-force protection. Anything client-side is trivially bypassed (private browsing, clearing site data, a scripted client that skips the JS entirely)
+
+Genuine brute-force protection belongs server-side — RADIUS/User Manager policy, or a firewall rule rate-limiting POSTs to the login servlet. Treat the `security` section as UX/abuse-deterrence config, not a security control, and don't let its name lead you to skip the real thing.
+
 ### Additional Security Measures
 
-- **No sensitive data** stored in `localStorage` or `sessionStorage`
+- **No sensitive data** stored in `localStorage` or `sessionStorage` — the only persistence is the language preference, the throttle counter above, the last voucher (for auto-login), the PWA-banner dismissal, and the chosen theme
 - **HTTPS support** via `$(ssl-login)` for encrypted credential transmission
-- **No cookies** set by the portal template (RouterOS manages auth cookies)
-- **CHAP authentication** prevents plaintext password transmission
+- **CHAP authentication** prevents plaintext password transmission over PAP
 - **Form autocomplete** disabled on credential fields
+
+### Data the portal stores on the device
+
+Nothing leaves the browser. All persistence is preferences and counters:
+
+| Storage | Key | Purpose |
+|---|---|---|
+| cookie (365 d) | `hotspot_lang` | chosen language |
+| cookie (365 d) | `hotspot_theme` | chosen theme |
+| cookie (7 d) | `hotspot_dismissed_msg` | which announcement was dismissed |
+| `localStorage` | `hotspot_rate_attempts` | login-throttle counter |
+| `localStorage` | `hotspot_last_voucher` | last voucher, for auto-login (see caveat below) |
+| `localStorage` | `hotspot_mode` / `pwa_banner_dismissed` | login tab + install-banner state |
+
+**One honest caveat**: with `voucherPasswordMode: "same"` (the default), the voucher code *is* the account password — so `hotspot_last_voucher` stores a live credential. This is a deliberate trade-off for the auto-login convenience: it is scoped to the origin (the router's own HTTP server, not a shared web host), anyone with physical access to an unlocked device can read it anyway, and vouchers are typically single-device. If that trade-off is wrong for your network, set `enableClonePrevention: false` in `config.json` and the code is never stored.
 
 ---
 
@@ -370,7 +457,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 
 **Fix**:
 1. Verify hotspot server is running: `/ip hotspot print`
-2. Check `html-override-directory` path exists and files are present
+2. Check `html-directory-override` folder exists and contains `login.html`/`redirect.html`
 3. Ensure `redirect.html` is present — MikroTik requires it for initial intercept
 
 ### CHAP Authentication Fails
@@ -398,16 +485,16 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 **Symptom**: Fonts, images, or scripts from external domains don't load.
 
 **Fix**:
-1. This portal uses zero external resources by design
-2. If you've added custom external resources, add them to walled garden
-3. Better: inline or self-host all resources
+1. The portal itself has zero external CSS/JS/font dependencies by design
+2. The QR scanner (`laksa19.github.io`) and WhatsApp support (`wa.me`) links are the exception — add them to the layer-3 walled garden as described in [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)
+3. For any custom external host you add: use `/ip hotspot walled-garden ip` (layer 3) for HTTPS destinations — the layer-7 `/ip hotspot walled-garden` only matches plain HTTP
 
 ### Variables Not Resolving
 
 **Symptom**: Page shows literal `$(variable)` text instead of values.
 
 **Fix**:
-1. Verify files are in the correct `html-override-directory`
+1. Verify files are in the correct `html-directory-override` folder
 2. Check that MikroTik is processing the files (not serving from cache)
 3. Ensure variable names match RouterOS version (v6 vs v7 syntax)
 4. Restart hotspot service: `/ip hotspot reset [find]`

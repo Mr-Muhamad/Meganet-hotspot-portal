@@ -206,21 +206,21 @@ Skip the WhatsApp entry and the support chat simply fails for a not-yet-logged-i
 /ip hotspot walled-garden ip remove [find comment="meganet-portal"]
 ```
 
-### 5. Captive-portal discovery (recommended on Android 13+)
+### 5. Captive-portal discovery (verified on-device — Android 13+ requires HTTPS)
 
-`dist/api.json` is a RouterOS-templated API document answering **both** standards: [RFC 7710](https://datatracker.ietf.org/doc/html/rfc7710) (for probing clients) and **RFC 8908** (Captive Portal API — `captive`, `user-portal-url`, `can-extend-session`). RouterOS substitutes `$(...)` inside it like any other file in the override directory. Advertising it via DHCP option 114 ([RFC 8910](https://datatracker.ietf.org/doc/html/rfc8910)) does more than speed up portal detection: **on Android 13+ the system uses the API's `user-portal-url` to open the sign-in in the user's real browser instead of the stripped captive-portal WebView** — the same WebView where file inputs and the camera are dead (see [Voucher QR Scanning](#voucher-qr-scanning)).
+`dist/api.json` is a RouterOS-templated API document answering **both** standards: [RFC 7710](https://datatracker.ietf.org/doc/html/rfc7710) (for probing clients) and **RFC 8908** (Captive Portal API — `captive`, `user-portal-url`, `can-extend-session`). RouterOS substitutes `$(...)` inside it like any other file in the override directory. Advertising it via DHCP option 114 ([RFC 8910](https://datatracker.ietf.org/doc/html/rfc8910)) is the standards-based way to get Android 13+ to open the sign-in in the user's real browser instead of the stripped captive-portal WebView — **but the API URL must be HTTPS**: verified on-device (Android 13, real device + adb) that Android queries option-114 URLs over plain HTTP and then rejects them with `Invalid captive portal API protocol: http`. On a plain-HTTP hotspot, option 114 is harmless but inert, and the in-page "Open in full browser" escape button ([Voucher QR Scanning](#voucher-qr-scanning)) is the working path — it was verified to escape the WebView into Chrome, with Android's own one-time "CONTINUE ANYWAY VIA BROWSER" confirmation in between.
 
 Replace `192.168.8.1` with your hotspot address, and mind the version difference:
 
 ```routeros
 # RouterOS v6 — no `force` parameter, and none is needed: v6 always sends
 # configured options. Options attach to the server directly (no option sets).
-/ip dhcp-server option add name=captive-portal code=114 value="'http://192.168.8.1/api.json'"
+/ip dhcp-server option add name=captive-portal code=114 value="'https://portal.example.com/api.json'"
 /ip dhcp-server set [find] dhcp-option=captive-portal
 
 # RouterOS v7 — force=yes IS required: v7 sends only options the client asked
 # for, and no client requests code 114.
-/ip dhcp-server option add name=captive-portal code=114 force=yes value="'http://192.168.8.1/api.json'"
+/ip dhcp-server option add name=captive-portal code=114 force=yes value="'https://portal.example.com/api.json'"
 /ip dhcp-server option sets add name=captive-portal-set options=captive-portal
 /ip dhcp-server set [find] dhcp-option-set=captive-portal-set
 ```

@@ -171,7 +171,7 @@ describe('Hotspot.auth', () => {
     });
   });
 
-  describe('voucher length validation', () => {
+  describe('voucher minimum-length validation', () => {
     const i18nModule = require('../../src/js/modules/i18n.js');
 
     let alertsContainer;
@@ -179,7 +179,7 @@ describe('Hotspot.auth', () => {
     beforeEach(() => {
       global.i18n = i18nModule;
       i18nModule.data = {
-        en: { voucher_length_error: 'Voucher codes are {n} digits — please check the code and try again.' }
+        en: { voucher_min_length_error: 'Voucher codes are at least {n} digits — please check the code and try again.' }
       };
       i18nModule.currentLang = 'en';
 
@@ -192,50 +192,61 @@ describe('Hotspot.auth', () => {
       delete global.i18n;
     });
 
-    test('blocks submit and shows an inline alert when the voucher is too short', () => {
-      mockForm.setAttribute('data-voucher-length', '10');
+    test('blocks submit and shows an inline alert when the code is below the minimum', () => {
+      mockForm.setAttribute('data-voucher-min-length', '4');
       mockVoucher.value = '123';
 
       const event = { preventDefault: jest.fn() };
       auth.onFormSubmit(event);
 
       expect(event.preventDefault).toHaveBeenCalled();
-      expect(document.getElementById('voucher-length-alert')).not.toBeNull();
-      expect(alertsContainer.textContent).toContain('10 digits');
+      expect(document.getElementById('voucher-min-length-alert')).not.toBeNull();
+      expect(alertsContainer.textContent).toContain('at least 4 digits');
       // the voucher was not copied into the hidden auth fields
       expect(mockUsernameInput.value).toBe('');
     });
 
-    test('lets a voucher of the configured length through to the router', () => {
-      mockForm.setAttribute('data-voucher-length', '10');
-      mockVoucher.value = '0123456789';
+    test('lets a code at the minimum through to the router', () => {
+      mockForm.setAttribute('data-voucher-min-length', '4');
+      mockVoucher.value = '1234';
 
       const event = { preventDefault: jest.fn() };
       auth.onFormSubmit(event);
 
       expect(event.preventDefault).not.toHaveBeenCalled();
-      expect(document.getElementById('voucher-length-alert')).toBeNull();
-      expect(mockUsernameInput.value).toBe('0123456789');
+      expect(document.getElementById('voucher-min-length-alert')).toBeNull();
+      expect(mockUsernameInput.value).toBe('1234');
     });
 
-    test('a wrong-length code is still accepted when no length is configured', () => {
+    test('lets a longer code through — voucher lengths are variable, only the floor is enforced', () => {
+      mockForm.setAttribute('data-voucher-min-length', '4');
+      mockVoucher.value = '0123456789012';
+
+      const event = { preventDefault: jest.fn() };
+      auth.onFormSubmit(event);
+
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(mockUsernameInput.value).toBe('0123456789012');
+    });
+
+    test('a short code is still accepted when no minimum is configured', () => {
       mockVoucher.value = '123';
 
       const event = { preventDefault: jest.fn() };
       auth.onFormSubmit(event);
 
       expect(event.preventDefault).not.toHaveBeenCalled();
-      expect(document.getElementById('voucher-length-alert')).toBeNull();
+      expect(document.getElementById('voucher-min-length-alert')).toBeNull();
       expect(mockUsernameInput.value).toBe('123');
     });
 
     test('replaces a previous voucher-length alert instead of stacking them', () => {
-      mockForm.setAttribute('data-voucher-length', '10');
+      mockForm.setAttribute('data-voucher-min-length', '4');
 
       auth.onFormSubmit({ preventDefault: jest.fn() });
       auth.onFormSubmit({ preventDefault: jest.fn() });
 
-      expect(document.querySelectorAll('#voucher-length-alert')).toHaveLength(1);
+      expect(document.querySelectorAll('#voucher-min-length-alert')).toHaveLength(1);
     });
   });
 

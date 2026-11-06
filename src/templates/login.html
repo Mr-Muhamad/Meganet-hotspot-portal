@@ -48,7 +48,7 @@
                 autocomplete="on" novalidate
                 data-voucher-password-mode="{% if config.features.voucherPasswordMode %}{{ config.features.voucherPasswordMode }}{% else %}same{% endif %}"
                 data-clone-prevention="{% if config.features.enableClonePrevention %}true{% else %}false{% endif %}"
-                data-voucher-length="{% if config.features.voucherLength %}{{ config.features.voucherLength }}{% endif %}">
+                data-voucher-min-length="{% if config.features.voucherMinLength %}{{ config.features.voucherMinLength }}{% endif %}">
 
             <!-- Hidden fields required by MikroTik -->
             <input type="hidden" name="dst" value="$(link-orig)">

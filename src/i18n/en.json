@@ -77,7 +77,7 @@
     "pwa_banner_btn": "Install Now",
     "qr_scan_btn_text": "Scan Card QR Code",
     "plans_cta_hint": "Choose your plan and contact support to activate it",
-    "voucher_length_error": "Voucher codes are {n} digits — please check the code and try again.",
+    "voucher_min_length_error": "Voucher codes are at least {n} digits — please check the code and try again.",
     "rate_limit_message": "Too many attempts. Please try again in {time}.",
     "time_and": "{a} and {b}",
     "time_minute_one": "{n} minute",

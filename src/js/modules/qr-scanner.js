@@ -25,7 +25,7 @@ var qrScanner = {
   scanDirect: function() {
     try {
       if (this._isStrippedWebView()) {
-        var href = window.location.href;
+        var href = (window.location.href || '').split('#')[0];
         var sep = href.indexOf('?') === -1 ? '?' : '&';
         this.escapeNow(this.buildEscapeIntentUrl(href + sep + 'qrscan=1'));
         return;
@@ -69,6 +69,13 @@ var qrScanner = {
   onPageLoad: function() {
     try {
       this._wireFileInput();
+
+      // If user is inside stripped captive-portal WebView, reveal the explanatory hint
+      if (this._isStrippedWebView()) {
+        var hint = document.getElementById('qr-webview-hint');
+        if (hint) hint.style.display = 'block';
+      }
+
       var params = new URLSearchParams(window.location.search);
       if (params.get('qrscan') !== '1') return;
       var btn = document.getElementById('qrScanButton');
@@ -188,12 +195,86 @@ var qrScanner = {
   _decodeFile: function(file) {
     var self = this;
     util.showToast(i18n.t('qr_scan_reading'), 'info');
+
+    // 1. Fast Native Path: BarcodeDetector API (Android Chrome 83+ & modern WebViews)
+    // Uses Google Play services / OS-level Barcode Scanner (fast, robust, supports tilted/curved shots)
+    if (typeof window !== 'undefined' && window.BarcodeDetector) {
+      try {
+        var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        var imageBitmapPromise = window.createImageBitmap ? window.createImageBitmap(file) : null;
+        if (imageBitmapPromise) {
+          imageBitmapPromise.then(function(bitmap) {
+            return detector.detect(bitmap).then(function(barcodes) {
+              if (bitmap && bitmap.close) bitmap.close();
+              if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                var input = document.getElementById('qr-file-input');
+                if (input) input.value = '';
+                self._handleResult(barcodes[0].rawValue);
+                return true;
+              }
+              return false;
+            });
+          }).then(function(detected) {
+            if (!detected) {
+              // Fallback to vendored decoder if native found nothing in full image
+              self._decodeFileViaJsQr(file);
+            }
+          }).catch(function() {
+            self._decodeFileViaJsQr(file);
+          });
+          return;
+        }
+      } catch (detectorErr) {
+        // Fall back to js decoder if BarcodeDetector fails or throws
+      }
+    }
+
+    self._decodeFileViaJsQr(file);
+  },
+
+  _decodeFileViaJsQr: function(file) {
+    var self = this;
+    if (typeof qrcode === 'undefined') {
+      util.showToast(i18n.t('qr_scan_unavailable'), 'error');
+      return;
+    }
+
+    var cleanup = function(objectUrl) {
+      if (objectUrl && typeof window !== 'undefined' && window.URL && window.URL.revokeObjectURL) {
+        window.URL.revokeObjectURL(objectUrl);
+      }
+      var input = document.getElementById('qr-file-input');
+      if (input) input.value = '';  // allow re-picking the same photo
+    };
+
+    // Use ObjectURL to avoid huge Base64 strings in memory for high-res phone camera photos
+    if (typeof window !== 'undefined' && window.URL && window.URL.createObjectURL) {
+      try {
+        var objUrl = window.URL.createObjectURL(file);
+        var origCallback = qrcode.callback;
+        qrcode.callback = function(text) {
+          cleanup(objUrl);
+          qrcode.callback = origCallback;
+          self._handleResult(text);
+        };
+
+        try {
+          qrcode.decode(objUrl);
+          return;
+        } catch (decErr) {
+          cleanup(objUrl);
+          qrcode.callback = origCallback;
+          console.error('QR decode error (ObjectURL):', decErr);
+          util.showToast(i18n.t('qr_scan_failed'), 'error');
+          return;
+        }
+      } catch (err) {
+        // Fallback to FileReader if createObjectURL fails
+      }
+    }
+
     var reader = new FileReader();
     reader.onload = function(ev) {
-      if (typeof qrcode === 'undefined') {
-        util.showToast(i18n.t('qr_scan_unavailable'), 'error');
-        return;
-      }
       try {
         // decode() is async for images — the result arrives via qrcode.callback
         qrcode.decode(ev.target.result);
@@ -221,9 +302,7 @@ var qrScanner = {
         util.showToast(i18n.t('qr_scan_failed'), 'error');
         return;
       }
-      if (!document.getElementById('auto-login-alert')) {
-        auth.beginAutoLogin(route.code);
-      }
+      auth.beginAutoLogin(route.code);
     } catch (err) {
       console.error('QR result error:', err);
     }

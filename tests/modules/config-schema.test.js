@@ -53,14 +53,14 @@ describe('config schema validation', () => {
   });
   mistake('a non-string radius error translation', 'radiusErrorTranslations.bad key', c => { c.radiusErrorTranslations['bad key'] = 42; });
   mistake('a missing required string', 'general.networkName', c => { delete c.general.networkName; });
-  mistake('a voucherLength below 1', 'features.voucherLength', c => { c.features.voucherLength = 0; });
-  mistake('a voucherLength that is not a number', 'features.voucherLength', c => { c.features.voucherLength = 'ten'; });
+  mistake('a voucherMinLength below 1', 'features.voucherMinLength', c => { c.features.voucherMinLength = 0; });
+  mistake('a voucherMinLength that is not a number', 'features.voucherMinLength', c => { c.features.voucherMinLength = 'four'; });
 
-  test('accepts voucherLength when it is unset (feature off by default)', () => {
+  test('accepts voucherMinLength when it is unset (feature off by default)', () => {
     const config = JSON.parse(JSON.stringify(valid));
-    config.features.voucherLength = null;
+    config.features.voucherMinLength = null;
     expect(validate(config).errors).toEqual([]);
-    delete config.features.voucherLength;
+    delete config.features.voucherMinLength;
     expect(validate(config).errors).toEqual([]);
   });
 

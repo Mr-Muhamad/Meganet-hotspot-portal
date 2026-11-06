@@ -207,24 +207,24 @@ var auth = {
   },
 
   /**
-   * Show an inline alert when the voucher does not match the configured
-   * length, focusing the field for a quick correction.
-   * @param {number} expectedLength - configured features.voucherLength
+   * Show an inline alert when the voucher is shorter than the configured
+   * minimum, focusing the field for a quick correction.
+   * @param {number} minLength - configured features.voucherMinLength
    */
-  showVoucherLengthError: function(expectedLength) {
+  showVoucherMinLengthError: function(minLength) {
     try {
       var alertsContainer = document.getElementById('alerts');
       if (!alertsContainer) return;
 
-      var oldAlert = document.getElementById('voucher-length-alert');
+      var oldAlert = document.getElementById('voucher-min-length-alert');
       if (oldAlert) oldAlert.remove();
 
       var alertDiv = document.createElement('div');
       alertDiv.className = 'alert alert-error';
-      alertDiv.id = 'voucher-length-alert';
+      alertDiv.id = 'voucher-min-length-alert';
       alertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
         '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-        '<span class="alert__text">' + i18n.t('voucher_length_error', { n: expectedLength }) + '</span>' +
+        '<span class="alert__text">' + i18n.t('voucher_min_length_error', { n: minLength }) + '</span>' +
         '</div>';
 
       alertsContainer.appendChild(alertDiv);
@@ -233,7 +233,7 @@ var auth = {
       var voucherInput = document.getElementById('voucher');
       if (voucherInput) voucherInput.focus();
     } catch (err) {
-      console.error('Show voucher length error:', err);
+      console.error('Show voucher min length error:', err);
     }
   },
 
@@ -370,14 +370,17 @@ var auth = {
         rateLimiter.recordAttempt('device');
       }
 
-      // Voucher length check (config: features.voucherLength) — catches
-      // typos before a slow round trip to the router. Empty/unset disables it.
+      // Minimum-length check (config: features.voucherMinLength) — catches
+      // obviously-truncated codes before a slow round trip to the router.
+      // Codes are variable length, so only a floor is enforced: anything at
+      // or above it is passed through for the router to judge.
+      // Empty/unset attribute disables the check.
       if (mode === 'voucher' && voucherInput) {
         var lenForm = document.getElementById('login-form');
-        var expectedVoucherLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-length'), 10) : NaN;
-        if (expectedVoucherLength && voucherInput.value.trim().length !== expectedVoucherLength) {
+        var voucherMinLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
+        if (voucherMinLength && voucherInput.value.trim().length < voucherMinLength) {
           e.preventDefault();
-          auth.showVoucherLengthError(expectedVoucherLength);
+          auth.showVoucherMinLengthError(voucherMinLength);
           return;
         }
       }

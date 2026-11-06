@@ -267,7 +267,7 @@ Multiple methods can be combined:
 |---|---|
 | `loginMode` | Which panels the login page shows: `voucher_only`, `normal_only`, or `both` (tabbed) |
 | `voucherPasswordMode` | `same` (password = voucher) or `empty` (blank password) — controls what gets POSTed as the password |
-| `voucherLength` | Voucher digit count, e.g. `10`. When set, a wrong-length code is rejected inline **before** the form hits the router — no wasted round trip on a slow link. Omit or `null` to disable |
+| `voucherMinLength` | Minimum voucher digits, e.g. `4`. Codes shorter than this are rejected inline **before** the form hits the router — no wasted round trip on a slow link. Lengths vary per code, so only a floor is enforced; omit or `null` to disable |
 | `enableQRScanner` / `qrScannerUrl` | Camera voucher scan button; the target host needs a walled-garden entry (see [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)) |
 | `enableClonePrevention` | Remembers the last voucher for a 3-second auto-login countdown on the next visit (see the [storage caveat](#data-the-portal-stores-on-the-device)) |
 | `security.maxAttempts` / `blockDurationMinutes` | Client-side login throttle — UX deterrence only, see [Security](#client-side-login-throttling--what-it-is-and-is-not) |

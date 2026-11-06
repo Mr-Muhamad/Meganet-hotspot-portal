@@ -27,12 +27,77 @@ var qrScanner = {
       if (!modal) return;
       modal.classList.add('support-modal--open');
       this._wire();
+      if (this._isStrippedWebView()) {
+        // The system captive-portal mini-browser swallows file-input taps
+        // (its WebChromeClient never implements onShowFileChooser) and
+        // blocks getUserMedia — scanning cannot work here. Swap the modal
+        // for an honest guide: use the phone's own camera app, or escape
+        // to the full browser.
+        this._showWebViewGuide();
+        return;
+      }
       var self = this;
       this._loadDecoder(function() {
         self._tryCamera();
       });
     } catch (err) {
       console.error('QR scanner open error:', err);
+    }
+  },
+
+  /**
+   * Detect the stripped Android WebView that cannot open file choosers:
+   * the system captive-portal mini-browser ("Sign in to network") is a bare
+   * WebView whose WebChromeClient never implements onShowFileChooser(), so
+   * <input type="file"> taps are silently swallowed — verified on-device
+   * (zero intents fired, no permission asked). In-app browsers (Facebook,
+   * WhatsApp) DO implement the chooser, so they are excluded. WebView UA
+   * markers: "; wv)" (legacy) and "Version/4.0 Chrome" (current).
+   * @returns {boolean} true when the photo path cannot work
+   */
+  _isStrippedWebView: function() {
+    try {
+      var ua = navigator.userAgent || '';
+      var isAndroidWebView = /;\s*wv\)/i.test(ua) || /Version\/4\.0\s+Chrome/i.test(ua);
+      var inAppWithChooser = /FB_IAB|FB4A|Instagram|WhatsApp|FBAV/i.test(ua);
+      return isAndroidWebView && !inAppWithChooser;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  /**
+   * Build an Android intent:// URL that opens the same page in the device's
+   * full browser — no package pinning, so the DEFAULT browser resolves
+   * (Chrome, Samsung Internet, whatever is set), with an http fallback URL
+   * for devices where the intent cannot resolve.
+   * @param {string} pageUrl - absolute URL of the current page
+   * @returns {string} intent:// URL, or '' when pageUrl is empty
+   */
+  buildEscapeIntentUrl: function(pageUrl) {
+    try {
+      var url = String(pageUrl || '').trim();
+      if (!url) return '';
+      var bare = url.replace(/^https?:\/\//i, '');
+      var scheme = /^https:\/\//i.test(url) ? 'https' : 'http';
+      var fallback = 'S.browser_fallback_url=' + encodeURIComponent(url);
+      return 'intent://' + bare + '#Intent;scheme=' + scheme + ';' + fallback + ';end';
+    } catch (err) {
+      console.error('Build escape intent error:', err);
+      return '';
+    }
+  },
+
+  _showWebViewGuide: function() {
+    try {
+      var photoBtn = document.getElementById('qr-photo-btn');
+      var cameraSection = document.getElementById('qr-camera-section');
+      var guide = document.getElementById('qr-webview-guide');
+      if (photoBtn) photoBtn.style.display = 'none';
+      if (cameraSection) cameraSection.style.display = 'none';
+      if (guide) guide.style.display = 'block';
+    } catch (err) {
+      console.error('QR webview guide error:', err);
     }
   },
 
@@ -97,6 +162,13 @@ var qrScanner = {
         self.close();
         var voucherInput = document.getElementById('voucher');
         if (voucherInput) voucherInput.focus();
+      });
+    }
+    var escapeBtn = document.getElementById('qr-escape-btn');
+    if (escapeBtn) {
+      escapeBtn.addEventListener('click', function() {
+        var intentUrl = self.buildEscapeIntentUrl(window.location.href);
+        if (intentUrl) window.location.href = intentUrl;
       });
     }
   },

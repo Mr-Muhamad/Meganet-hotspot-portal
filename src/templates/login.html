@@ -204,6 +204,27 @@
             </div>
             <canvas id="qr-canvas-work" width="480" height="360" style="display: none;"></canvas>
             <div id="qr-status" class="text-center" style="margin-top: var(--space-md);" role="status" aria-live="polite"></div>
+
+            <!-- Shown only inside the stripped system WebView (captive portal
+                 mini-browser) where file inputs and camera are silently dead:
+                 guide the user to their phone's own camera app or escape to
+                 the full browser. -->
+            <div id="qr-webview-guide" style="display: none;">
+              <div class="alert alert-info" style="margin-top: var(--space-md);">
+                <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span class="alert__text" data-i18n="qr_scan_unavailable_here">Camera scanning isn't available in this sign-in window.</span>
+              </div>
+              <p class="text-muted text-sm text-center" style="margin-top: var(--space-md);" data-i18n="qr_scan_use_phone_camera">Scan the card with your phone's own Camera app — the link on the card logs you in automatically.</p>
+              <button type="button" class="btn btn-secondary btn-block" id="qr-escape-btn" style="margin-top: var(--space-md);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span data-i18n="qr_scan_open_browser">Open in full browser</span>
+              </button>
+            </div>
+
             <p class="text-center" style="margin-top: var(--space-md);">
               <a href="#" id="qr-type-manual" class="text-muted text-sm" data-i18n="qr_scan_type_manually">Type the code manually</a>
             </p>

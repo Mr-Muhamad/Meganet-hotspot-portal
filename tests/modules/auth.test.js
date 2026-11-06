@@ -19,6 +19,9 @@ describe('Hotspot.auth', () => {
     global.util = util;
     // Reset DOM
     document.body.innerHTML = '';
+    // Tests below (mikhmon onFormSubmit) write hotspot_last_voucher — never
+    // let one test's saved voucher leak into the next.
+    localStorage.clear();
 
     // Create mock elements
     mockPasswordInput = document.createElement('input');

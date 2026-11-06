@@ -84,18 +84,10 @@
     "time_minutes": "{n} minutes",
     "time_second_one": "{n} second",
     "time_seconds": "{n} seconds",
-    "qr_scan_title": "Scan Voucher Card",
-    "qr_scan_subtitle": "Photograph the card or scan it with the camera",
-    "qr_scan_photo_btn": "Photograph the card",
-    "qr_scan_camera_hint": "Point the camera at the card code",
     "qr_scan_reading": "Reading the code…",
     "qr_scan_failed": "Could not read the code — try a clearer photo",
     "qr_scan_unavailable": "The QR decoder could not be loaded. Enter the code manually.",
-    "qr_scan_type_manually": "Type the code manually",
     "auto_login_countdown": "Auto-connecting in <strong id=\"auto-login-sec\">{n}</strong> seconds…",
-    "cancel": "Cancel",
-    "qr_scan_unavailable_here": "Camera scanning isn’t available in this sign-in window.",
-    "qr_scan_use_phone_camera": "Scan the card with your phone’s own Camera app (lock screen or Camera) — the link on the card logs you in automatically.",
-    "qr_scan_open_browser": "Open in full browser"
+    "cancel": "Cancel"
   }
 }

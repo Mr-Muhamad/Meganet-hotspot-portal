@@ -2,46 +2,85 @@
  * QR Scanner Module - in-page voucher card scanner
  * @module Hotspot.qrScanner
  *
- * Opens an inline modal on the login page instead of navigating away. Two
- * scan paths:
- *  - Photograph the card (primary): a capture="environment" file input hands
- *    off to the phone's NATIVE camera app — no getUserMedia permission, so it
- *    works over plain HTTP, in app webviews, and everywhere file pickers work.
- *  - Live camera (progressive enhancement): browsers grant getUserMedia only
- *    on secure (HTTPS) origins, so that section appears on HTTPS hotspots
- *    only; on plain HTTP the photo path is the whole feature by design.
+ * One tap on the scan button opens the phone's NATIVE camera app via a
+ * capture="environment" file input — no getUserMedia permission, works on
+ * plain-HTTP hotspots and in webviews. The photo is decoded by the vendored
+ * jsqrcode (llqrcode.js, lazy-loaded) and:
+ *  - a bare code starts the cancellable auto-login countdown in place,
+ *  - a link card (mikhmon format) navigates to the URL the QR carries.
  *
- * Decoding uses the vendored jsqrcode decoder (llqrcode.js), lazy-loaded on
- * first open so the login page payload stays lean. Two card systems are
- * supported — see routeScan().
+ * Inside the stripped system captive-portal WebView ("Sign in to network")
+ * file inputs and the camera are OS-blocked, so the same button jumps
+ * straight to the device's full browser (intent:// — Android shows its own
+ * one-time confirmation screen there); the landing page carries qrscan=1 to
+ * pulse the button so the user knows where to tap next.
  */
 var qrScanner = {
-  _stream: null,
-  _scanning: false,
-  _wired: false,
 
-  /** Show the scanner modal and prepare decoding. */
-  open: function() {
+  /**
+   * Entry point wired to the scan button. Routes by environment:
+   *  - stripped WebView → escape to the full browser immediately
+   *  - any working browser → open the native camera via the file input
+   */
+  scanDirect: function() {
     try {
-      var modal = document.getElementById('qrModal');
-      if (!modal) return;
-      modal.classList.add('support-modal--open');
-      this._wire();
       if (this._isStrippedWebView()) {
-        // The system captive-portal mini-browser swallows file-input taps
-        // (its WebChromeClient never implements onShowFileChooser) and
-        // blocks getUserMedia — scanning cannot work here. Swap the modal
-        // for an honest guide: use the phone's own camera app, or escape
-        // to the full browser.
-        this._showWebViewGuide();
+        var href = window.location.href;
+        var sep = href.indexOf('?') === -1 ? '?' : '&';
+        this.escapeNow(this.buildEscapeIntentUrl(href + sep + 'qrscan=1'));
         return;
       }
-      var self = this;
-      this._loadDecoder(function() {
-        self._tryCamera();
-      });
+      var input = document.getElementById('qr-file-input');
+      if (!input) return;
+      // Load the decoder in parallel with the camera app — the user needs a
+      // second or two to frame the shot anyway.
+      this._loadDecoder(null);
+      this._wireFileInput();
+      input.click();
     } catch (err) {
-      console.error('QR scanner open error:', err);
+      console.error('QR scan error:', err);
+    }
+  },
+
+  /** Attach the photo-picked listener once (the hidden input lives for the
+   * whole page — its change event is the scan pipeline's entry point). */
+  _wireFileInput: function() {
+    if (this._fileInputWired) return;
+    var input = document.getElementById('qr-file-input');
+    if (!input) return;
+    var self = this;
+    input.addEventListener('change', function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (file) self._handleFile(file);
+    });
+    this._fileInputWired = true;
+  },
+
+  /** Navigate to the escape target (seam for tests). */
+  escapeNow: function(target) {
+    if (target) window.location.href = target;
+  },
+
+  /**
+   * Page-load hook: when the user lands here through the captive-portal
+   * escape (qrscan=1), pulse the scan button so the next tap is obvious,
+   * then strip the marker from the URL so refreshes stay clean.
+   */
+  onPageLoad: function() {
+    try {
+      this._wireFileInput();
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('qrscan') !== '1') return;
+      var btn = document.getElementById('qrScanButton');
+      if (btn) btn.classList.add('qr-scan-btn--attn');
+      params.delete('qrscan');
+      var qs = params.toString();
+      var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+      if (typeof window.history !== 'undefined' && window.history.replaceState) {
+        window.history.replaceState({}, '', clean);
+      }
+    } catch (err) {
+      console.error('QR page load error:', err);
     }
   },
 
@@ -53,7 +92,7 @@ var qrScanner = {
    * (zero intents fired, no permission asked). In-app browsers (Facebook,
    * WhatsApp) DO implement the chooser, so they are excluded. WebView UA
    * markers: "; wv)" (legacy) and "Version/4.0 Chrome" (current).
-   * @returns {boolean} true when the photo path cannot work
+   * @returns {boolean} true when the camera path cannot work here
    */
   _isStrippedWebView: function() {
     try {
@@ -88,31 +127,6 @@ var qrScanner = {
     }
   },
 
-  _showWebViewGuide: function() {
-    try {
-      var photoBtn = document.getElementById('qr-photo-btn');
-      var cameraSection = document.getElementById('qr-camera-section');
-      var guide = document.getElementById('qr-webview-guide');
-      if (photoBtn) photoBtn.style.display = 'none';
-      if (cameraSection) cameraSection.style.display = 'none';
-      if (guide) guide.style.display = 'block';
-    } catch (err) {
-      console.error('QR webview guide error:', err);
-    }
-  },
-
-  /** Hide the modal and release the camera, if one was started. */
-  close: function() {
-    try {
-      this._stopCamera();
-      var modal = document.getElementById('qrModal');
-      if (modal) modal.classList.remove('support-modal--open');
-      this._status('', false);
-    } catch (err) {
-      console.error('QR scanner close error:', err);
-    }
-  },
-
   /**
    * Decide what a decoded QR payload means. Pure function (unit-tested).
    *  - A URL payload is a link card (mikhmon format): navigate straight to
@@ -129,162 +143,71 @@ var qrScanner = {
     return { action: 'autologin', code: auth.normalizeVoucherText(cleaned) };
   },
 
-  _wire: function() {
-    if (this._wired) return;
-    this._wired = true;
-    var self = this;
-    var modal = document.getElementById('qrModal');
-    var closeBtn = document.getElementById('qrModalClose');
-    if (closeBtn) closeBtn.addEventListener('click', function() { self.close(); });
-    if (modal) {
-      modal.addEventListener('click', function(e) {
-        if (e.target === modal) self.close();
-      });
-      document.addEventListener('keydown', function(e) {
-        if ((e.key === 'Escape' || e.keyCode === 27) && modal.classList.contains('support-modal--open')) {
-          self.close();
-        }
-      });
-    }
-    var photoBtn = document.getElementById('qr-photo-btn');
-    var fileInput = document.getElementById('qr-file-input');
-    if (photoBtn && fileInput) {
-      photoBtn.addEventListener('click', function() { fileInput.click(); });
-      fileInput.addEventListener('change', function(e) {
-        var file = e.target.files && e.target.files[0];
-        if (file) self._handleFile(file);
-      });
-    }
-    var manualLink = document.getElementById('qr-type-manual');
-    if (manualLink) {
-      manualLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        self.close();
-        var voucherInput = document.getElementById('voucher');
-        if (voucherInput) voucherInput.focus();
-      });
-    }
-    var escapeBtn = document.getElementById('qr-escape-btn');
-    if (escapeBtn) {
-      escapeBtn.addEventListener('click', function() {
-        var intentUrl = self.buildEscapeIntentUrl(window.location.href);
-        if (intentUrl) window.location.href = intentUrl;
-      });
-    }
-  },
-
-  _handleFile: function(file) {
-    var self = this;
-    if (typeof qrcode === 'undefined') {
-      this._status(i18n.t('qr_scan_unavailable'), true);
-      return;
-    }
-    this._status(i18n.t('qr_scan_reading'), false);
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        // decode() is async for images — the result arrives via qrcode.callback
-        qrcode.decode(ev.target.result);
-      } catch (err) {
-        console.error('QR decode error:', err);
-        self._status(i18n.t('qr_scan_failed'), true);
-      }
-      var input = document.getElementById('qr-file-input');
-      if (input) input.value = '';  // allow re-picking the same photo
-    };
-    reader.onerror = function() { self._status(i18n.t('qr_scan_failed'), true); };
-    reader.readAsDataURL(file);
-  },
-
-  _loadDecoder: function(cb) {
+  _loadDecoder: function(ready) {
     var self = this;
     if (typeof qrcode !== 'undefined') {
       qrcode.callback = function(text) { self._handleResult(text); };
-      cb();
+      if (ready) ready();
       return;
     }
     if (document.getElementById('llqrcode-script')) {
-      // A previous open() is still loading it — poll briefly.
+      // A previous call is still loading it — poll briefly.
       var polls = 0;
       var timer = setInterval(function() {
         polls++;
         if (typeof qrcode !== 'undefined') {
           clearInterval(timer);
           qrcode.callback = function(text) { self._handleResult(text); };
-          cb();
+          if (ready) ready();
         } else if (polls > 50) {
           clearInterval(timer);
-          self._status(i18n.t('qr_scan_unavailable'), true);
         }
       }, 100);
       return;
     }
     var script = document.createElement('script');
     script.id = 'llqrcode-script';
-    script.src = (this._isArabic() ? '../' : '') + 'llqrcode.js';
+    script.src = (window.location.pathname.indexOf('/ar/') !== -1 ? '../' : '') + 'llqrcode.js';
     script.onload = function() {
       if (typeof qrcode !== 'undefined') {
         qrcode.callback = function(text) { self._handleResult(text); };
-        cb();
-      } else {
-        self._status(i18n.t('qr_scan_unavailable'), true);
       }
+      if (ready) ready();
     };
-    script.onerror = function() { self._status(i18n.t('qr_scan_unavailable'), true); };
+    script.onerror = function() {
+      if (ready) ready();
+    };
     document.head.appendChild(script);
   },
 
-  _tryCamera: function() {
-    var section = document.getElementById('qr-camera-section');
-    if (!section) return;
-    // getUserMedia is a secure-context-only API — a plain-HTTP hotspot never
-    // reaches this, and the stripped captive-portal WebViews (iOS CNA,
-    // Android "Sign in to network") never grant a camera at all.
-    if (!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+  _handleFile: function(file) {
     var self = this;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then(function(stream) {
-        var video = document.getElementById('qr-video');
-        if (!video) {
-          stream.getTracks().forEach(function(track) { track.stop(); });
-          return;
-        }
-        self._stream = stream;
-        video.srcObject = stream;
-        section.style.display = 'block';
-        self._scanning = true;
-        self._captureLoop();
-      })
-      .catch(function(err) {
-        console.error('QR camera error:', err);
-        section.style.display = 'none';  // photo path remains
-      });
+    this._loadDecoder(function() { self._decodeFile(file); });
   },
 
-  _captureLoop: function() {
+  _decodeFile: function(file) {
     var self = this;
-    if (!this._scanning) return;
-    var video = document.getElementById('qr-video');
-    var canvas = document.getElementById('qr-canvas-work');
-    if (video && canvas && video.readyState >= 2) {
+    util.showToast(i18n.t('qr_scan_reading'), 'info');
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      if (typeof qrcode === 'undefined') {
+        util.showToast(i18n.t('qr_scan_unavailable'), 'error');
+        return;
+      }
       try {
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Feed the frame through the same image branch used for photos — a
-        // proven decode path, no reliance on the library's canvas internals.
-        qrcode.decode(canvas.toDataURL('image/jpeg', 0.5));
-      } catch (err) { /* unreadable frame — keep scanning */ }
-    }
-    setTimeout(function() { self._captureLoop(); }, 400);
-  },
-
-  _stopCamera: function() {
-    this._scanning = false;
-    if (this._stream) {
-      this._stream.getTracks().forEach(function(track) { track.stop(); });
-      this._stream = null;
-    }
-    var video = document.getElementById('qr-video');
-    if (video) video.srcObject = null;
+        // decode() is async for images — the result arrives via qrcode.callback
+        qrcode.decode(ev.target.result);
+      } catch (err) {
+        console.error('QR decode error:', err);
+        util.showToast(i18n.t('qr_scan_failed'), 'error');
+      }
+      var input = document.getElementById('qr-file-input');
+      if (input) input.value = '';  // allow re-picking the same photo
+    };
+    reader.onerror = function() {
+      util.showToast(i18n.t('qr_scan_failed'), 'error');
+    };
+    reader.readAsDataURL(file);
   },
 
   _handleResult: function(text) {
@@ -295,26 +218,15 @@ var qrScanner = {
         return;
       }
       if (!route.code) {
-        this._status(i18n.t('qr_scan_failed'), true);
+        util.showToast(i18n.t('qr_scan_failed'), 'error');
         return;
       }
-      var alreadyCounting = document.getElementById('auto-login-alert');
-      this.close();
-      if (!alreadyCounting) auth.beginAutoLogin(route.code);
+      if (!document.getElementById('auto-login-alert')) {
+        auth.beginAutoLogin(route.code);
+      }
     } catch (err) {
       console.error('QR result error:', err);
     }
-  },
-
-  _status: function(text, isError) {
-    var el = document.getElementById('qr-status');
-    if (!el) return;
-    el.textContent = text;
-    el.style.color = isError ? 'var(--color-danger, #ef4444)' : 'var(--text-muted, #94a3b8)';
-  },
-
-  _isArabic: function() {
-    return window.location.pathname.indexOf('/ar/') !== -1;
   }
 };
 

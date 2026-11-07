@@ -92,6 +92,15 @@ var i18n = {
           element.setAttribute('aria-label', translation);
         }
       });
+
+      var titleElements = document.querySelectorAll('[data-i18n-title]');
+      titleElements.forEach(function(element) {
+        var key = element.getAttribute('data-i18n-title');
+        var translation = i18n.t(key);
+        if (translation !== key) {
+          element.setAttribute('title', translation);
+        }
+      });
     } catch (err) {
       console.error('i18n apply error:', err);
     }

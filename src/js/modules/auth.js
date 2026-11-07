@@ -64,6 +64,15 @@ var auth = {
       var form = document.getElementById('login-form');
       if (form) {
         form.addEventListener('submit', auth.onFormSubmit);
+        // The template carries onsubmit="return doLogin()" for CHAP. Inline
+        // attribute handlers run BEFORE addEventListener ones, so the hash
+        // would be computed from the still-empty password field — the voucher
+        // copy lives in onFormSubmit. Strip it and re-register below it.
+        var inlineSubmit = form.getAttribute('onsubmit');
+        if (inlineSubmit && inlineSubmit.indexOf('doLogin') !== -1) {
+          form.removeAttribute('onsubmit');
+          form.addEventListener('submit', auth.chapHashOnSubmit);
+        }
       }
 
       var voucherInput = document.getElementById('voucher');
@@ -300,6 +309,10 @@ var auth = {
       if (typeof form.requestSubmit === 'function') {
         form.requestSubmit();
       } else if (typeof doLogin === 'function') {
+        // Legacy browsers: form.submit() bypasses submit listeners, so run the
+        // handler's work by hand — copy the voucher, then CHAP-hash — first.
+        var voucherInput = document.getElementById('voucher');
+        auth.applyVoucherCredentials(voucherInput ? (voucherInput.value || '') : '');
         if (doLogin()) form.submit();
       } else {
         form.submit();
@@ -479,35 +492,87 @@ var auth = {
       }
 
       if (mode === 'voucher' && voucherInput && usernameInput && passwordInput) {
-        var voucherValue = voucherInput.value || '';
-        usernameInput.value = voucherValue;
-        
-        // Check password mode: same (username = password) or empty (password = empty)
-        var form = document.getElementById('login-form');
-        var pwMode = form ? (form.getAttribute('data-voucher-password-mode') || 'same') : 'same';
-        // A scanned link card (mikhmon format: ?username=X&password=Y) carries
-        // its own password — prefer it over the configured copy/blank default.
-        var scannedPassword = form ? form.getAttribute('data-scanned-password') : null;
-
-        if (pwMode === 'empty' && !scannedPassword) {
-          passwordInput.value = '';
-        } else if (scannedPassword) {
-          passwordInput.value = scannedPassword;
-        } else {
-          passwordInput.value = voucherValue;
-        }
-
-        var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
-        if (preventClone && typeof localStorage !== 'undefined') {
-          localStorage.setItem('hotspot_last_voucher', voucherValue);
-        } else if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('hotspot_last_voucher');
-        }
+        auth.applyVoucherCredentials(voucherInput.value || '');
       } else if (mode === 'normal') {
         auth.rememberUsername();
       }
+
+      // One submit in flight at a time: the router round trip is slow and a
+      // double-tap would double-POST (each attempt burns a rate-limiter slot).
+      // If navigation never happens, setLoadingState's watchdog unfreezes it.
+      auth.setLoadingState(true);
     } catch (err) {
       console.error('Form submit handler error:', err);
+    }
+  },
+
+  /**
+   * Copy the voucher into the RouterOS credential fields. The password follows
+   * data-voucher-password-mode ('same' → the code, 'empty' → blank), while a
+   * scanned mikhmon link (?username=X&password=Y) overrides both via
+   * data-scanned-password. Runs before chapHashOnSubmit so CHAP hashes the
+   * final password.
+   * @param {string} voucherValue - the voucher code
+   */
+  applyVoucherCredentials: function(voucherValue) {
+    try {
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+      var form = document.getElementById('login-form');
+      if (!usernameInput || !passwordInput) return;
+
+      usernameInput.value = voucherValue;
+
+      // Check password mode: same (username = password) or empty (password = empty)
+      var pwMode = form ? (form.getAttribute('data-voucher-password-mode') || 'same') : 'same';
+      // A scanned link card (mikhmon format: ?username=X&password=Y) carries
+      // its own password — prefer it over the configured copy/blank default.
+      var scannedPassword = form ? form.getAttribute('data-scanned-password') : null;
+
+      if (pwMode === 'empty' && !scannedPassword) {
+        passwordInput.value = '';
+      } else if (scannedPassword) {
+        passwordInput.value = scannedPassword;
+      } else {
+        passwordInput.value = voucherValue;
+      }
+
+      var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
+      if (preventClone && typeof localStorage !== 'undefined') {
+        localStorage.setItem('hotspot_last_voucher', voucherValue);
+      } else if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('hotspot_last_voucher');
+      }
+    } catch (err) {
+      console.error('Voucher credential copy error:', err);
+    }
+  },
+
+  /**
+   * CHAP hashing as a regular submit listener, replacing the template's inline
+   * onsubmit="return doLogin()" (stripped in init) so it runs AFTER the voucher
+   * copy and hashes the final password. Fires only on a genuine RouterOS
+   * challenge — $(chap-id) is 32 hex chars; un-substituted template text (test
+   * environments, cached pages) must leave the password untouched.
+   */
+  chapHashOnSubmit: function() {
+    try {
+      var chapId = document.getElementById('chap-id');
+      var chapChallenge = document.getElementById('chap-challenge');
+      var passwordInput = document.getElementById('password');
+      var plainPasswordHidden = document.getElementById('plain-password');
+
+      if (chapId && chapChallenge && passwordInput &&
+          /^[0-9a-f]{32}$/i.test(String(chapId.value || '')) &&
+          String(chapChallenge.value || '') !== '' &&
+          typeof hexMD5 !== 'undefined') {
+        passwordInput.value = hexMD5(chapId.value + passwordInput.value + chapChallenge.value);
+        if (plainPasswordHidden) {
+          plainPasswordHidden.removeAttribute('name');
+        }
+      }
+    } catch (err) {
+      console.error('CHAP login error:', err);
     }
   },
 
@@ -519,11 +584,15 @@ var auth = {
       if (passwordInput && toggleBtn) {
         if (passwordInput.type === 'password') {
           passwordInput.type = 'text';
-          toggleBtn.setAttribute('aria-label', 'Hide password');
+          var hideLabel = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('password_hide') : 'Hide password';
+          toggleBtn.setAttribute('aria-label', hideLabel);
+          toggleBtn.setAttribute('title', hideLabel);
           toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
         } else {
           passwordInput.type = 'password';
-          toggleBtn.setAttribute('aria-label', 'Show password');
+          var showLabel = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('password_show') : 'Show password';
+          toggleBtn.setAttribute('aria-label', showLabel);
+          toggleBtn.setAttribute('title', showLabel);
           toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
         }
       }
@@ -565,23 +634,41 @@ var auth = {
     }
   },
 
+  _loadWatchdog: null,
+
+  /**
+   * Freeze/unfreeze the Connect button while the router round trip is in
+   * flight. Targets the template's loginButton; the frozen button blocks
+   * re-taps (disabled + .btn--loading's pointer-events) and shows the
+   * localized connecting label with the shared spinner. A 15 s watchdog
+   * unfreezes the page if navigation never happens (hung request) — RouterOS
+   * otherwise always answers with a fresh page, which resets everything.
+   */
   setLoadingState: function(isLoading) {
     try {
-      var submitBtn = document.getElementById('submit-btn');
-      var spinner = document.getElementById('submit-spinner');
-      var btnText = document.getElementById('submit-text');
+      var btn = document.getElementById('loginButton');
+      if (!btn) return;
 
-      if (submitBtn) {
-        if (isLoading) {
-          submitBtn.classList.add('btn--loading');
-          submitBtn.disabled = true;
-          if (spinner) spinner.style.display = 'inline-block';
-          if (btnText) btnText.textContent = 'Signing in...';
-        } else {
-          submitBtn.classList.remove('btn--loading');
-          submitBtn.disabled = false;
-          if (spinner) spinner.style.display = 'none';
-          if (btnText) btnText.textContent = 'Sign In';
+      if (isLoading) {
+        if (btn.disabled) return; // already frozen — keep the first label
+        btn.disabled = true;
+        btn.classList.add('btn--loading');
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.innerHTML = (typeof i18n !== 'undefined' && i18n.t)
+          ? i18n.t('login_loading')
+          : 'Connecting…';
+        if (auth._loadWatchdog) clearTimeout(auth._loadWatchdog);
+        auth._loadWatchdog = setTimeout(function() {
+          auth._loadWatchdog = null;
+          auth.setLoadingState(false);
+        }, 15000);
+      } else {
+        if (auth._loadWatchdog) { clearTimeout(auth._loadWatchdog); auth._loadWatchdog = null; }
+        btn.disabled = false;
+        btn.classList.remove('btn--loading');
+        if (btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+          delete btn.dataset.originalHtml;
         }
       }
     } catch (err) {
@@ -760,28 +847,11 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = auth;
 }
 
-// Implement Mikrotik CHAP login
+// Legacy CHAP entry point — base.html's doLogin() and submitLoginForm's
+// non-requestSubmit fallback both call this. The real hashing now lives in
+// auth.chapHashOnSubmit, which runs as a submit listener AFTER the voucher
+// copy; this delegate keeps the old call sites working.
 window._doLogin = function() {
-  try {
-    var chapId = document.getElementById('chap-id');
-    var chapChallenge = document.getElementById('chap-challenge');
-    var passwordInput = document.getElementById('password'); 
-    var plainPasswordHidden = document.getElementById('plain-password');
-
-    if (chapId && chapChallenge && chapId.value && chapChallenge.value && typeof hexMD5 !== 'undefined') {
-      var pwd = passwordInput ? passwordInput.value : '';
-      var hash = hexMD5(chapId.value + pwd + chapChallenge.value);
-      
-      if (passwordInput) {
-        passwordInput.value = hash;
-      }
-      
-      if (plainPasswordHidden) {
-        plainPasswordHidden.removeAttribute('name');
-      }
-    }
-  } catch(e) {
-    console.error("CHAP login error:", e);
-  }
+  auth.chapHashOnSubmit();
   return true;
 };

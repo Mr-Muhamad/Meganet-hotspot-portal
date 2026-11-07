@@ -198,6 +198,9 @@ describe('Hotspot.auth', () => {
     test('blocks submit and shows an inline alert when the code is below the minimum', () => {
       mockForm.setAttribute('data-voucher-min-length', '4');
       mockVoucher.value = '123';
+      const loginButton = document.createElement('button');
+      loginButton.id = 'loginButton';
+      document.body.appendChild(loginButton);
 
       const event = { preventDefault: jest.fn() };
       auth.onFormSubmit(event);
@@ -207,11 +210,16 @@ describe('Hotspot.auth', () => {
       expect(alertsContainer.textContent).toContain('at least 4 digits');
       // the voucher was not copied into the hidden auth fields
       expect(mockUsernameInput.value).toBe('');
+      // a blocked submit must not freeze the button
+      expect(loginButton.disabled).toBe(false);
     });
 
-    test('lets a code at the minimum through to the router', () => {
+    test('lets a code at the minimum through to the router and freezes the button', () => {
       mockForm.setAttribute('data-voucher-min-length', '4');
       mockVoucher.value = '1234';
+      const loginButton = document.createElement('button');
+      loginButton.id = 'loginButton';
+      document.body.appendChild(loginButton);
 
       const event = { preventDefault: jest.fn() };
       auth.onFormSubmit(event);
@@ -219,6 +227,8 @@ describe('Hotspot.auth', () => {
       expect(event.preventDefault).not.toHaveBeenCalled();
       expect(document.getElementById('voucher-min-length-alert')).toBeNull();
       expect(mockUsernameInput.value).toBe('1234');
+      // happy path freezes the Connect button against double-taps
+      expect(loginButton.disabled).toBe(true);
     });
 
     test('lets a longer code through — voucher lengths are variable, only the floor is enforced', () => {
@@ -397,47 +407,81 @@ describe('Hotspot.auth', () => {
   });
 
   describe('setLoadingState', () => {
-    test('enables loading state', () => {
-      const submitBtn = document.createElement('button');
-      submitBtn.id = 'submit-btn';
-      document.body.appendChild(submitBtn);
+    test('freezes the Connect button with the localized connecting label', () => {
+      const loginButton = document.createElement('button');
+      loginButton.id = 'loginButton';
+      loginButton.innerHTML = 'Sign In';
+      document.body.appendChild(loginButton);
 
-      const spinner = document.createElement('span');
-      spinner.id = 'submit-spinner';
-      document.body.appendChild(spinner);
-
-      const btnText = document.createElement('span');
-      btnText.id = 'submit-text';
-      document.body.appendChild(btnText);
-
+      global.i18n = { t: (key) => (key === 'login_loading' ? 'Connecting…' : key) };
       auth.setLoadingState(true);
 
-      expect(submitBtn.classList.contains('btn--loading')).toBe(true);
-      expect(submitBtn.disabled).toBe(true);
-      expect(spinner.style.display).toBe('inline-block');
-    });
-
-    test('disables loading state', () => {
-      const submitBtn = document.createElement('button');
-      submitBtn.id = 'submit-btn';
-      submitBtn.classList.add('btn--loading');
-      submitBtn.disabled = true;
-      document.body.appendChild(submitBtn);
-
-      const spinner = document.createElement('span');
-      spinner.id = 'submit-spinner';
-      spinner.style.display = 'inline-block';
-      document.body.appendChild(spinner);
-
-      const btnText = document.createElement('span');
-      btnText.id = 'submit-text';
-      document.body.appendChild(btnText);
+      expect(loginButton.disabled).toBe(true);
+      expect(loginButton.classList.contains('btn--loading')).toBe(true);
+      expect(loginButton.innerHTML).toContain('Connecting…');
+      // the original label is kept for restore
+      expect(loginButton.dataset.originalHtml).toBe('Sign In');
 
       auth.setLoadingState(false);
+      expect(loginButton.disabled).toBe(false);
+      expect(loginButton.classList.contains('btn--loading')).toBe(false);
+      expect(loginButton.innerHTML).toBe('Sign In');
 
-      expect(submitBtn.classList.contains('btn--loading')).toBe(false);
-      expect(submitBtn.disabled).toBe(false);
-      expect(spinner.style.display).toBe('none');
+      delete global.i18n;
+    });
+
+    test('does nothing when no Connect button exists', () => {
+      expect(() => auth.setLoadingState(true)).not.toThrow();
+    });
+  });
+
+  describe('chapHashOnSubmit', () => {
+    afterEach(() => {
+      delete global.hexMD5;
+    });
+
+    test('leaves the password untouched on un-substituted template text', () => {
+      // the outer beforeEach already provides the #password mock
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = '1234567890';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = '$(chap-id)';
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = '$(chap-challenge)';
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = jest.fn(() => 'HASH');
+      auth.chapHashOnSubmit();
+
+      expect(global.hexMD5).not.toHaveBeenCalled();
+      expect(passwordInput.value).toBe('1234567890');
+    });
+
+    test('hashes the final password on a genuine 32-hex RouterOS challenge', () => {
+      // the outer beforeEach already provides the #password mock
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = '1234567890';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = 'a'.repeat(32);
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'b'.repeat(32);
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = jest.fn(() => 'HASH');
+      auth.chapHashOnSubmit();
+
+      expect(global.hexMD5).toHaveBeenCalledWith('a'.repeat(32) + '1234567890' + 'b'.repeat(32));
+      expect(passwordInput.value).toBe('HASH');
     });
   });
 

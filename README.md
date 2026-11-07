@@ -7,12 +7,12 @@
 A modern, lightweight captive portal template system designed for MikroTik routers. Features a clean minimalist UI, full bilingual support, and zero external dependencies — engineered to work reliably inside restrictive captive portal browser environments (iOS CNA, macOS CNA, Android, Windows).
 
 <p align="center">
-  <img src="docs/screenshots/theme-login-dark.png" width="260" alt=" Login Dark" />
-  <img src="docs/screenshots/theme-login-light.png" width="260" alt=" Login light" />
-  <img src="docs/screenshots/theme-plans-dark.png" width="260" alt="Plans Dark" />
-  <img src="docs/screenshots/theme-plans-light.png" width="260" alt=" Plans light" />
-  <img src="docs/screenshots/theme-status-dark.png" width="260" alt=" Status Dark" />
-  <img src="docs/screenshots/theme-status-light.png" width="260" alt="Status light" />
+  <img src="docs/screenshots/theme-login-dark.png" width="260" alt="Login - Dark" />
+  <img src="docs/screenshots/theme-login-light.png" width="260" alt="Login - Light" />
+  <img src="docs/screenshots/theme-plans-dark.png" width="260" alt="Plans - Dark" />
+  <img src="docs/screenshots/theme-plans-light.png" width="260" alt="Plans - Light" />
+  <img src="docs/screenshots/theme-status-dark.png" width="260" alt="Status - Dark" />
+  <img src="docs/screenshots/theme-status-light.png" width="260" alt="Status - Light" />
 </p>
 
 ---

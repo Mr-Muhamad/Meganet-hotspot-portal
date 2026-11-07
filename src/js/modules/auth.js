@@ -83,19 +83,11 @@ var auth = {
             voucherInput.value = val;
           }
 
-          // Auto-submit OTP-style when length matches configured voucherMinLength
-          var lenForm = document.getElementById('login-form');
-          var minLen = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
-          if (minLen && val.length === minLen) {
-            // Avoid duplicate submit if already submitted
-            if (!auth._autoSubmitted) {
-              auth._autoSubmitted = true;
-              setTimeout(function() {
-                auth.submitLoginForm(lenForm);
-                setTimeout(function() { auth._autoSubmitted = false; }, 2000);
-              }, 300);
-            }
-          }
+          // No auto-submit on typing: codes are VARIABLE length (min is only a
+          // floor), so the portal cannot know the code is complete — submitting
+          // at the floor sends truncated codes that fail and lose the typed
+          // value on the error reload. The user submits with Connect / Enter;
+          // paste and QR scans submit themselves.
         });
 
         // Instant submit on paste event if valid

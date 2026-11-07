@@ -1,5 +1,7 @@
 # MikroTik Hotspot Portal 2026
 
+[English](README.md) | [العربية](README.ar.md)
+
 > Production-ready captive portal for MikroTik RouterOS v6 and v7
 
 A modern, lightweight captive portal template system designed for MikroTik routers. Features a clean minimalist UI, full bilingual support, and zero external dependencies — engineered to work reliably inside restrictive captive portal browser environments (iOS CNA, macOS CNA, Android, Windows).

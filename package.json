@@ -26,7 +26,11 @@
     "routeros",
     "wifi"
   ],
-  "author": "",
+  "author": "Mr-Muhamad <mrmuhamad@outlook.com> (https://github.com/Mr-Muhamad)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mr-Muhamad/meganet-hotspot-portal.git"
+  },
   "license": "MIT",
   "dependencies": {
     "nunjucks": "^3.2.4"

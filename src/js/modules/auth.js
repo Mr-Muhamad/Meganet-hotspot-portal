@@ -73,6 +73,33 @@ var auth = {
           if (voucherInput.value !== val) {
             voucherInput.value = val;
           }
+
+          // Auto-submit OTP-style when length matches configured voucherMinLength
+          var lenForm = document.getElementById('login-form');
+          var minLen = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
+          if (minLen && val.length === minLen) {
+            // Avoid duplicate submit if already submitted
+            if (!auth._autoSubmitted) {
+              auth._autoSubmitted = true;
+              setTimeout(function() {
+                auth.submitLoginForm(lenForm);
+                setTimeout(function() { auth._autoSubmitted = false; }, 2000);
+              }, 300);
+            }
+          }
+        });
+
+        // Instant submit on paste event if valid
+        voucherInput.addEventListener('paste', function(e) {
+          setTimeout(function() {
+            var val = auth.normalizeVoucherText(voucherInput.value);
+            voucherInput.value = val;
+            var lenForm = document.getElementById('login-form');
+            var minLen = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
+            if (val && (!minLen || val.length >= minLen)) {
+              auth.submitLoginForm(lenForm);
+            }
+          }, 50);
         });
       }
 
@@ -586,12 +613,13 @@ var auth = {
   },
 
   /**
-   * Fill the voucher field and start the cancellable 3-second auto-login
-   * countdown. Shared by the saved-voucher auto-login (triggerAutoLogin) and
-   * the QR scanner (a scanned code logs in the same way).
+   * Fill the voucher field and start auto-login.
+   * If instant=true (e.g. from newly scanned QR), submit immediately in 0 seconds.
+   * Otherwise (from saved cookie/localStorage), show a 3-second cancellable countdown.
    * @param {string} voucherValue - the code to log in with
+   * @param {boolean} [instant=false] - whether to skip countdown and submit immediately
    */
-  beginAutoLogin: function(voucherValue) {
+  beginAutoLogin: function(voucherValue, instant) {
     try {
       var voucherInput = document.getElementById('voucher');
       var form = document.getElementById('login-form');
@@ -610,6 +638,19 @@ var auth = {
 
       var oldAlert = document.getElementById('auto-login-alert');
       if (oldAlert) oldAlert.remove();
+
+      // Instant path: from real-time QR scan — skip wait time completely!
+      if (instant) {
+        var usernameInput = document.getElementById('username');
+        var passwordInput = document.getElementById('password');
+        if (usernameInput && passwordInput) {
+          usernameInput.value = voucherValue;
+          passwordInput.value = voucherValue;
+        }
+        util.showToast(i18n.t('connecting') || 'Connecting...', 'info', 1500);
+        auth.submitLoginForm(form);
+        return;
+      }
 
       var autoLoginDiv = document.createElement('div');
       autoLoginDiv.className = 'alert alert-info';

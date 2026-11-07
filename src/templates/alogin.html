@@ -20,10 +20,10 @@
           </div>
 
           <!-- Countdown display -->
-          <div id="countdown" aria-live="polite" class="alogin-countdown">3</div>
+          <div id="countdown" aria-live="polite" class="alogin-countdown">1</div>
           <p class="text-center text-muted text-sm alogin-countdown-label" role="status">
             <span data-i18n="redirecting">Redirecting in</span>
-            <span id="countdown-seconds">3</span>
+            <span id="countdown-seconds">1</span>
             <span data-i18n="seconds">seconds</span>
           </p>
 
@@ -73,7 +73,7 @@
         // IMMEDIATE redirect countdown — iOS CNA critical path.
         // MUST be full-page navigation, not AJAX.
         var redirectUrl = "$(link-redirect)" || "$(link-orig)";
-        var seconds = 3;
+        var seconds = 1;
         var countdownEl = document.getElementById('countdown');
         var countdownSecEl = document.getElementById('countdown-seconds');
         var timer = setInterval(function() {

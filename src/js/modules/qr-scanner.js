@@ -47,12 +47,39 @@ var qrScanner = {
   _wireFileInput: function() {
     if (this._fileInputWired) return;
     var input = document.getElementById('qr-file-input');
-    if (!input) return;
+    var galleryInput = document.getElementById('qr-gallery-input');
     var self = this;
-    input.addEventListener('change', function(e) {
-      var file = e.target.files && e.target.files[0];
-      if (file) self._handleFile(file);
-    });
+
+    if (input) {
+      input.addEventListener('change', function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (file) self._handleFile(file);
+      });
+    }
+
+    if (galleryInput) {
+      galleryInput.addEventListener('change', function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (file) self._handleFile(file);
+      });
+    }
+
+    var galleryBtn = document.getElementById('qrGalleryButton');
+    if (galleryBtn) {
+      galleryBtn.addEventListener('click', function() {
+        if (self._isStrippedWebView()) {
+          var href = (window.location.href || '').split('#')[0];
+          var sep = href.indexOf('?') === -1 ? '?' : '&';
+          self.escapeNow(self.buildEscapeIntentUrl(href + sep + 'qrscan=1'));
+          return;
+        }
+        if (galleryInput) {
+          self._loadDecoder(null);
+          galleryInput.click();
+        }
+      });
+    }
+
     this._fileInputWired = true;
   },
 
@@ -77,14 +104,18 @@ var qrScanner = {
       }
 
       var params = new URLSearchParams(window.location.search);
-      if (params.get('qrscan') !== '1') return;
       var btn = document.getElementById('qrScanButton');
-      if (btn) btn.classList.add('qr-scan-btn--attn');
-      params.delete('qrscan');
-      var qs = params.toString();
-      var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
-      if (typeof window.history !== 'undefined' && window.history.replaceState) {
-        window.history.replaceState({}, '', clean);
+      if (params.get('qrscan') === '1') {
+        if (btn) btn.classList.add('qr-scan-btn--attn');
+        params.delete('qrscan');
+        var qs = params.toString();
+        var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        if (typeof window.history !== 'undefined' && window.history.replaceState) {
+          window.history.replaceState({}, '', clean);
+        }
+      } else if (!this._isStrippedWebView() && btn) {
+        // If user navigated into Chrome directly, pulse button briefly to guide eye
+        btn.classList.add('qr-scan-btn--attn');
       }
     } catch (err) {
       console.error('QR page load error:', err);
@@ -302,7 +333,7 @@ var qrScanner = {
         util.showToast(i18n.t('qr_scan_failed'), 'error');
         return;
       }
-      auth.beginAutoLogin(route.code);
+      auth.beginAutoLogin(route.code, true);
     } catch (err) {
       console.error('QR result error:', err);
     }

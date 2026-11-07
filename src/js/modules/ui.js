@@ -286,9 +286,12 @@ var ui = {
       };
 
       window.addEventListener('mousemove', handleMove);
-      window.addEventListener('touchmove', handleMove);
+      // passive: the handlers only read coordinates, never preventDefault —
+      // without it every touch during a scroll waits on this JS (scroll jank
+      // on cheap phones)
+      window.addEventListener('touchmove', handleMove, { passive: true });
       window.addEventListener('mouseleave', handleLeave);
-      window.addEventListener('touchend', handleLeave);
+      window.addEventListener('touchend', handleLeave, { passive: true });
 
       // Particle Constructor
       var Particle = function() {
@@ -422,10 +425,14 @@ var ui = {
           }
         }
 
-        requestAnimationFrame(animate);
       };
 
       animate();
+      // The loop self-sustains through the single requestAnimationFrame at the
+      // top of animate(). A second one used to sit here — every drawn frame
+      // scheduled TWO successors, so the pending-callback chain grew by ~15/s
+      // for as long as the page stayed open (jank + battery drain that got
+      // worse by the minute).
     } catch (err) {
       console.error('Init background animation error:', err);
     }

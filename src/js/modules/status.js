@@ -9,7 +9,10 @@ var statusModule = {
       statusModule.startUptimeTicker();
       statusModule.showWarnings();
       statusModule.calculateRemainingQuota();
-      statusModule.checkConnectionQuality();
+      // Auto-check measures the LOCAL router latency only — the upstream
+      // internet probe (a 4 s hanging external request when the WAN is down,
+      // waking the phone's radio) runs on explicit tap, not on every visit.
+      statusModule.checkConnectionQuality(true);
       statusModule.displayDeviceType();
 
       if (typeof rateLimiter !== 'undefined') {
@@ -432,7 +435,12 @@ var statusModule = {
     }
   },
 
-  checkConnectionQuality: function() {
+  /**
+   * @param {boolean} isAutoCheck - true when invoked from init: measure the
+   *   local router latency only and skip the upstream internet probe (the
+   *   card's hint invites an explicit tap for the full check).
+   */
+  checkConnectionQuality: function(isAutoCheck) {
     try {
       var valEl = document.getElementById('connection-status-val');
       if (!valEl) return;
@@ -460,8 +468,11 @@ var statusModule = {
 
           statusModule._showLatency(valEl, latency);
           // The router answering is NOT proof the internet behind it works —
-          // verify real upstream reachability and downgrade honestly if dead.
-          statusModule._verifyInternet(valEl);
+          // on an explicit tap, verify real upstream reachability and
+          // downgrade honestly if it is dead.
+          if (!isAutoCheck) {
+            statusModule._verifyInternet(valEl);
+          }
         })
         .catch(function(err) {
           valEl.textContent = i18n.t('status_offline');

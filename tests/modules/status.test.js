@@ -373,6 +373,26 @@ document.body.appendChild(mockSmartUsageCard);
         delete global.fetch;
       }
     });
+
+    test('the auto-check (init) skips the upstream probe entirely', async () => {
+      // router reachable, internet dead — an auto-check must still show the
+      // latency (no external request, no radio wake); only an explicit tap
+      // may downgrade the card
+      global.fetch = (url) => {
+        if (String(url).indexOf('api.json') !== -1) {
+          return Promise.resolve({ ok: true });
+        }
+        return Promise.reject(new Error('dead wan'));
+      };
+      try {
+        statusModule.checkConnectionQuality(true);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(mockConnectionStatusVal.textContent).toContain('ms)');
+        expect(mockConnectionStatusVal.textContent).not.toBe('No internet access');
+      } finally {
+        delete global.fetch;
+      }
+    });
   });
 
   describe('formatEstimate', () => {

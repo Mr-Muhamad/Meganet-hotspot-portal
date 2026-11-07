@@ -28,7 +28,7 @@
           </p>
 
           <!-- Continue Now button — manual redirect -->
-          <a href="$(link-redirect)" class="btn btn-primary btn-block">
+          <a href="$(link-redirect)" id="continueNow" class="btn btn-primary btn-block">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
@@ -72,11 +72,43 @@
 
         // IMMEDIATE redirect countdown — iOS CNA critical path.
         // MUST be full-page navigation, not AJAX.
-        var redirectUrl = "$(link-redirect)" || "$(link-orig)";
-        var seconds = 1;
+        // Android integration notes:
+        //  - CaptivePortalLogin closes itself once its own connectivity probe
+        //    succeeds (usually right after the login POST), so this page is
+        //    mostly the fallback for the escaped-browser flow — stay fast and
+        //    self-sufficient; never fight the OS for the window.
+        //  - location.REPLACE, never href: with href the alogin entry stays
+        //    in history and the Android back button bounces the user right
+        //    back here, where the countdown fires them forward again — a
+        //    trap. replace() makes back mean "before the login page".
+        var unsubstituted = function(value) {
+          return !value || value.indexOf('$(') === 0;
+        };
+        var primary = "$(link-redirect)";
+        var fallback = "$(link-orig)";
+        var redirectUrl = unsubstituted(primary)
+          ? (unsubstituted(fallback) ? '' : fallback)
+          : primary;
+
         var countdownEl = document.getElementById('countdown');
         var countdownSecEl = document.getElementById('countdown-seconds');
         var countdownWordEl = document.getElementById('countdown-word');
+
+        if (!redirectUrl) {
+          // RouterOS gave no destination (e.g. a direct login carrying no
+          // dst): navigating to '' would reload this page every second
+          // forever. Stay as a terminal "connected" screen — the CNA warning
+          // below still points the way to a real browser.
+          if (countdownEl) countdownEl.style.display = 'none';
+          if (countdownSecEl && countdownSecEl.parentElement) {
+            countdownSecEl.parentElement.style.display = 'none';
+          }
+          var continueHide = document.getElementById('continueNow');
+          if (continueHide) continueHide.style.display = 'none';
+          return;
+        }
+
+        var seconds = 1;
         var render = function() {
           if (countdownEl) countdownEl.textContent = seconds;
           if (countdownSecEl) countdownSecEl.textContent = seconds;
@@ -84,18 +116,32 @@
           if (countdownWordEl) countdownWordEl.textContent = i18n.t(seconds === 1 ? 'second_one' : 'seconds');
         };
         render();
+
+        // Continue Now follows the same replace rule (the href stays for
+        // graceful degradation without JS)
+        var continueBtn = document.getElementById('continueNow');
+        if (continueBtn) {
+          continueBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.replace(redirectUrl);
+          });
+        }
+
         var timer = setInterval(function() {
           seconds--;
           render();
           if (seconds <= 0) {
             clearInterval(timer);
-            window.location.href = redirectUrl;
+            window.location.replace(redirectUrl);
           }
         }, 1000);
       } catch (err) {
         console.error('Alogin page init error:', err);
-        // Last-resort fallback: navigate immediately
-        window.location.href = "$(link-redirect)";
+        // Last-resort fallback: navigate immediately (guarded the same way)
+        var lastResort = "$(link-redirect)";
+        if (lastResort && lastResort.indexOf('$(') !== 0) {
+          window.location.replace(lastResort);
+        }
       }
     })();
   </script>

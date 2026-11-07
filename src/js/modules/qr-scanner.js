@@ -5,7 +5,7 @@
  * One tap on the scan button opens the phone's NATIVE camera app via a
  * capture="environment" file input — no getUserMedia permission, works on
  * plain-HTTP hotspots and in webviews. The photo is decoded by the vendored
- * jsqrcode (llqrcode.js, lazy-loaded) and:
+ * jsQR (jsQR.js, MIT, lazy-loaded) and:
  *  - a bare code starts the cancellable auto-login countdown in place,
  *  - a link card (mikhmon format) navigates to the URL the QR carries.
  *
@@ -220,39 +220,31 @@ var qrScanner = {
   },
 
   _loadDecoder: function(ready) {
-    var self = this;
-    if (typeof qrcode !== 'undefined') {
-      qrcode.callback = function(text) { self._handleResult(text); };
+    // jsQR (vendored, lazy) replaced the ancient llqrcode engine: on simulated
+    // camera photos of a REAL voucher card llqrcode failed 5/5 (any JPEG noise
+    // defeats it) while jsQR decoded 5/5 at every framing. jsQR is
+    // synchronous — no callback wiring, just call it with ImageData.
+    if (typeof jsQR !== 'undefined') {
       if (ready) ready();
       return;
     }
-    if (document.getElementById('llqrcode-script')) {
+    if (document.getElementById('jsqr-script')) {
       // A previous call is still loading it — poll briefly.
       var polls = 0;
       var timer = setInterval(function() {
         polls++;
-        if (typeof qrcode !== 'undefined') {
+        if (typeof jsQR !== 'undefined' || polls > 50) {
           clearInterval(timer);
-          qrcode.callback = function(text) { self._handleResult(text); };
           if (ready) ready();
-        } else if (polls > 50) {
-          clearInterval(timer);
         }
       }, 100);
       return;
     }
     var script = document.createElement('script');
-    script.id = 'llqrcode-script';
-    script.src = (window.location.pathname.indexOf('/ar/') !== -1 ? '../' : '') + 'llqrcode.js';
-    script.onload = function() {
-      if (typeof qrcode !== 'undefined') {
-        qrcode.callback = function(text) { self._handleResult(text); };
-      }
-      if (ready) ready();
-    };
-    script.onerror = function() {
-      if (ready) ready();
-    };
+    script.id = 'jsqr-script';
+    script.src = (window.location.pathname.indexOf('/ar/') !== -1 ? '../' : '') + 'jsQR.js';
+    script.onload = function() { if (ready) ready(); };
+    script.onerror = function() { if (ready) ready(); };
     document.head.appendChild(script);
   },
 
@@ -286,10 +278,10 @@ var qrScanner = {
           }).then(function(detected) {
             if (!detected) {
               // Fallback to vendored decoder if native found nothing in full image
-              self._decodeFileViaJsQr(file);
+              self._decodeWithJsQR(file);
             }
           }).catch(function() {
-            self._decodeFileViaJsQr(file);
+            self._decodeWithJsQR(file);
           });
           return;
         }
@@ -298,66 +290,93 @@ var qrScanner = {
       }
     }
 
-    self._decodeFileViaJsQr(file);
+    self._decodeWithJsQR(file);
   },
 
-  _decodeFileViaJsQr: function(file) {
+  /**
+   * jsQR decode on a canvas. Runs multi-scale (full, then half) so a small QR
+   * inside a large camera photo is still found, with both inversion attempts
+   * for dark-on-light and light-on-dark codes. Both hidden pickers are always
+   * reset so re-picking the same photo fires the change event again.
+   */
+  _decodeWithJsQR: function(file) {
     var self = this;
-    if (typeof qrcode === 'undefined') {
-      util.showToast(i18n.t('qr_scan_unavailable'), 'error');
-      return;
-    }
-
-    var cleanup = function(objectUrl) {
-      if (objectUrl && typeof window !== 'undefined' && window.URL && window.URL.revokeObjectURL) {
-        window.URL.revokeObjectURL(objectUrl);
+    this._loadDecoder(function() {
+      if (typeof jsQR === 'undefined') {
+        util.showToast(i18n.t('qr_scan_unavailable'), 'error');
+        return;
       }
-      var input = document.getElementById('qr-file-input');
-      if (input) input.value = '';  // allow re-picking the same photo
-    };
 
-    // Use ObjectURL to avoid huge Base64 strings in memory for high-res phone camera photos
-    if (typeof window !== 'undefined' && window.URL && window.URL.createObjectURL) {
-      try {
-        var objUrl = window.URL.createObjectURL(file);
-        var origCallback = qrcode.callback;
-        qrcode.callback = function(text) {
-          cleanup(objUrl);
-          qrcode.callback = origCallback;
-          self._handleResult(text);
-        };
-
-        try {
-          qrcode.decode(objUrl);
-          return;
-        } catch (decErr) {
-          cleanup(objUrl);
-          qrcode.callback = origCallback;
-          console.error('QR decode error (ObjectURL):', decErr);
+      var finish = function(codeText) {
+        var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
+        inputs.forEach(function(input) { input.value = ''; });
+        if (codeText) {
+          self._handleResult(codeText);
+        } else {
           util.showToast(i18n.t('qr_scan_failed'), 'error');
-          return;
         }
-      } catch (err) {
-        // Fallback to FileReader if createObjectURL fails
-      }
-    }
+      };
 
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        // decode() is async for images — the result arrives via qrcode.callback
-        qrcode.decode(ev.target.result);
-      } catch (err) {
-        console.error('QR decode error:', err);
-        util.showToast(i18n.t('qr_scan_failed'), 'error');
+      var tryScales = function(source, w, h, release) {
+        var scales = [1, 0.5];
+        for (var i = 0; i < scales.length; i++) {
+          var scale = scales[i] * Math.min(1, 1200 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw;
+          canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(source, 0, 0, cw, ch);
+          var imageData = ctx.getImageData(0, 0, cw, ch);
+          var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+          if (code && code.data) {
+            if (release) release();
+            finish(code.data);
+            return;
+          }
+        }
+        if (release) release();
+        finish(null);
+      };
+
+      if (typeof window !== 'undefined' && window.createImageBitmap) {
+        window.createImageBitmap(file).then(function(bitmap) {
+          tryScales(bitmap, bitmap.width, bitmap.height, function() {
+            if (bitmap.close) bitmap.close();
+          });
+        }).catch(function() {
+          self._decodeViaImageElement(file, tryScales, finish);
+        });
+      } else {
+        self._decodeViaImageElement(file, tryScales, finish);
       }
-      var input = document.getElementById('qr-file-input');
-      if (input) input.value = '';  // allow re-picking the same photo
+    });
+  },
+
+  /** Image-element decode fallback for environments without createImageBitmap. */
+  _decodeViaImageElement: function(file, tryScales, finish) {
+    var url = (typeof window !== 'undefined' && window.URL && window.URL.createObjectURL)
+      ? window.URL.createObjectURL(file)
+      : null;
+    var img = new Image();
+    img.onload = function() {
+      tryScales(img, img.naturalWidth || img.width, img.naturalHeight || img.height, function() {
+        if (url && window.URL.revokeObjectURL) window.URL.revokeObjectURL(url);
+      });
     };
-    reader.onerror = function() {
-      util.showToast(i18n.t('qr_scan_failed'), 'error');
+    img.onerror = function() {
+      if (url && window.URL.revokeObjectURL) window.URL.revokeObjectURL(url);
+      finish(null);
     };
-    reader.readAsDataURL(file);
+    if (url) {
+      img.src = url;
+    } else {
+      var reader = new FileReader();
+      reader.onload = function(ev) { img.src = ev.target.result; };
+      reader.onerror = function() { finish(null); };
+      reader.readAsDataURL(file);
+    }
   },
 
   _handleResult: function(text) {

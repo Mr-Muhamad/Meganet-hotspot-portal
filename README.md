@@ -174,7 +174,7 @@ The resulting layout must be:
 ```
 hotspot-portal/
 ├── login.html  status.html  alogin.html  logout.html  …   (English, root)
-├── redirect.html  error.html  errors.txt  md5.js  llqrcode.js  api.json
+├── redirect.html  error.html  errors.txt  md5.js  jsQR.js  api.json
 ├── ar/                                                   (Arabic mirror)
 │   ├── login.html  status.html  …  errors.txt
 ├── assets/  (icon, logo, agent photos)
@@ -315,7 +315,7 @@ The scan button is built for **minimum clicks** — it opens the phone's camera 
 
 Two environments, two behaviors, both automatic:
 
-- **Any real browser (Chrome, Safari, in-app webviews)** — one tap on "امسح كارت الشحن بالكاميرا" fires a `capture="environment"` file input: the phone's **native camera app** opens immediately (that is not the browser's camera API, so it needs no permission and works on plain HTTP). Photograph the card → the photo is decoded in-page (vendored [jsqrcode](https://github.com/laksa19/myqr), `llqrcode.js`, Apache-2.0, lazy-loaded) → the code fills and auto-logs-in. Decode failures surface as a toast; the user can re-shoot.
+- **Any real browser (Chrome, Safari, in-app webviews)** — one tap on "امسح كارت الشحن بالكاميرا" fires a `capture="environment"` file input: the phone's **native camera app** opens immediately (that is not the browser's camera API, so it needs no permission and works on plain HTTP). Photograph the card → the photo is decoded in-page (vendored [jsQR](https://github.com/cozmo/jsQR), MIT, lazy-loaded — reads small QRs inside compressed camera photos that the previous engine could not) → the code fills and auto-logs-in. Decode failures surface as a toast; the user can re-shoot.
 - **The system captive-portal WebView** (Android's "Sign in to network", where most phones land automatically) — file inputs and the camera are OS-blocked there (verified on-device: no chooser, no permission, nothing). The same tap therefore **jumps straight to the full browser** via an `intent://` URL: Android shows its own one-time "CONTINUE ANYWAY VIA BROWSER" confirmation, the default browser opens the same page (marked with a pulsing scan button), and the second tap opens the camera. Two taps total, both unavoidable: the first is the user's, the second is Android's security screen.
 
 **The absolute minimum-click flow needs no in-page scanning at all**: the phone's own **Camera app** recognizes the printed card's QR from the lock screen and opens the encoded URL — bypassing every portal-browser restriction on iOS and Android alike — and the portal auto-logs-in. This is why the link-card format below is worth printing.

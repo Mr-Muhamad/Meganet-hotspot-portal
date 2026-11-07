@@ -61,6 +61,14 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner.routeScan('  12-34 56\n').code).toBe('123456');
     });
 
+    test('the "=" prefix some card generators print before the code is stripped', () => {
+      // real card payload observed in the field: the QR encodes "=<code>"
+      expect(qrScanner.routeScan('=123456')).toEqual({
+        action: 'autologin',
+        code: '123456'
+      });
+    });
+
     test('an empty payload routes as an empty code (handled as a failure)', () => {
       expect(qrScanner.routeScan('')).toEqual({ action: 'autologin', code: '' });
       expect(qrScanner.routeScan(null).code).toBe('');

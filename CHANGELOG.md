@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The voucher scanner could not read real camera photos of real cards** (reported from the field with a live card): the vendored llqrcode engine (jsqrcode, 2009-era) failed 5/5 simulated phone photos of the card — any JPEG compression or frame noise defeats it, and it only ever worked on clean rendered images or on devices with the native `BarcodeDetector` (absent on iOS and desktop). Replaced with **vendored jsQR 1.4.0 (MIT, 127 KB lazy-loaded)** — it decoded the same card at every framing (5/5), and multi-scale attempts (full + half, both inversions) cover small QRs inside large photos. llqrcode.js removed; the QR pipeline now also resets BOTH hidden file inputs so re-picking the same photo fires again. The card's payload itself (`=09408628` — generators print an `=` prefix) was already handled by the digit normalization; pinned by a unit test
+
 ## [2.2.0] - 2026-11-07
 
 ### Fixed

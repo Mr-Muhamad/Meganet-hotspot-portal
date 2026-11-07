@@ -5,7 +5,7 @@ const path = require('path');
 /**
  * The minimum-click voucher scanner: one tap on the scan button opens the
  * phone's NATIVE camera app (capture=environment file input), the photo is
- * decoded by the vendored jsqrcode, and a bare code auto-logs-in in place.
+ * decoded by the vendored jsQR, and a bare code auto-logs-in in place.
  * Inside the stripped captive-portal WebView the same tap jumps to the full
  * browser (intent://) — Android shows its own confirmation screen there.
  *
@@ -34,6 +34,49 @@ test('one tap on the scan button opens the native camera picker and auto-logs-in
   expect(body).toContain('password=1234567890');
   // the user never left the login page
   expect(page.url()).toContain('/ar/login.html');
+});
+
+test('a small QR inside a simulated camera photo still decodes (jsQR upgrade)', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+
+  // Regression for the real-world failure: photographing a WHOLE card leaves
+  // the QR occupying a fraction of a compressed JPEG frame, and the previous
+  // llqrcode engine failed that 5/5 on a real card while jsQR read every
+  // framing. Here the code fixture is drawn at 45% of a gray 1400x1050
+  // "photo" and re-compressed as JPEG, then fed through the REAL pipeline
+  // (input.files → change → decode → auto-login).
+  const fixtureB64 = fs.readFileSync(path.join(FIXTURES, 'voucher-code.png')).toString('base64');
+  const photoB64 = await page.evaluate(async (b64) => {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = 'data:image/png;base64,' + b64;
+    });
+    const photo = document.createElement('canvas');
+    photo.width = 1400;
+    photo.height = 1050;
+    const px = photo.getContext('2d');
+    px.fillStyle = '#d8d8d8';
+    px.fillRect(0, 0, photo.width, photo.height);
+    const w = Math.round(photo.width * 0.45);
+    const h = Math.round(img.height * w / img.width);
+    px.drawImage(img, Math.round((photo.width - w) / 2), Math.round((photo.height - h) / 2), w, h);
+    return photo.toDataURL('image/jpeg', 0.7);
+  }, fixtureB64);
+
+  await page.evaluate((b64) => {
+    const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const file = new File([buf], 'camera-photo.jpg', { type: 'image/jpeg' });
+    const input = document.getElementById('qr-file-input');
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, photoB64.split(',')[1]);
+
+  const request = await page.waitForRequest((req) => req.method() === 'POST');
+  expect(request.postData()).toContain('username=1234567890');
 });
 
 test('a link-card QR payload navigates to the URL it carries', async ({ page }) => {

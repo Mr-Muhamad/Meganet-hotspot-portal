@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-07
+
+### Fixed
+- **The light theme was silently broken since config-driven theming** (theme audit): the config color injection sat on `:root` AFTER the `[data-theme]` blocks — same specificity, later position — so light mode switched surfaces while the page background and brand colors stayed dark forever, and the `prefers-color-scheme` media block was dead code. Found by the first E2E test that ever measured the real painted background. Now: config injection scoped to `[data-theme="dark"]`, the first visit follows the OS color scheme (it used to force dark), a pre-paint `<head>` script applies the stored/OS theme before first paint (no more dark flash on every navigation), the toggle toast and aria-label are localized, `meta theme-color` is set and updated per theme, and the announcement banner gets a white glass pill in light mode
+- **CHAP hashed the still-empty password in voucher mode**: the template's inline `onsubmit="return doLogin()"` runs BEFORE any `addEventListener` handler, and the voucher→password copy lives in `onFormSubmit` — on CHAP-enabled profiles voucher logins hashed nothing and then sent the plain code over the hash. `init()` now strips the inline attribute and registers `chapHashOnSubmit` AFTER the copy, guarded to genuine RouterOS challenges (32-hex `chap-id` — un-substituted template text in test environments never hashes); `window._doLogin` remains as a delegating alias, and the legacy `submitLoginForm` fallback runs the copy by hand
+- **Nothing indicated a login in flight**: the Connect button stayed tappable during the slow router round trip, so double-taps double-POSTed and burned rate-limiter slots — while the `setLoadingState` helper written for exactly this was dead code targeting a nonexistent `submit-btn` ID. It now targets `loginButton`: disabled + spinner + localized «جارٍ الاتصال…», with a 15 s watchdog that unfreezes if navigation never happens. Blocked paths (rate-limit, minimum length) return before the freeze and leave the button live
+- **logout.html showed Download and Upload swapped**: RouterOS hotspot counters are named from the router's perspective — `bytes-in` = received FROM the user = upload, `bytes-out` = sent TO the user = download. status.js had it right; logout had it backwards. Swapped, with a comment documenting the convention
+- **The session/quota warnings never appeared**: `showWarnings()` targeted a `#session-warning` element that did not exist in `status.html` — "session expires soon" (<5 min left) and "data limit almost reached" (≥90% quota) were dead on arrival, with hardcoded English strings. The banner now exists (shared `alert-warning` styling) and both texts are localized
+- **Connection Quality confused a working router link with working internet**: the card measured latency to the router's own `api.json`, so a logged-in user with a dead WAN saw "ممتاز (5ms)". The local latency reading stays, then an upstream probe (`connectivitycheck.gstatic.com/generate_204`, no-cors, 4 s abort) downgrades the card to «لا يوجد اتصال بالإنترنت» when the internet behind the router is dead
+- **The OTP auto-submit sent truncated codes** (removed by decision): voucher codes are variable length, and firing the submit when the typed length hit exactly `voucherMinLength` (4) pushed incomplete codes that failed on the router and lost the typed value on the error reload — with the outcome depending on typing speed. Typing submits via Connect/Enter only; the paste handler stays (a paste is a complete code by definition, gated at ≥ min); QR scans and mikhmon link cards are untouched
+- logout.html's h1 and subtitle both bound to `logout_success` (identical text twice — new `logout_title`); alogin said "Redirecting in 1 seconds" (`second_one` picks the singular); plans.html's empty state was hardcoded English (`plans_empty`)
+- **README screenshots were stale**: the committed `theme-*.png` set predated the two-button scanner row, the hint separation/«أو» separator, and the banner color fixes — all six refreshed from the current build (the links themselves were never broken); alt texts normalized. `npm audit fix` bumped svgo past three high advisories (dev-only dependency)
+
+### Changed
+- The gallery button returned to **icon-only** per user preference (the visible label was a regression on the intended design; the localized tooltip/aria remain)
+
 ### Fixed
 - **Auto-login never sent credentials to the router** (found while verifying mikhmon-format support — a real, years-old bug): both auto-login paths (the `?voucher=` URL handler and the `enableClonePrevention` countdown) called `form.submit()`, which per the HTML spec bypasses **every** submit handler — the voucher→username/password copy in `onFormSubmit`, the rate limiter, the minimum-length guard, and even the CHAP `onsubmit="return doLogin()"` hashing. So an auto-login POSTed `username=<$(username-esc) or empty>&password=&voucher=<code>`, and RouterOS (which only knows `username`/`password`) ignored the bare `voucher` field — failing the very login the auto-login was for. Both paths now go through `auth.submitLoginForm()`, which uses `requestSubmit()` so the submit runs exactly like a real button press (CHAP hashing, copying, guards all fire); a legacy `submit()` fallback covers browsers without `requestSubmit`. Proven by E2E that intercepts the POST and asserts what the router receives
 - **mikhmon-format link cards logged in with the wrong password**: mikhmon prints QRs encoding `http://<dnsname>/login?username=<u>&password=<p>` (both fields always, for both its `vc` and `up` card modes). `vc` cards (username = password) worked by coincidence; `up` cards (different password) had the voucher copied over the real password. The login page now honors a carried `?password=` (stashed in `data-scanned-password`, preferred over the configured copy/blank default even under `voucherPasswordMode: "empty"`), and `?username=` fills the username field when the voucher input isn't shown
@@ -143,6 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.1.0**: Real-device-hardened login (in-page QR scanner, captive-portal escape), theme system fixed end-to-end, login submit hardening (CHAP ordering, frozen Connect button), honest status pages (live warnings, upstream internet check), page audit fixes across status/plans/alogin/logout
 - **2.0.0**: Major update with theme support, i18n, accessibility, and build system
 - **1.0.0**: Initial release with basic functionality
 
@@ -167,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] PWA (Progressive Web App) support
 - [ ] Payment gateway integration
 - [ ] Voucher system
-- [ ] QR code login
+- [x] QR code login
 - [ ] Analytics dashboard
 - [ ] Multi-language support (more languages)
 - [ ] Custom themes

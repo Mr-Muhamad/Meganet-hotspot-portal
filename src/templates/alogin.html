@@ -24,7 +24,7 @@
           <p class="text-center text-muted text-sm alogin-countdown-label" role="status">
             <span data-i18n="redirecting">Redirecting in</span>
             <span id="countdown-seconds">1</span>
-            <span data-i18n="seconds">seconds</span>
+            <span id="countdown-word" data-i18n="seconds">seconds</span>
           </p>
 
           <!-- Continue Now button — manual redirect -->
@@ -76,10 +76,17 @@
         var seconds = 1;
         var countdownEl = document.getElementById('countdown');
         var countdownSecEl = document.getElementById('countdown-seconds');
-        var timer = setInterval(function() {
-          seconds--;
+        var countdownWordEl = document.getElementById('countdown-word');
+        var render = function() {
           if (countdownEl) countdownEl.textContent = seconds;
           if (countdownSecEl) countdownSecEl.textContent = seconds;
+          // "1 seconds" is wrong English — pick the singular word per value
+          if (countdownWordEl) countdownWordEl.textContent = i18n.t(seconds === 1 ? 'second_one' : 'seconds');
+        };
+        render();
+        var timer = setInterval(function() {
+          seconds--;
+          render();
           if (seconds <= 0) {
             clearInterval(timer);
             window.location.href = redirectUrl;

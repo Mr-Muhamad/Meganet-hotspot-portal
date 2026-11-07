@@ -5,9 +5,7 @@
 var statusModule = {
   init: function() {
     try {
-      statusModule.parseSessionData();
       statusModule.startCountdowns();
-      statusModule.updateProgressBars();
       statusModule.startUptimeTicker();
       statusModule.showWarnings();
       statusModule.calculateRemainingQuota();
@@ -63,18 +61,6 @@ var statusModule = {
     }
   },
 
-  parseSessionData: function() {
-    try {
-      var sessionDataElement = document.getElementById('session-data');
-      if (sessionDataElement) {
-        var data = JSON.parse(sessionDataElement.textContent);
-        statusModule.updateDisplay(data);
-      }
-    } catch (err) {
-      console.error('Parse session data error:', err);
-    }
-  },
-
   calculateRemainingQuota: function() {
     try {
       var quotaSection = document.getElementById('sessionCountdownSection');
@@ -86,7 +72,6 @@ var statusModule = {
       var smartUsageTip = document.getElementById('smart-usage-tip');
       var smartUsageActivities = document.getElementById('smart-usage-activities');
       var browsingHoursEl = document.getElementById('browsing-hours');
-      var videoHoursEl = document.getElementById('video-hours');
 
       if (quotaSection) {
         var limit = parseInt(quotaSection.getAttribute('data-limit-bytes-total')) || 0;
@@ -108,7 +93,9 @@ var statusModule = {
             var remaining = limit - totalUsed;
             if (remaining < 0) remaining = 0;
             var format = quotaSection.getAttribute('data-quota-format') || 'MB';
-            var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1024;
+            // kbBase fallback matches the shipped config default (1000,
+            // the commercial convention for voucher cards)
+            var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
             var currentLang = document.documentElement.getAttribute('lang') || 'en';
             
             if (format.toUpperCase() === 'GB') {
@@ -204,12 +191,6 @@ var statusModule = {
               videoSdEl.textContent = statusModule.formatEstimate(videoSdVal, isAr);
               videoHdEl.textContent = statusModule.formatEstimate(videoHdVal, isAr);
             }
-            
-            if (videoHoursEl) {
-              var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
-              var oldVideoVal = remaining / (350 * kbBase * kbBase);
-              videoHoursEl.textContent = statusModule.formatEstimate(oldVideoVal, isAr);
-            }
           } else {
             smartUsageTip.textContent = isAr 
               ? 'باقي رصيدك غير محدود! استمتع بالتصفح والتحميل بلا قيود.' 
@@ -251,42 +232,6 @@ var statusModule = {
       return isAr 
         ? mins + ' دقيقة' 
         : mins + ' min';
-    }
-  },
-
-  updateDisplay: function(data) {
-    try {
-      if (!data) return;
-
-      var elements = {
-        'stat-username': data.username,
-        'stat-ip': data.ip,
-        'stat-mac': data.mac ? (function() {
-          try {
-            return decodeURIComponent(data.mac);
-          } catch (e) {
-            return data.mac.replace(/%3A/gi, ':');
-          }
-        })() : null,
-        'uptime': util.formatUptime(data.uptime)
-      };
-
-      Object.keys(elements).forEach(function(id) {
-        var element = document.getElementById(id);
-        if (element && elements[id]) {
-          element.textContent = elements[id];
-        }
-      });
-
-      // Update data attributes on quotaSection if present
-      var quotaSection = document.getElementById('sessionCountdownSection');
-      if (quotaSection) {
-        if (data.bytesIn !== undefined) quotaSection.setAttribute('data-bytes-in', data.bytesIn);
-        if (data.bytesOut !== undefined) quotaSection.setAttribute('data-bytes-out', data.bytesOut);
-        statusModule.calculateRemainingQuota();
-      }
-    } catch (err) {
-      console.error('Update display error:', err);
     }
   },
 
@@ -365,10 +310,6 @@ var statusModule = {
     } catch (err) {
       console.error('Start countdowns error:', err);
     }
-  },
-
-  updateProgressBars: function() {
-    // Progress bar updates are handled in calculateRemainingQuota
   },
 
   startUptimeTicker: function() {
@@ -517,24 +458,10 @@ var statusModule = {
           if (!response.ok) throw new Error('status not ok');
           var latency = Date.now() - startTime;
 
-          var qualityText = '';
-          var colorClass = '';
-
-          if (latency < 50) {
-            qualityText = i18n.t('status_excellent') + ' (' + latency + 'ms)';
-            colorClass = 'color-success';
-          } else if (latency < 150) {
-            qualityText = i18n.t('status_good') + ' (' + latency + 'ms)';
-            colorClass = 'color-warning';
-          } else {
-            qualityText = i18n.t('status_poor') + ' (' + latency + 'ms)';
-            colorClass = 'color-danger';
-          }
-
-          valEl.textContent = qualityText;
-          if (colorClass) {
-            valEl.classList.add(colorClass);
-          }
+          statusModule._showLatency(valEl, latency);
+          // The router answering is NOT proof the internet behind it works —
+          // verify real upstream reachability and downgrade honestly if dead.
+          statusModule._verifyInternet(valEl);
         })
         .catch(function(err) {
           valEl.textContent = i18n.t('status_offline');
@@ -542,6 +469,56 @@ var statusModule = {
         });
     } catch (err) {
       console.error('Check connection quality error:', err);
+    }
+  },
+
+  _showLatency: function(valEl, latency) {
+    var qualityText = '';
+    var colorClass = '';
+
+    if (latency < 50) {
+      qualityText = i18n.t('status_excellent') + ' (' + latency + 'ms)';
+      colorClass = 'color-success';
+    } else if (latency < 150) {
+      qualityText = i18n.t('status_good') + ' (' + latency + 'ms)';
+      colorClass = 'color-warning';
+    } else {
+      qualityText = i18n.t('status_poor') + ' (' + latency + 'ms)';
+      colorClass = 'color-danger';
+    }
+
+    valEl.textContent = qualityText;
+    if (colorClass) {
+      valEl.classList.add(colorClass);
+    }
+  },
+
+  _verifyInternet: function(valEl) {
+    try {
+      if (!window.AbortController) return; // legacy browsers: keep the local reading
+
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, 4000);
+
+      // Standard Android connectivity probe — a tiny 204 endpoint fetched in
+      // no-cors mode (only reachability matters, not the body). The portal is
+      // served over plain http, so an http probe is not mixed content; if the
+      // portal ever moves to https, switch this URL to an https endpoint too.
+      fetch('http://connectivitycheck.gstatic.com/generate_204', {
+        mode: 'no-cors',
+        cache: 'no-store',
+        signal: controller.signal
+      }).then(function() {
+        clearTimeout(timer); // internet confirmed — latency reading stands
+      }).catch(function() {
+        clearTimeout(timer);
+        if (document.getElementById('connection-status-val') !== valEl) return;
+        valEl.textContent = i18n.t('status_no_internet');
+        valEl.className = 'stat-card__value';
+        valEl.classList.add('color-danger');
+      });
+    } catch (err) {
+      console.error('Internet check error:', err);
     }
   },
 
@@ -560,7 +537,7 @@ var statusModule = {
         var timeLeft = parseInt(timeLeftElement.getAttribute('data-seconds')) || 0;
         if (timeLeft > 0 && timeLeft < 300) {
           showWarning = true;
-          warningText = 'Session expires soon';
+          warningText = i18n.t('session_expiring_soon');
         }
       }
 
@@ -573,7 +550,7 @@ var statusModule = {
           var percent = (totalUsed / limit) * 100;
           if (percent >= 90) {
             showWarning = true;
-            warningText = 'Data limit almost reached';
+            warningText = i18n.t('data_limit_almost_reached');
           }
         }
       }

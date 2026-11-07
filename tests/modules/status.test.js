@@ -16,9 +16,12 @@ const i18n = {
     en: {
       status_checking: 'Checking...',
       status_offline: 'Offline',
+      status_no_internet: 'No internet access',
       status_excellent: 'Excellent',
       status_good: 'Good',
-      status_poor: 'Poor'
+      status_poor: 'Poor',
+      session_expiring_soon: 'Session expires soon',
+      data_limit_almost_reached: 'Data limit almost reached'
     }
   },
   currentLang: 'en',
@@ -56,7 +59,6 @@ describe('Hotspot.status', () => {
   let mockSmartUsageTip;
   let mockSmartUsageActivities;
   let mockBrowsingHours;
-  let mockVideoHours;
   let mockPwaBanner;
 
   beforeEach(() => {
@@ -155,11 +157,6 @@ describe('Hotspot.status', () => {
     mockBrowsingHours.id = 'browsing-hours';
     mockSmartUsageCard.appendChild(mockBrowsingHours);
 
-    mockVideoHours = document.createElement('span');
-    mockVideoHours.id = 'video-hours';
-    mockSmartUsageCard.appendChild(mockVideoHours);
-
-    
     const mockVideoSdHours = document.createElement('span');
     mockVideoSdHours.id = 'video-sd-hours';
     mockSmartUsageCard.appendChild(mockVideoSdHours);
@@ -233,7 +230,6 @@ document.body.appendChild(mockSmartUsageCard);
       expect(mockSmartUsageTip.textContent).toBe('Your balance is very low! Stop auto-downloads and avoid videos to save quota.');
       expect(mockSmartUsageActivities.style.display).toBe('block');
       expect(mockBrowsingHours.textContent).toBe('51 min');
-      expect(mockVideoHours.textContent).toBe('15 min');
     });
 
     test('sets quota to Unlimited when limit is 0', () => {
@@ -276,22 +272,6 @@ document.body.appendChild(mockSmartUsageCard);
       statusModule.init();
 
       expect(mockMacElement.textContent).toBe('1C:BF:CE:B7:A4:D8');
-    });
-
-    test('decodes URL-escaped MAC address in updateDisplay', () => {
-      const mockMacElement = document.getElementById('stat-mac');
-      
-      statusModule.updateDisplay({
-        username: 'test',
-        ip: '10.0.0.5',
-        mac: '2C%3ABF%3ACE%3AB7%3AA4%3AD9',
-        bytesIn: 0,
-        bytesOut: 0,
-        sessionTime: 0,
-        uptime: 0
-      });
-
-      expect(mockMacElement.textContent).toBe('2C:BF:CE:B7:A4:D9');
     });
   });
 
@@ -360,6 +340,35 @@ document.body.appendChild(mockSmartUsageCard);
         window.history.replaceState({}, '', pathname);
         statusModule.checkConnectionQuality();
         expect(urls[0]).toContain(expectedUrl + '?t=');
+      } finally {
+        delete global.fetch;
+      }
+    });
+
+    test('downgrades to "No internet access" when the router answers but the upstream is dead', async () => {
+      global.fetch = (url) => {
+        if (String(url).indexOf('api.json') !== -1) {
+          return Promise.resolve({ ok: true });
+        }
+        return Promise.reject(new Error('dead wan'));
+      };
+      try {
+        statusModule.checkConnectionQuality();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(mockConnectionStatusVal.textContent).toBe('No internet access');
+        expect(mockConnectionStatusVal.classList.contains('color-danger')).toBe(true);
+      } finally {
+        delete global.fetch;
+      }
+    });
+
+    test('keeps the latency reading when the upstream probe succeeds', async () => {
+      global.fetch = () => Promise.resolve({ ok: true });
+      try {
+        statusModule.checkConnectionQuality();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(mockConnectionStatusVal.textContent).toContain('ms)');
+        expect(mockConnectionStatusVal.textContent).not.toBe('No internet access');
       } finally {
         delete global.fetch;
       }

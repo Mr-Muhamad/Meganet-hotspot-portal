@@ -48,3 +48,6 @@ config.json
 # Playwright run artifacts
 test-results/
 playwright-report/
+
+# Mimosa scanner local state
+.mimosa/

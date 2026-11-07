@@ -74,7 +74,7 @@ test('both themes paint every portal page (visual audit screenshots)', async ({ 
       document.documentElement.setAttribute('data-theme', t);
       document.cookie = 'hotspot_theme=' + t + '; path=/; max-age=31536000; SameSite=Lax';
     }, theme);
-    for (const name of ['login', 'status', 'plans']) {
+    for (const name of ['login', 'status', 'logout', 'plans', 'alogin', 'expired']) {
       await page.goto(`${DEFAULT}/ar/${name}.html`);
       await page.waitForTimeout(250); // canvas/background settle
       // Viewport-only captures: these double as the README hero set, and

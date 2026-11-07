@@ -7,10 +7,20 @@
 تم تصميم وبناء هذه البوابة وفق أعلى المعايير الحديثة لتوفير تجربة مستخدم (UX) فائقة السلاسة والسرعة على كافة الهواتف والأجهزة، متوافقة بنسبة 100% مع متصفحات تسجيل الدخول المقيدة (Captive Portals) مثل Apple iOS CNA و macOS و Android و Windows.
 
 <p align="center">
-  <img src="docs/screenshots/theme-dark.png" width="820" alt="شاشات البوابة - مظلم" />
+  <img src="docs/screenshots/theme-dark.png" width="820" alt="كل الصفحات - مظلم" /><br/>
+  <strong>كل الصفحات — مظلم</strong>
 </p>
 <p align="center">
-  <img src="docs/screenshots/theme-light.png" width="820" alt="شاشات البوابة - مضيء" />
+  <img src="docs/screenshots/theme-light.png" width="820" alt="كل الصفحات - مضيء" /><br/>
+  <strong>كل الصفحات — مضيء</strong>
+</p>
+<p align="center">
+  <img src="docs/screenshots/login-modes-dark.png" width="820" alt="أوضاع تسجيل الدخول - مظلم" /><br/>
+  <strong>أوضاع تسجيل الدخول: كود شحن &middot; باقة &middot; مزدوج — مظلم</strong>
+</p>
+<p align="center">
+  <img src="docs/screenshots/login-modes-light.png" width="820" alt="أوضاع تسجيل الدخول - مضيء" /><br/>
+  <strong>أوضاع تسجيل الدخول: كود شحن &middot; باقة &middot; مزدوج — مضيء</strong>
 </p>
 
 ---

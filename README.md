@@ -7,10 +7,20 @@
 A modern, lightweight captive portal template system designed for MikroTik routers. Features a clean minimalist UI, full bilingual support, and zero external dependencies — engineered to work reliably inside restrictive captive portal browser environments (iOS CNA, macOS CNA, Android, Windows).
 
 <p align="center">
-  <img src="docs/screenshots/theme-dark.png" width="820" alt="Portal screens - Dark" />
+  <img src="docs/screenshots/theme-dark.png" width="820" alt="All pages - Dark" /><br/>
+  <strong>All pages — Dark</strong>
 </p>
 <p align="center">
-  <img src="docs/screenshots/theme-light.png" width="820" alt="Portal screens - Light" />
+  <img src="docs/screenshots/theme-light.png" width="820" alt="All pages - Light" /><br/>
+  <strong>All pages — Light</strong>
+</p>
+<p align="center">
+  <img src="docs/screenshots/login-modes-dark.png" width="820" alt="Login modes - Dark" /><br/>
+  <strong>Login modes: voucher &middot; normal &middot; both — Dark</strong>
+</p>
+<p align="center">
+  <img src="docs/screenshots/login-modes-light.png" width="820" alt="Login modes - Light" /><br/>
+  <strong>Login modes: voucher &middot; normal &middot; both — Light</strong>
 </p>
 
 ---

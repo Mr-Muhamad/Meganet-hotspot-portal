@@ -1,3 +1,9 @@
+# AI & IDE Workspace artifacts
+.agents/
+.zcode/
+plans/
+.tmp-preview-server.mjs
+
 # Dependencies
 node_modules/
 

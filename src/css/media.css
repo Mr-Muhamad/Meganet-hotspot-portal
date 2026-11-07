@@ -718,13 +718,27 @@
 /* ===== Login page: extracted inline styles (migration 2026-11) ===== */
 
 /* QR scanner button */
+.qr-buttons-row {
+  display: flex;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
 .qr-scan-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  margin-top: var(--space-sm);
-  margin-bottom: var(--space-xs);
+  margin: 0;
+}
+.qr-scan-btn--camera {
+  flex: 1;
+}
+.qr-scan-btn--gallery {
+  width: 44px;
+  flex-shrink: 0;
+  padding: 0;
 }
 .qr-scan-btn__icon {
   flex-shrink: 0;

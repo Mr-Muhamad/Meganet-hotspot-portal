@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-07
+
+### Fixed
+- **The session-warning banner rendered EMPTY on every status page**: the new `#session-warning` element carried the `hidden` attribute, but `.alert`'s `display: flex` beats the UA stylesheet's `[hidden]` rule — guarded with `.alert[hidden] { display: none; }` (found by visually inspecting the README screenshots, not by any test)
+- **The particle background leaked callbacks without bound**: `animate()` scheduled `requestAnimationFrame` twice per drawn frame (top + bottom), so the pending-callback chain grew ~15/s for as long as the page stayed open — progressive jank and battery drain that got worse by the minute. The top call alone sustains the loop
+- **Scroll jank from non-passive touch listeners**: the canvas pointer-link handlers only read coordinates and never `preventDefault` — `touchmove`/`touchend` are now `{ passive: true }`
+- **Performance round (measured audit — raw sizes matter, RouterOS serves uncompressed)**: the app icon was 1022×1020 / 185.7 KB while the manifest declares 512×512 — resized to a true 512 and quantized to **41.9 KB (−77%)**; the status auto-check now measures the LOCAL router latency only, and the upstream internet probe (a 4 s hanging external request when the WAN is down, waking the phone's radio) runs on explicit tap
+
+### Changed
+- **README hero rebuilt as composites**: all six pages (login, status, logout, plans, alogin, expired) × both themes in a 2×3 grid, plus the three login modes (voucher / normal / both) — four captioned images stitched by `scripts/compose-screenshots.py`; the visual-audit E2E covers all six pages and a new `login-modes.spec.js` captures the served login per `loginMode` build
+
 ## [2.1.0] - 2026-11-07
 
 ### Fixed
@@ -159,6 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.2.0**: Performance round (rAF leak, passive touch, 77% smaller icon, tap-only upstream probe), empty-warning-box fix, composite README visuals for all pages and login modes
 - **2.1.0**: Real-device-hardened login (in-page QR scanner, captive-portal escape), theme system fixed end-to-end, login submit hardening (CHAP ordering, frozen Connect button), honest status pages (live warnings, upstream internet check), page audit fixes across status/plans/alogin/logout
 - **2.0.0**: Major update with theme support, i18n, accessibility, and build system
 - **1.0.0**: Initial release with basic functionality

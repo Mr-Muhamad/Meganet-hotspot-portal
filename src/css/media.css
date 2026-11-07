@@ -1053,3 +1053,14 @@
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
 }
+
+/* "أو" separator between the camera-escape instruction and the typing hint
+   — shown only inside the stripped WebView alongside .qr-scan-hint */
+.qr-hint-or {
+  display: none;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  margin: var(--space-xs) 0;
+}

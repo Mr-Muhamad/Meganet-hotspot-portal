@@ -101,6 +101,9 @@ var qrScanner = {
       if (this._isStrippedWebView()) {
         var hint = document.getElementById('qr-webview-hint');
         if (hint) hint.style.display = 'block';
+        // and the "أو" separator — scanning and typing are the two alternatives
+        var orSep = document.getElementById('qr-hint-or');
+        if (orSep) orSep.style.display = 'block';
       }
 
       var params = new URLSearchParams(window.location.search);

@@ -95,6 +95,7 @@
     "theme_enabled_dark": "تم تفعيل الوضع الليلي",
     "theme_enabled_light": "تم تفعيل الوضع النهاري",
     "theme_switch_to_dark": "التبديل للوضع الليلي",
-    "theme_switch_to_light": "التبديل للوضع النهاري"
+    "theme_switch_to_light": "التبديل للوضع النهاري",
+    "qr_hint_or": "أو"
   }
 }

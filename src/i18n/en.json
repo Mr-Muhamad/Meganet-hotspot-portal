@@ -95,6 +95,7 @@
     "theme_enabled_dark": "Dark mode enabled",
     "theme_enabled_light": "Light mode enabled",
     "theme_switch_to_dark": "Switch to dark mode",
-    "theme_switch_to_light": "Switch to light mode"
+    "theme_switch_to_light": "Switch to light mode",
+    "qr_hint_or": "or"
   }
 }

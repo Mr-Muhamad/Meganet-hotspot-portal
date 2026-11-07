@@ -1030,3 +1030,26 @@
 @media (prefers-reduced-motion: reduce) {
   .qr-scan-btn--attn { animation: none; }
 }
+
+/* Field helper (voucher input) — quiet, muted, clearly tied to typing */
+.form-hint {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Camera→browser instruction (stripped WebView only) — a loud blue info
+   callout so a simple user can tell "what happens next after pressing the
+   scan button" apart from the quiet typing hint below it. */
+.qr-scan-hint {
+  display: none;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}

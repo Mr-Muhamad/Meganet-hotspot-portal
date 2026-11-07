@@ -9,6 +9,11 @@ A modern, lightweight captive portal template system designed for MikroTik route
 ## Features
 
 - **Modern minimalist UI** with automatic dark/light mode via `prefers-color-scheme`
+- **Instant QR Code Login** — 0-second auto-login directly upon scan with hardware-accelerated `BarcodeDetector` (fallback to JS decoder)
+- **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
+- **OTP Auto-Submit & Paste Detection** — automatically submits form when full voucher code is typed or pasted
+- **Anti-Phishing & Safe QR Routing** — strictly blocks open-redirect attacks and non-hotspot phishing schemes
+- **1-Second Rapid `alogin.html` Redirect** — ultra-fast gateway handshake to the Internet
 - **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates
 - **CHAP and PAP authentication** — with MD5 challenge-response support
 - **Arabic (RTL) and English (LTR) bilingual support** — with `dir="rtl"` and `lang="ar"`

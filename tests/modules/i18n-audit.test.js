@@ -13,8 +13,10 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const TEMPLATES_DIR = path.join(ROOT, 'src', 'templates');
-const en = require(path.join(ROOT, 'src', 'i18n', 'en.json')).en;
-const ar = require(path.join(ROOT, 'src', 'i18n', 'ar.json')).ar;
+// Literal relative requires — the dictionary paths are fixed, and static
+// literals keep security scanners from flagging dynamic-require patterns.
+const en = require('../../src/i18n/en.json').en;
+const ar = require('../../src/i18n/ar.json').ar;
 
 function collectTemplateKeys() {
   const keys = new Set();

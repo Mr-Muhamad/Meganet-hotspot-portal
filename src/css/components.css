@@ -794,6 +794,12 @@
   animation: announcement-slide-in 0.5s ease-out forwards;
 }
 
+/* The dark glass assumes a dark page — light mode gets a white glass pill */
+[data-theme="light"] .announcement-banner {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #e2e8f0;
+}
+
 @keyframes announcement-slide-in {
   0% {
     opacity: 0;

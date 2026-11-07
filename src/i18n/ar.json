@@ -91,6 +91,10 @@
     "qr_scan_failed": "تعذرت قراءة الكود — حاول صورة أوضح",
     "qr_scan_unavailable": "تعذر تحميل قارئ QR. أدخل الكود يدوياً.",
     "auto_login_countdown": "سيتم تسجيل الدخول خلال <strong id=\"auto-login-sec\">{n}</strong> ثوانٍ…",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "theme_enabled_dark": "تم تفعيل الوضع الليلي",
+    "theme_enabled_light": "تم تفعيل الوضع النهاري",
+    "theme_switch_to_dark": "التبديل للوضع الليلي",
+    "theme_switch_to_light": "التبديل للوضع النهاري"
   }
 }

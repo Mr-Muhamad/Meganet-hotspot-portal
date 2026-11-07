@@ -8,14 +8,43 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="WiFi Portal">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" id="metaThemeColor" content="#020617">
+  <script>
+    // Apply the saved (or OS-preferred) theme BEFORE first paint — without
+    // this, light-theme users get a dark flash on every page load.
+    (function() {
+      try {
+        var m = document.cookie.match(/(?:^| )hotspot_theme=([^;]+)/);
+        var t = m ? decodeURIComponent(m[1]) : null;
+        if (t !== 'light' && t !== 'dark') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (err) { /* keep the hardcoded dark default */ }
+    })();
+  </script>
   <link rel="apple-touch-icon" href="{% if lang == 'ar' %}../{% endif %}assets/icon.png">
   <link rel="manifest" href="{% if lang == 'ar' %}../{% endif %}manifest.json">
   <link rel="icon" type="image/svg+xml" href="{% if lang == 'ar' %}../{% endif %}assets/logo.svg">
   <title>$(hostname) - {{ i18n[page + '_title'] }}</title>
   <style>
 {{ css }}
-    /* Dynamic Theme Overrides from config.json */
+    /* Dynamic Theme Overrides from config.json — scoped to the DARK theme.
+       Unscoped, these beat the [data-theme="light"] palette (same
+       specificity, later position) and light mode rendered half-dark:
+       surfaces switched but the page background and brand colors never did.
+       config.theme hints describe the dark look ("الخلفية الكلي الداكنة"),
+       so dark is where the brand colors belong; light keeps its own
+       contrast-tuned palette. Radius is theme-independent and stays on
+       :root. */
     :root {
+      {% if config.theme.cardRadius %}
+      --radius-md: calc({{ config.theme.cardRadius }} - 4px);
+      --radius-lg: {{ config.theme.cardRadius }};
+      {% endif %}
+    }
+    {% if config.theme.primaryColor or config.theme.backgroundColor %}
+    [data-theme="dark"] {
       {% if config.theme.primaryColor %}
       --color-primary: {{ config.theme.primaryColor }};
       --color-input-focus: {{ config.theme.primaryColor }};
@@ -29,11 +58,8 @@
       {% if config.theme.backgroundColor %}
       --color-bg: {{ config.theme.backgroundColor }};
       {% endif %}
-      {% if config.theme.cardRadius %}
-      --radius-md: calc({{ config.theme.cardRadius }} - 4px);
-      --radius-lg: {{ config.theme.cardRadius }};
-      {% endif %}
     }
+    {% endif %}
   </style>
 </head>
 <body>

@@ -58,7 +58,8 @@ test('the language toggle switches to the English portal', async ({ context, pag
 
 test('alogin shows the connected state and a countdown before redirecting', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/alogin.html`);
-  await expect(page.locator('#countdown')).toContainText('3');
+  // the countdown is LIVE (3→2→1) — assert a live digit, not a snapshot of "3"
+  await expect(page.locator('#countdown')).toHaveText(/[1-3]/);
   await expect(page.locator('[data-i18n="connected"]')).toBeVisible();
   // the manual escape hatch (Continue Now) targets the demo redirect URL —
   // scope to the card so the support modal's buttons don't match.

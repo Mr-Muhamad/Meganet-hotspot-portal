@@ -5,15 +5,20 @@
 var ui = {
   initTheme: function() {
     try {
+      // Pre-paint script in <head> already applied the cookie (or OS
+      // preference) — this aligns the icon and meta color with it. First
+      // visit follows the OS preference; only a manual toggle stores a
+      // cookie, so OS changes keep propagating until the user chooses.
       var savedTheme = util.getCookie('hotspot_theme');
-      if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        ui.updateThemeIcon(savedTheme);
-      } else {
-        var theme = 'dark'; // Force dark mode as the default
+      var theme;
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        theme = savedTheme;
         document.documentElement.setAttribute('data-theme', theme);
-        ui.updateThemeIcon(theme);
+      } else {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
       }
+      ui.updateThemeIcon(theme);
     } catch (err) {
       console.error('Init theme error:', err);
     }
@@ -26,7 +31,7 @@ var ui = {
       document.documentElement.setAttribute('data-theme', newTheme);
       util.setCookie('hotspot_theme', newTheme, 365);
       ui.updateThemeIcon(newTheme);
-      util.showToast(newTheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled', 'info', 2000);
+      util.showToast(i18n.t(newTheme === 'dark' ? 'theme_enabled_dark' : 'theme_enabled_light'), 'info', 2000);
     } catch (err) {
       console.error('Toggle theme error:', err);
     }
@@ -38,12 +43,15 @@ var ui = {
       if (themeToggle) {
         if (theme === 'dark') {
           themeToggle.innerHTML = '<svg class="theme-toggle__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-          themeToggle.setAttribute('aria-label', 'Switch to light theme');
+          themeToggle.setAttribute('aria-label', i18n.t('theme_switch_to_light'));
         } else {
           themeToggle.innerHTML = '<svg class="theme-toggle__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-          themeToggle.setAttribute('aria-label', 'Switch to dark theme');
+          themeToggle.setAttribute('aria-label', i18n.t('theme_switch_to_dark'));
         }
       }
+      // Mobile browser chrome / PWA title bar follows the theme.
+      var meta = document.getElementById('metaThemeColor');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f8fafc' : '#020617');
     } catch (err) {
       console.error('Update theme icon error:', err);
     }

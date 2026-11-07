@@ -16,7 +16,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 
 ## Features
 
-- **Modern minimalist UI** with automatic dark/light mode via `prefers-color-scheme`
+- **Modern minimalist UI** with dark/light themes — follows the device's `prefers-color-scheme` on first visit; a manual toggle is remembered
 - **Instant QR Code Login** — 0-second auto-login directly upon scan with hardware-accelerated `BarcodeDetector` (fallback to JS decoder)
 - **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
 - **OTP Auto-Submit & Paste Detection** — automatically submits form when full voucher code is typed or pasted
@@ -337,7 +337,7 @@ All visual branding is driven by **`config.json`** — edit it, run `npm run bui
 
 Base design tokens live in `src/css/variables.css` and `src/css/theme.css`.
 
-Dark mode is automatic via `@media (prefers-color-scheme: dark)`.
+**Theme behavior**: the first visit follows the device's `prefers-color-scheme` (applied pre-paint by a head script — no dark flash); a manual toggle is remembered for a year via the `hotspot_theme` cookie, and until then OS changes keep propagating. The toggle also updates `<meta name="theme-color">` so the mobile browser chrome follows along.
 
 ### Language Configuration
 

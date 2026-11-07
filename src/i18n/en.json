@@ -91,6 +91,10 @@
     "qr_scan_failed": "Could not read the code — try a clearer photo",
     "qr_scan_unavailable": "The QR decoder could not be loaded. Enter the code manually.",
     "auto_login_countdown": "Auto-connecting in <strong id=\"auto-login-sec\">{n}</strong> seconds…",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "theme_enabled_dark": "Dark mode enabled",
+    "theme_enabled_light": "Light mode enabled",
+    "theme_switch_to_dark": "Switch to dark mode",
+    "theme_switch_to_light": "Switch to light mode"
   }
 }

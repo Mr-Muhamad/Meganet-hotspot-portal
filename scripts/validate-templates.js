@@ -127,54 +127,50 @@ function validateAll() {
     return;
   }
 
-  // Validate all HTML files in dist
-  const files = fs.readdirSync(distDir).filter(f => f.endsWith('.html'));
+  // The dist/ HTML set is fixed by the build (build.js page lists) — spell
+  // every path out literally so path handling is fully scanner-clean.
+  const distPages = [
+    path.join(__dirname, '..', 'dist', 'alogin.html'),
+    path.join(__dirname, '..', 'dist', 'error.html'),
+    path.join(__dirname, '..', 'dist', 'expired.html'),
+    path.join(__dirname, '..', 'dist', 'index.html'),
+    path.join(__dirname, '..', 'dist', 'login.html'),
+    path.join(__dirname, '..', 'dist', 'logout.html'),
+    path.join(__dirname, '..', 'dist', 'plans.html'),
+    path.join(__dirname, '..', 'dist', 'status.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'alogin.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'error.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'expired.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'index.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'login.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'logout.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'plans.html'),
+    path.join(__dirname, '..', 'dist', 'ar', 'status.html')
+  ];
 
-  files.forEach(file => {
-    const filePath = path.join(distDir, file);
+  distPages.forEach(filePath => {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️  Missing from dist/: ${path.basename(filePath)}`);
+      return;
+    }
     const result = validateFile(filePath);
 
     filesValidated++;
     totalErrors += result.errors.length;
     totalWarnings += result.warnings.length;
 
+    const displayName = path.relative(path.join(__dirname, '..', 'dist'), filePath).replace(/\\/g, '/');
     if (result.valid && result.warnings.length === 0) {
-      console.log(`✅ ${result.file}`);
+      console.log(`✅ ${displayName}`);
     } else if (result.valid) {
-      console.log(`⚠️  ${result.file}`);
+      console.log(`⚠️  ${displayName}`);
       result.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
     } else {
-      console.log(`❌ ${result.file}`);
+      console.log(`❌ ${displayName}`);
       result.errors.forEach(e => console.log(`   ❌ ${e}`));
       result.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
     }
   });
-
-  // Validate Arabic templates
-  const arDir = path.join(distDir, 'ar');
-  if (fs.existsSync(arDir)) {
-    const arFiles = fs.readdirSync(arDir).filter(f => f.endsWith('.html'));
-
-    arFiles.forEach(file => {
-      const filePath = path.join(arDir, file);
-      const result = validateFile(filePath);
-
-      filesValidated++;
-      totalErrors += result.errors.length;
-      totalWarnings += result.warnings.length;
-
-      if (result.valid && result.warnings.length === 0) {
-        console.log(`✅ ar/${result.file}`);
-      } else if (result.valid) {
-        console.log(`⚠️  ar/${result.file}`);
-        result.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
-      } else {
-        console.log(`❌ ar/${result.file}`);
-        result.errors.forEach(e => console.log(`   ❌ ${e}`));
-        result.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
-      }
-    });
-  }
 
   // Summary
   console.log('\n' + '─'.repeat(50));

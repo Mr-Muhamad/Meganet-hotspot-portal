@@ -38,15 +38,16 @@ test('one tap on the scan button opens the native camera picker and auto-logs-in
 
 test('a link-card QR payload navigates to the URL it carries', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/login.html`);
-  // Abort the router POST the destination page auto-fires — we only assert
-  // that scanning a URL payload takes the browser there.
-  await page.route('http://10.5.50.1/**', (route) => route.abort());
+  // The destination page auto-POSTs its voucher to the (demo) router endpoint
+  // ~500ms after load — intercept that POST: its URL and body prove the whole
+  // link-card round trip (navigate → auto-fill → submit).
+  const request = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.evaluate(() => window.Hotspot.qrScanner._handleResult('http://127.0.0.1:8790/login.html?voucher=55555'))
+  ]).then(([req]) => req);
 
-  await page.evaluate(() => {
-    window.Hotspot.qrScanner._handleResult('http://127.0.0.1:8790/login.html?voucher=55555');
-  });
-
-  await expect(page).toHaveURL(/voucher=55555/);
+  expect(request.url()).toContain('10.5.50.1'); // the demo router login endpoint
+  expect(request.postData()).toContain('username=55555');
 });
 
 test('inside the stripped captive-portal WebView the scan tap escapes to the full browser', async ({ browser }) => {

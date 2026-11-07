@@ -6,6 +6,12 @@
 
 تم تصميم وبناء هذه البوابة وفق أعلى المعايير الحديثة لتوفير تجربة مستخدم (UX) فائقة السلاسة والسرعة على كافة الهواتف والأجهزة، متوافقة بنسبة 100% مع متصفحات تسجيل الدخول المقيدة (Captive Portals) مثل Apple iOS CNA و macOS و Android و Windows.
 
+<p align="center">
+  <img src="docs/screenshots/login-ar-dark.png" width="260" alt="واجهة تسجيل الدخول العربية" />
+  <img src="docs/screenshots/login-en-dark.png" width="260" alt="واجهة تسجيل الدخول الإنجليزية" />
+  <img src="docs/screenshots/status-ar.png" width="260" alt="صفحة الحالة والاستهلاك" />
+</p>
+
 ---
 
 ## 🌟 أبرز المميزات

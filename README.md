@@ -6,6 +6,12 @@
 
 A modern, lightweight captive portal template system designed for MikroTik routers. Features a clean minimalist UI, full bilingual support, and zero external dependencies — engineered to work reliably inside restrictive captive portal browser environments (iOS CNA, macOS CNA, Android, Windows).
 
+<p align="center">
+  <img src="docs/screenshots/login-ar-dark.png" width="260" alt="Arabic Login Screen" />
+  <img src="docs/screenshots/login-en-dark.png" width="260" alt="English Login Screen" />
+  <img src="docs/screenshots/status-ar.png" width="260" alt="Status Screen" />
+</p>
+
 ---
 
 ## Features

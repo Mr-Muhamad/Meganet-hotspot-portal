@@ -167,8 +167,10 @@ var qrScanner = {
 
   /**
    * Decide what a decoded QR payload means. Pure function (unit-tested).
-   *  - A URL payload is a link card (mikhmon format): navigate straight to
-   *    it — the login URL it carries performs the login itself.
+   *  - A URL payload is a link card (mikhmon format): navigate only if it is
+   *    a valid hotspot login URL (same host, private IP, or contains login path/query).
+   *    If it carries a voucher query, extract the code for auto-login safely.
+   *    Untrusted/malicious external URLs are rejected.
    *  - Anything else is a bare voucher code: digits only.
    * @param {string} text - decoded QR content
    * @returns {Object} {action:'navigate', url} or {action:'autologin', code}
@@ -176,7 +178,40 @@ var qrScanner = {
   routeScan: function(text) {
     var cleaned = String(text || '').trim();
     if (/^https?:\/\//i.test(cleaned)) {
-      return { action: 'navigate', url: cleaned };
+      // Security guard: validate link cards against open-redirect phishing attacks
+      try {
+        var parsed = new URL(cleaned);
+        var hostname = parsed.hostname;
+        var currentHost = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+
+        // Safe domains: same hostname, standard private hotspot IP ranges, or localhost
+        var isSameHost = currentHost && (hostname === currentHost);
+        var isPrivateIp = /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)$/.test(hostname);
+        var hasLoginParam = parsed.searchParams.has('voucher') || parsed.searchParams.has('username');
+        var isLoginPath = parsed.pathname.indexOf('login') !== -1;
+
+        if (isSameHost || isPrivateIp || hasLoginParam || isLoginPath) {
+          // If the link carries username/password on a local IP/host, navigate directly so credentials pass cleanly
+          if (parsed.searchParams.has('password')) {
+            return { action: 'navigate', url: cleaned };
+          }
+          // If the link carries a bare voucher parameter on current or local portal, extract code directly
+          var codeParam = parsed.searchParams.get('voucher') || parsed.searchParams.get('username');
+          if (codeParam && (isSameHost || isPrivateIp)) {
+            var norm = auth.normalizeVoucherText(codeParam);
+            if (norm) {
+              return { action: 'autologin', code: norm };
+            }
+          }
+          return { action: 'navigate', url: cleaned };
+        }
+
+        // Suspicious external URL (not hotspot-related) — reject
+        return { action: 'autologin', code: '' };
+      } catch (urlErr) {
+        // If URL parsing fails, reject
+        return { action: 'autologin', code: '' };
+      }
     }
     return { action: 'autologin', code: auth.normalizeVoucherText(cleaned) };
   },

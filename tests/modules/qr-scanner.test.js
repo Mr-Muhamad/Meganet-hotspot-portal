@@ -19,17 +19,30 @@ describe('Hotspot.qrScanner', () => {
   });
 
   describe('routeScan', () => {
-    test('a URL payload routes as a link card, untouched', () => {
+    test('a URL payload with username/password routes as navigate', () => {
       expect(qrScanner.routeScan('http://10.5.50.1/login?username=a&password=b')).toEqual({
         action: 'navigate',
         url: 'http://10.5.50.1/login?username=a&password=b'
       });
     });
 
-    test('an HTTPS link card also routes as a link', () => {
-      const r = qrScanner.routeScan('https://hotspot.example.net/login?voucher=1');
+    test('a voucher link payload on private hotspot IP routes directly as autologin', () => {
+      expect(qrScanner.routeScan('http://10.5.50.1/login?voucher=123456')).toEqual({
+        action: 'autologin',
+        code: '123456'
+      });
+    });
+
+    test('an HTTPS link card with login path also routes safely', () => {
+      const r = qrScanner.routeScan('https://hotspot.example.net/login?voucher=12345');
       expect(r.action).toBe('navigate');
-      expect(r.url).toBe('https://hotspot.example.net/login?voucher=1');
+      expect(r.url).toBe('https://hotspot.example.net/login?voucher=12345');
+    });
+
+    test('rejects malicious external URLs that have no login parameters', () => {
+      const r = qrScanner.routeScan('https://evil-phishing-site.com/steal-data');
+      expect(r.action).toBe('autologin');
+      expect(r.code).toBe('');
     });
 
     test('bare digits route as an auto-login code', () => {

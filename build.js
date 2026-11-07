@@ -131,11 +131,14 @@ function inlineSVG(filePath) {
 // Generate page HTML
 function generatePage(page, lang, options = {}) {
   try {
-    // Load config.json
+    // Load config.json or fallback to config.example.json
     let config = {};
     const configPath = path.join(__dirname, 'config.json');
+    const configExamplePath = path.join(__dirname, 'config.example.json');
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } else if (fs.existsSync(configExamplePath)) {
+      config = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
     }
 
     const css = buildCSS();

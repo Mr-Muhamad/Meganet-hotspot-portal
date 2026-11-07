@@ -24,10 +24,11 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Environment
+# Environment & Local Configuration
 .env
 .env.local
 .env.*.local
+config.json
 
 # Cache
 .cache/

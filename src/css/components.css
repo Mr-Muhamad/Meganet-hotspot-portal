@@ -270,6 +270,13 @@
   font-size: var(--font-size-sm);
 }
 
+/* The `hidden` attribute must beat .alert's display:flex — without this the
+   session-warning banner renders EMPTY on every status page (the author rule
+   wins over the UA stylesheet's [hidden] rule). */
+.alert[hidden] {
+  display: none;
+}
+
 .alert-error {
   background: var(--color-error-bg);
   color: var(--color-error);

@@ -77,7 +77,10 @@ test('both themes paint every portal page (visual audit screenshots)', async ({ 
     for (const name of ['login', 'status', 'plans']) {
       await page.goto(`${DEFAULT}/ar/${name}.html`);
       await page.waitForTimeout(250); // canvas/background settle
-      await page.screenshot({ path: `test-results/theme-${name}-${theme}.png`, fullPage: true });
+      // Viewport-only captures: these double as the README hero set, and
+      // fullPage shots had three different heights (status alone was ~2.2x
+      // login), making the side-by-side row ragged. Uniform 393x851 frames.
+      await page.screenshot({ path: `test-results/theme-${name}-${theme}.png` });
     }
   }
 });

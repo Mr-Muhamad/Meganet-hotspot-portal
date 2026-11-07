@@ -8,11 +8,12 @@ A modern, lightweight captive portal template system designed for MikroTik route
 
 <p align="center">
   <img src="docs/screenshots/theme-login-dark.png" width="260" alt="Login - Dark" />
+  <img src="docs/screenshots/theme-status-dark.png" width="260" alt="Status - Dark" />
+  <img src="docs/screenshots/theme-status-light.png" width="260" alt="Status - Light" />
   <img src="docs/screenshots/theme-login-light.png" width="260" alt="Login - Light" />
   <img src="docs/screenshots/theme-plans-dark.png" width="260" alt="Plans - Dark" />
   <img src="docs/screenshots/theme-plans-light.png" width="260" alt="Plans - Light" />
-  <img src="docs/screenshots/theme-status-dark.png" width="260" alt="Status - Dark" />
-  <img src="docs/screenshots/theme-status-light.png" width="260" alt="Status - Light" />
+
 </p>
 
 ---

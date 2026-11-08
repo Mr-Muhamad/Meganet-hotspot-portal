@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-08
+
+### Added
+- **The status page now warns BEFORE the session ends, and logs out when it does**: the 5-minute expiry warning was only evaluated once at page load — a user sitting on the page never saw the banner appear when the countdown crossed the threshold, and at zero the page merely reloaded itself instead of ending the session. A dynamic watcher (driven by the existing 1-second ticker) reveals the banner at ≤5 minutes (`session_expiring_soon`), escalates it to a red critical alert at ≤60 s (`session_expiring_critical`, new i18n key in both languages), and at zero navigates to the RouterOS logout servlet — `$(link-logout)` captured on the banner as a `data-logout-url` attribute — so the session actually ends and the user lands on the logout summary. Unlimited sessions are untouched (the watcher sits inside the existing `startTimeLeft > 0` guard), and expiry takes precedence over the quota warning when both apply
+
 ## [2.2.1] - 2026-11-08
 
 ### Fixed
@@ -177,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.3.0**: Live expiry intelligence — the status page warns as the session nears its end (dynamic 5-minute warning, critical escalation under one minute) and auto-logs out at zero instead of silently reloading
 - **2.2.1**: Field-proven scanning (jsQR replaces llqrcode — real cards now read from camera photos), credential link cards log in in-place (stale-$dnsname-immune, phishing route closed), alogin back-button trap fixed
 - **2.2.0**: Performance round (rAF leak, passive touch, 77% smaller icon, tap-only upstream probe), empty-warning-box fix, composite README visuals for all pages and login modes
 - **2.1.0**: Real-device-hardened login (in-page QR scanner, captive-portal escape), theme system fixed end-to-end, login submit hardening (CHAP ordering, frozen Connect button), honest status pages (live warnings, upstream internet check), page audit fixes across status/plans/alogin/logout

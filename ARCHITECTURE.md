@@ -82,6 +82,7 @@ src/js/modules/
 ├── ui.js              # UI management
 ├── i18n.js            # Internationalization
 ├── status.js          # Status display
+├── qr-scanner.js      # Voucher card scanning (jsQR + BarcodeDetector, in-place credential login)
 └── rate-limiter.js    # Rate limiting
 ```
 

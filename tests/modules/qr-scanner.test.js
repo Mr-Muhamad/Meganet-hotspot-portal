@@ -19,11 +19,26 @@ describe('Hotspot.qrScanner', () => {
   });
 
   describe('routeScan', () => {
-    test('a URL payload with username/password routes as navigate', () => {
+    test('a mikhmon credential link logs in in-place on our portal (no navigation)', () => {
       expect(qrScanner.routeScan('http://10.5.50.1/login?username=a&password=b')).toEqual({
-        action: 'navigate',
-        url: 'http://10.5.50.1/login?username=a&password=b'
+        action: 'autologin',
+        code: 'a',
+        password: 'b'
       });
+    });
+
+    test('a credential link on a FOREIGN host still logs in in-place (never navigates)', () => {
+      // the printed $dnsname may be stale or differ from how the user reached
+      // the portal — and a swapped QR must never navigate off-portal anyway
+      const r = qrScanner.routeScan('http://printed-dnsname.example.net/login?username=ahmed2015&password=secret99');
+      expect(r.action).toBe('autologin');
+      expect(r.code).toBe('ahmed2015');
+      expect(r.password).toBe('secret99');
+    });
+
+    test('alphanumeric usernames are kept raw (not digit-normalized)', () => {
+      const r = qrScanner.routeScan('http://any-host.example/login?username=ahmed2015');
+      expect(r.code).toBe('ahmed2015');
     });
 
     test('a voucher link payload on private hotspot IP routes directly as autologin', () => {
@@ -33,10 +48,18 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
-    test('an HTTPS link card with login path also routes safely', () => {
+    test('a voucher link on a foreign host also extracts the code in-place', () => {
       const r = qrScanner.routeScan('https://hotspot.example.net/login?voucher=12345');
-      expect(r.action).toBe('navigate');
-      expect(r.url).toBe('https://hotspot.example.net/login?voucher=12345');
+      expect(r).toEqual({
+        action: 'autologin',
+        code: '12345'
+      });
+    });
+
+    test('a foreign portal-shaped URL WITHOUT credentials is rejected (phishing guard)', () => {
+      const r = qrScanner.routeScan('https://hotspot.example.net/login');
+      expect(r.action).toBe('autologin');
+      expect(r.code).toBe('');
     });
 
     test('rejects malicious external URLs that have no login parameters', () => {

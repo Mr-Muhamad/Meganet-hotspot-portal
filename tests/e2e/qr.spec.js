@@ -79,6 +79,25 @@ test('a small QR inside a simulated camera photo still decodes (jsQR upgrade)', 
   expect(request.postData()).toContain('username=1234567890');
 });
 
+test('a scanned mikhmon credential link logs in IN PLACE even on a foreign host', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+  // The card's printed $dnsname may be stale or differ from how the user
+  // reached the portal, and a swapped QR must never navigate off-portal:
+  // the credentials are extracted and submitted to OUR login endpoint.
+  const request = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.evaluate(() => window.Hotspot.qrScanner._handleResult(
+      'http://printed-dnsname.example.net/login?username=ahmed2015&password=secret99'
+    ))
+  ]).then(([req]) => req);
+
+  expect(request.url()).toContain('10.5.50.1'); // OUR portal login endpoint
+  expect(request.postData()).toContain('username=ahmed2015');
+  expect(request.postData()).toContain('password=secret99');
+  // the user never left the login page
+  expect(page.url()).toContain('/ar/login.html');
+});
+
 test('a link-card QR payload navigates to the URL it carries', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/login.html`);
   // The destination page auto-POSTs its voucher to the (demo) router endpoint

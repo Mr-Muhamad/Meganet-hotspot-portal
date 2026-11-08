@@ -181,35 +181,46 @@ var qrScanner = {
   routeScan: function(text) {
     var cleaned = String(text || '').trim();
     if (/^https?:\/\//i.test(cleaned)) {
-      // Security guard: validate link cards against open-redirect phishing attacks
+      // Security guard: the portal never navigates to a foreign host because
+      // of a scanned payload — a swapped QR sticker pointing at a phishing
+      // page must not leave the portal. Credential links (mikhmon prints
+      // http://<dnsname>/login?username=X&password=Y) are handled IN PLACE:
+      // the credentials belong to this network, so extract them and submit
+      // on the current portal — which also keeps working when the printed
+      // $dnsname no longer resolves or does not match how the user reached
+      // the portal (IP vs name).
       try {
         var parsed = new URL(cleaned);
         var hostname = parsed.hostname;
         var currentHost = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
 
-        // Safe domains: same hostname, standard private hotspot IP ranges, or localhost
+        // 1. Credential links: extract and log in in-place. The username is
+        //    kept RAW (usernames may contain letters — normalizing to digits
+        //    would corrupt it); only the voucher parameter is normalized.
+        var voucherParam = parsed.searchParams.get('voucher');
+        var usernameParam = parsed.searchParams.get('username');
+        if (voucherParam || usernameParam) {
+          var code = voucherParam
+            ? auth.normalizeVoucherText(voucherParam)
+            : String(usernameParam).trim();
+          var route = { action: 'autologin', code: code };
+          var passwordParam = parsed.searchParams.get('password');
+          if (passwordParam) {
+            route.password = passwordParam;
+          }
+          return route;
+        }
+
+        // 2. Non-credential URLs navigate only within the portal itself
+        //    (same hostname or a private hotspot address) — anything else is
+        //    rejected rather than navigated to.
         var isSameHost = currentHost && (hostname === currentHost);
         var isPrivateIp = /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)$/.test(hostname);
-        var hasLoginParam = parsed.searchParams.has('voucher') || parsed.searchParams.has('username');
-        var isLoginPath = parsed.pathname.indexOf('login') !== -1;
-
-        if (isSameHost || isPrivateIp || hasLoginParam || isLoginPath) {
-          // If the link carries username/password on a local IP/host, navigate directly so credentials pass cleanly
-          if (parsed.searchParams.has('password')) {
-            return { action: 'navigate', url: cleaned };
-          }
-          // If the link carries a bare voucher parameter on current or local portal, extract code directly
-          var codeParam = parsed.searchParams.get('voucher') || parsed.searchParams.get('username');
-          if (codeParam && (isSameHost || isPrivateIp)) {
-            var norm = auth.normalizeVoucherText(codeParam);
-            if (norm) {
-              return { action: 'autologin', code: norm };
-            }
-          }
+        if (isSameHost || isPrivateIp) {
           return { action: 'navigate', url: cleaned };
         }
 
-        // Suspicious external URL (not hotspot-related) — reject
+        // Foreign URL without credentials — reject
         return { action: 'autologin', code: '' };
       } catch (urlErr) {
         // If URL parsing fails, reject
@@ -390,7 +401,19 @@ var qrScanner = {
         util.showToast(i18n.t('qr_scan_failed'), 'error');
         return;
       }
+      // A credential link (mikhmon format) carries its own password — stash
+      // it for onFormSubmit (which prefers it over copying the code) and
+      // clear it right after: beginAutoLogin's instant path submits
+      // synchronously, so the attribute is consumed within this call, and a
+      // later scan without a password must not inherit this one.
+      var form = document.getElementById('login-form');
+      if (route.password && form) {
+        form.setAttribute('data-scanned-password', route.password);
+      }
       auth.beginAutoLogin(route.code, true);
+      if (route.password && form) {
+        form.removeAttribute('data-scanned-password');
+      }
     } catch (err) {
       console.error('QR result error:', err);
     }

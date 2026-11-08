@@ -77,6 +77,7 @@
     "status_offline": "Offline",
     "status_no_internet": "No internet access",
     "session_expiring_soon": "Session expires soon",
+    "session_expiring_critical": "Your session ends in less than a minute",
     "data_limit_almost_reached": "Data limit almost reached",
     "smart_usage_assistant": "Usage Assistant",
     "browsing_estimate": "Social & Web Chatting:",

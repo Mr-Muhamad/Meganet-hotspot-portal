@@ -304,7 +304,7 @@ var statusModule = {
         if (timeLeft > 0) {
           timeLeftElement.setAttribute('data-seconds', timeLeft);
           ui.initCountdown(timeLeft, 'session-time-left', function() {
-            window.location.href = window.location.href;
+            statusModule.logoutOnExpiry();
           });
         } else {
           timeLeftElement.textContent = '--';
@@ -348,6 +348,7 @@ var statusModule = {
           var currentRemaining = startTimeLeft - elapsed;
           if (currentRemaining < 0) currentRemaining = 0;
           statusModule.updateTimeProgress(currentRemaining);
+          statusModule.checkExpiryThresholds(currentRemaining);
         }
       }, 1000);
     } catch (err) {
@@ -530,6 +531,49 @@ var statusModule = {
       });
     } catch (err) {
       console.error('Internet check error:', err);
+    }
+  },
+
+  // One-shot expiry flags for the dynamic threshold watcher below.
+  _expiryWarned: false,
+  _expiryCritical: false,
+
+  // Session hit zero: end it properly through the RouterOS logout servlet
+  // ($(link-logout) captured on the warning banner), falling back to a
+  // self-reload if the attribute is ever missing.
+  logoutOnExpiry: function() {
+    var banner = document.getElementById('session-warning');
+    var logoutUrl = banner ? banner.getAttribute('data-logout-url') : null;
+    window.location.href = logoutUrl || window.location.href;
+  },
+
+  // Dynamic expiry watcher, driven by the 1 s uptime ticker (showWarnings
+  // only evaluates the <300 s case once at page load, so a user sitting on
+  // this page never sees the banner appear when the countdown crosses the
+  // threshold). Expiry takes precedence over the quota warning: it is the
+  // imminent event. Unlimited sessions never reach here (guarded by
+  // startTimeLeft > 0 in startUptimeTicker).
+  checkExpiryThresholds: function(remaining) {
+    try {
+      var banner = document.getElementById('session-warning');
+      if (!banner) return;
+
+      var textElement = banner.querySelector('.session-warning__text');
+
+      if (remaining <= 60 && !statusModule._expiryCritical) {
+        statusModule._expiryCritical = true;
+        statusModule._expiryWarned = true;
+        banner.hidden = false;
+        banner.classList.remove('alert-warning');
+        banner.classList.add('alert-error');
+        if (textElement) textElement.textContent = i18n.t('session_expiring_critical');
+      } else if (remaining <= 300 && !statusModule._expiryWarned) {
+        statusModule._expiryWarned = true;
+        banner.hidden = false;
+        if (textElement) textElement.textContent = i18n.t('session_expiring_soon');
+      }
+    } catch (err) {
+      console.error('Expiry threshold check error:', err);
     }
   },
 

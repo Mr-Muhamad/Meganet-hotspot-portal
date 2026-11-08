@@ -77,6 +77,7 @@
     "status_offline": "غير متصل",
     "status_no_internet": "لا يوجد اتصال بالإنترنت",
     "session_expiring_soon": "جلستك على وشك الانتهاء",
+    "session_expiring_critical": "ستنتهي جلستك خلال أقل من دقيقة",
     "data_limit_almost_reached": "رصيد البيانات على وشك النفاد",
     "smart_usage_assistant": "مساعد الاستهلاك الذكي",
     "browsing_estimate": "تصفح وتواصل اجتماعي:",

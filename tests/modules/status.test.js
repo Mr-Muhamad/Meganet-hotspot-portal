@@ -21,6 +21,7 @@ const i18n = {
       status_good: 'Good',
       status_poor: 'Poor',
       session_expiring_soon: 'Session expires soon',
+      session_expiring_critical: 'Your session ends in less than a minute',
       data_limit_almost_reached: 'Data limit almost reached'
     }
   },
@@ -260,6 +261,60 @@ document.body.appendChild(mockSmartUsageCard);
 
       expect(mockWarningBanner.hidden).toBe(false);
       expect(mockWarningText.textContent).toBe('Data limit almost reached');
+    });
+  });
+
+  describe('checkExpiryThresholds', () => {
+    beforeEach(() => {
+      statusModule._expiryWarned = false;
+      statusModule._expiryCritical = false;
+      mockWarningBanner.hidden = true;
+      mockWarningBanner.className = 'alert alert-warning';
+      mockWarningText.textContent = '';
+    });
+
+    test('does nothing above the 5-minute threshold', () => {
+      statusModule.checkExpiryThresholds(400);
+
+      expect(mockWarningBanner.hidden).toBe(true);
+      expect(mockWarningText.textContent).toBe('');
+    });
+
+    test('shows the expiring-soon banner when the countdown crosses 5 minutes', () => {
+      statusModule.checkExpiryThresholds(299);
+
+      expect(mockWarningBanner.hidden).toBe(false);
+      expect(mockWarningText.textContent).toBe('Session expires soon');
+      expect(mockWarningBanner.classList.contains('alert-warning')).toBe(true);
+    });
+
+    test('escalates to the critical banner under one minute', () => {
+      statusModule.checkExpiryThresholds(59);
+
+      expect(mockWarningBanner.hidden).toBe(false);
+      expect(mockWarningText.textContent).toBe('Your session ends in less than a minute');
+      expect(mockWarningBanner.classList.contains('alert-error')).toBe(true);
+      expect(mockWarningBanner.classList.contains('alert-warning')).toBe(false);
+    });
+
+    test('fires each threshold once and never regresses from critical', () => {
+      statusModule.checkExpiryThresholds(200);
+      statusModule.checkExpiryThresholds(200); // same band again — one-shot
+      statusModule.checkExpiryThresholds(150);
+      expect(mockWarningText.textContent).toBe('Session expires soon');
+
+      statusModule.checkExpiryThresholds(30);
+      expect(mockWarningText.textContent).toBe('Your session ends in less than a minute');
+
+      statusModule.checkExpiryThresholds(20); // still critical, no repeat work
+      expect(mockWarningText.textContent).toBe('Your session ends in less than a minute');
+      expect(mockWarningBanner.classList.contains('alert-error')).toBe(true);
+    });
+
+    test('does nothing when the banner is absent', () => {
+      mockWarningBanner.remove();
+
+      expect(() => statusModule.checkExpiryThresholds(30)).not.toThrow();
     });
   });
 

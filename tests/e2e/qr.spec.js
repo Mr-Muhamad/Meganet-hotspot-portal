@@ -98,7 +98,7 @@ test('a scanned mikhmon credential link logs in IN PLACE even on a foreign host'
   expect(page.url()).toContain('/ar/login.html');
 });
 
-test('a link-card QR payload navigates to the URL it carries', async ({ page }) => {
+test('a link-card QR payload with a voucher param auto-logs-in in place', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/login.html`);
   // The destination page auto-POSTs its voucher to the (demo) router endpoint
   // ~500ms after load — intercept that POST: its URL and body prove the whole

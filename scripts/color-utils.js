@@ -184,12 +184,17 @@ function deriveThemeTokens(primaryColor, backgroundColor) {
       dark['color-primary-hover'] = adjustLightness(primary, -9);
       dark['color-primary-active'] = adjustLightness(primary, -18);
       dark['color-primary-text'] = readableTextOn(primary);
+      // The promo-banner text was historically the brand's own lighter neon
+      // tone (rgb(74,222,128) when the brand WAS green) — so it follows the
+      // client brand: a lighter tint on dark, a readable darker tone on light.
+      dark['color-primary-bright-text'] = adjustLightness(primary, 22);
 
       light['color-primary'] = adjustLightness(primary, -12);
       light['color-primary-hover'] = adjustLightness(primary, -20);
       light['color-primary-active'] = adjustLightness(primary, -30);
       light['color-primary-text'] = '#ffffff';
       light['color-primary-bg'] = withAlpha(light['color-primary'], 0.08);
+      light['color-primary-bright-text'] = adjustLightness(primary, -18);
       // The light theme needs the FULL alpha ladder derived too — its static
       // fallback in theme.css is the green ramp, and an incomplete derivation
       // left high-alpha tokens (pulse keyframes, banner borders) green on a

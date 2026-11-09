@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "login": {
+      "targetKind": "existing-ui",
+      "projectId": "f30ffa98-3d4b-4db1-953a-580aa1421fba",
+      "baselineDraftId": "8d13dad6-69c8-4169-8362-1f7367ac86f8",
+      "activeDraftId": "8d13dad6-69c8-4169-8362-1f7367ac86f8",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [
+        "5e7a209b-98a3-49a6-b940-4ffa4528d270",
+        "src-assets-logo.svg",
+        "src-assets-prand-title.svg"
+      ],
+      "brandAssets": {
+        "logo": {
+          "assetKey": "src-assets-logo.svg",
+          "url": "https://vgbujcuwptvheqijyjbe.supabase.co/storage/v1/object/public/hmac-uploads/projects/f30ffa98-3d4b-4db1-953a-580aa1421fba/brand-assets/src-assets-logo.svg/logo.svg",
+          "sourcePath": "src/assets/logo.svg"
+        },
+        "wordmark": {
+          "assetKey": "src-assets-prand-title.svg",
+          "url": "https://vgbujcuwptvheqijyjbe.supabase.co/storage/v1/object/public/hmac-uploads/projects/f30ffa98-3d4b-4db1-953a-580aa1421fba/brand-assets/src-assets-prand-title.svg/prand-title.svg",
+          "sourcePath": "src/assets/prand-title.svg"
+        }
+      },
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        ".superdesign/init/theme.md",
+        "src/templates/base.html",
+        "src/templates/login.html",
+        "src/css/variables.css",
+        "src/css/theme.css",
+        "src/css/layout.css",
+        "src/css/components.css",
+        "src/i18n/ar.json",
+        "src/css/media.css:1:156",
+        "src/css/media.css:718:792",
+        "src/css/media.css:1021:1066"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "4913514b8fa3e8a7194285d6344a04b0a4a654f740474769a1b602d854009933",
+        ".superdesign/init/theme.md": "f72c599d0b05eab6bb500033806f28f366ea6c672921fadb847329d2968d20df",
+        "src/templates/base.html": "c906be7bcf30749c8b83a034cc53aab0e8564573944915e4c84e415317c11d7d",
+        "src/templates/login.html": "c7621849ea82c9b2bfbac32382667ff78fdfd505712a1469e8fb2270859a4667",
+        "src/css/variables.css": "bc3782722b274121ce6bee15b03ed4448161ea5423cf68d4de248da2b10e1b0f",
+        "src/css/theme.css": "aa1da81ac1899712b4691a3e2357afd3bd17ae88456deec339f0c6c2fae57e85",
+        "src/css/layout.css": "7673abfea331d2a05a89d6a51480fe9ac49b25729e8a02adbac960a2027099ff",
+        "src/css/components.css": "c3da7a1e7f3fcaff1d08b3b675224df2060993f283f847013aef314b67bc04cc",
+        "src/css/media.css": "0103f9d98aac81d933e3fdc50e45b2e8790e44c017eb4f0d88b9faef4fb07260",
+        "src/i18n/ar.json": "347f5e9cc7ec660dcfe3717612c8d418050aaf3238f3e0b77236480771295b13"
+      },
+      "components": [],
+      "drafts": {
+        "8d13dad6-69c8-4169-8362-1f7367ac86f8": {
+          "title": "Current Login (baseline) — ميجا نت",
+          "visualDirection": "faithful reproduction of current dark neon-green portal",
+          "parentDraftId": null
+        },
+        "f66cc4ea-3b94-4d0a-80d7-99e505e4f012": {
+          "title": "Light Minimal Meganet Hotspot Portal",
+          "visualDirection": "نهاري نظيف: off-white, white cards, soft shadows, single green accent, no glass/particles",
+          "parentDraftId": "8d13dad6-69c8-4169-8362-1f7367ac86f8"
+        },
+        "d34e60d7-a63b-4477-ac87-1765fc62a8b1": {
+          "title": "Meganet Premium Glass Dark Redesign",
+          "visualDirection": "دارك بريميوم: richer near-black, true glass cards, disciplined emerald, elegant canvas",
+          "parentDraftId": "8d13dad6-69c8-4169-8362-1f7367ac86f8"
+        },
+        "cfd8be48-1ca0-4663-8e5c-8ef2c64b6b4c": {
+          "title": "Meganet Brand Gradient Redesign",
+          "visualDirection": "هوية جريدينت تجارية: indigo-violet page, violet-to-blue gradient identity, glass cards",
+          "parentDraftId": "8d13dad6-69c8-4169-8362-1f7367ac86f8"
+        }
+      },
+      "updatedAt": "2026-11-09T00:00:00Z"
+    }
+  }
+}

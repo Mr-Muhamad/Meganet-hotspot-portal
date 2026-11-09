@@ -51,3 +51,6 @@ playwright-report/
 
 # Mimosa scanner local state
 .mimosa/
+
+# Superdesign temp artifacts (draft HTML fetches)
+.superdesign/tmp/

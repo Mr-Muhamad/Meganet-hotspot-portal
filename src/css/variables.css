@@ -26,6 +26,68 @@
   --color-input-border: #334155;
   --color-input-focus: #22c55e;
 
+  /* Brand alpha ladder — every rgba(34,197,94,x) literal the components used
+     is now one of these. Defaults = the shipped green; config.json
+     (theme.primaryColor) regenerates the whole ladder at BUILD time via
+     scripts/color-utils.js, so a client brand recolors tints, borders,
+     glows, glass and keyframes consistently. */
+  --color-primary-alpha-02: rgba(34, 197, 94, 0.02); /* input focus wash */
+  --color-primary-alpha-03: rgba(34, 197, 94, 0.03); /* activity badge wash */
+  --color-primary-alpha-05: rgba(34, 197, 94, 0.05); /* secondary button bg, plan radial glow */
+  --color-primary-alpha-10: rgba(34, 197, 94, 0.10); /* badge borders, soft glow shadows */
+  --color-primary-alpha-15: rgba(34, 197, 94, 0.15); /* focus rings, glow shadows (= --color-primary-bg) */
+  --color-primary-alpha-20: rgba(34, 197, 94, 0.20); /* install-guide dashed border */
+  --color-primary-alpha-25: rgba(34, 197, 94, 0.25); /* secondary button border */
+  --color-primary-alpha-30: rgba(34, 197, 94, 0.30); /* avatar glow, pulse keyframes */
+  --color-primary-alpha-35: rgba(34, 197, 94, 0.35); /* primary hover glow, pulse keyframes */
+  --color-primary-alpha-40: rgba(34, 197, 94, 0.40); /* FAB shadow */
+  --color-primary-alpha-50: rgba(34, 197, 94, 0.50); /* neon banner borders */
+  --color-primary-alpha-60: rgba(34, 197, 94, 0.60); /* FAB hover shadow */
+  --color-primary-alpha-70: rgba(34, 197, 94, 0.70); /* pulse keyframes end */
+
+  /* Fixed semantic accents — NOT brand-derived (they mean the same thing on
+     every client network) */
+  --color-primary-bright: #48ff00;            /* progress shimmer midstop */
+  --color-primary-bright-text: rgb(74, 222, 128); /* promo banner text (dark) */
+  --color-warning-bright: rgb(251, 191, 36);  /* warning banner text (dark) + shimmer midstop */
+  --color-warning-icon: rgb(245, 158, 11);    /* warning banner icon (dark) */
+  --color-warning-alpha-03: rgba(245, 158, 11, 0.03);
+  --color-warning-alpha-10: rgba(245, 158, 11, 0.10);
+  --color-warning-alpha-15: rgba(245, 158, 11, 0.15);
+  --color-warning-alpha-30: rgba(245, 158, 11, 0.30);
+  --color-warning-alpha-35: rgba(245, 158, 11, 0.35);
+  --color-warning-alpha-40: rgba(245, 158, 11, 0.40);
+  --color-warning-alpha-50: rgba(245, 158, 11, 0.50);
+  --color-warning-alpha-70: rgba(245, 158, 11, 0.70);
+  --color-error-bright: #f87171;              /* danger shimmer midstop */
+  --color-error-alpha-03: rgba(239, 68, 68, 0.03);
+  --color-error-alpha-10: rgba(239, 68, 68, 0.10);
+  --color-error-alpha-40: rgba(239, 68, 68, 0.40);
+  --color-online: #10b981;                    /* "live/connected" dot */
+  --color-online-alpha-10: rgba(16, 185, 129, 0.10);
+  --color-online-alpha-20: rgba(16, 185, 129, 0.20);
+  --color-online-alpha-70: rgba(16, 185, 129, 0.70);
+  --color-info: #3b82f6;                      /* informational callout */
+  --color-info-alpha-10: rgba(59, 130, 246, 0.10);
+  --color-info-alpha-35: rgba(59, 130, 246, 0.35);
+  --color-whatsapp: #22c55e;                  /* WhatsApp brand affordance */
+  --color-whatsapp-alpha-08: rgba(34, 197, 94, 0.08);
+  --color-whatsapp-alpha-15: rgba(34, 197, 94, 0.15);
+  --color-phone: #3b82f6;                     /* phone-call affordance */
+  --color-phone-alpha-08: rgba(59, 130, 246, 0.08);
+  --color-phone-alpha-15: rgba(59, 130, 246, 0.15);
+
+  /* Neutral glass/scrim surfaces (light-theme + dark overrides live in
+     theme.css; dark values follow config backgroundColor when provided) */
+  --glass-header: rgba(15, 23, 42, 0.65);
+  --glass-banner: rgba(15, 23, 42, 0.70);
+  --glass-overlay: rgba(2, 6, 17, 0.70);
+  --glass-hover-wash: rgba(255, 255, 255, 0.10);
+  --glass-subtle-wash: rgba(255, 255, 255, 0.02);
+  --scrim-soft: rgba(0, 0, 0, 0.15);
+  --scrim-tab: rgba(0, 0, 0, 0.20);
+  --scrim-overlay: rgba(0, 0, 0, 0.50);
+
   /* Spacing Scale */
   --space-xs: 4px;
   --space-sm: 8px;

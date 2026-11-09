@@ -107,7 +107,7 @@
 
 .btn-primary:hover {
   background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+  box-shadow: 0 6px 16px var(--color-primary-alpha-35);
 }
 
 .btn-primary:active {
@@ -115,16 +115,16 @@
 }
 
 .btn-secondary {
-  background: rgba(34, 197, 94, 0.05);
+  background: var(--color-primary-alpha-05);
   color: var(--color-primary);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  border: 1px solid var(--color-primary-alpha-25);
   backdrop-filter: blur(4px);
 }
 
 .btn-secondary:hover {
   background: var(--color-primary-bg);
   border-color: var(--color-primary);
-  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.15);
+  box-shadow: 0 4px 10px var(--color-primary-alpha-15);
 }
 
 .btn-block {
@@ -184,12 +184,8 @@
 
 .form-input:focus {
   border-color: var(--color-input-focus);
-  background-color: rgba(34, 197, 94, 0.02); /* Extremely subtle glowing background fill */
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15), 0 4px 12px rgba(34, 197, 94, 0.05);
-}
-
-[data-theme="light"] .form-input:focus {
-  background-color: rgba(22, 163, 74, 0.01);
+  background-color: var(--color-primary-alpha-02); /* Extremely subtle glowing background fill */
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-15), 0 4px 12px var(--color-primary-alpha-05);
 }
 
 .form-input--error {
@@ -375,12 +371,12 @@
 .auth-tab--active {
   background: var(--color-surface); /* Pure background color contrast */
   color: var(--color-primary); /* Primary text for high contrast focus state */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--scrim-tab);
 }
 
 .auth-tab:hover:not(.auth-tab--active) {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--glass-subtle-wash);
 }
 
 /* Pricing Plans Page Component */
@@ -424,7 +420,7 @@
 .plan-card:hover {
   transform: translateY(-2px);
   border-color: var(--color-primary);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
+  box-shadow: 0 4px 15px var(--color-primary-alpha-10);
 }
 
 /* Glassy background glow effect */
@@ -435,7 +431,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.05) 0%, transparent 60%);
+  background: radial-gradient(circle, var(--color-primary-alpha-05) 0%, transparent 60%);
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
@@ -539,7 +535,7 @@
   background: var(--color-primary);
   color: var(--color-primary-text, #ffffff);
   border: none;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 4px 16px var(--color-primary-alpha-40);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -557,7 +553,7 @@
 .support-trigger:hover {
   transform: scale(1.1);
   background: var(--color-primary-hover);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.6);
+  box-shadow: 0 6px 20px var(--color-primary-alpha-60);
 }
 
 .support-trigger__icon {
@@ -573,7 +569,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(2, 6, 17, 0.7); /* dark overlay */
+  background: var(--glass-overlay); /* dark overlay */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -685,38 +681,38 @@
   transform: translateY(-2px);
 }
 
-/* WhatsApp Specific */
+/* WhatsApp Specific — fixed brand affordance, NOT client-brand-derived */
 .support-item--whatsapp {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--color-whatsapp);
 }
 [dir="rtl"] .support-item--whatsapp {
   border-left: 1px solid var(--color-border);
-  border-right: 4px solid #22c55e;
+  border-right: 4px solid var(--color-whatsapp);
 }
 .support-item--whatsapp:hover {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: #22c55e;
+  background: var(--color-whatsapp-alpha-08);
+  border-color: var(--color-whatsapp);
 }
 .support-item--whatsapp .support-item__icon-wrapper {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--color-whatsapp-alpha-15);
+  color: var(--color-whatsapp);
 }
 
-/* Phone Call Specific */
+/* Phone Call Specific — fixed affordance */
 .support-item--phone {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--color-phone);
 }
 [dir="rtl"] .support-item--phone {
   border-left: 1px solid var(--color-border);
-  border-right: 4px solid #3b82f6;
+  border-right: 4px solid var(--color-phone);
 }
 .support-item--phone:hover {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: #3b82f6;
+  background: var(--color-phone-alpha-08);
+  border-color: var(--color-phone);
 }
 .support-item--phone .support-item__icon-wrapper {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: var(--color-phone-alpha-15);
+  color: var(--color-phone);
 }
 
 .support-item__icon-wrapper {
@@ -754,13 +750,13 @@
 /* Pulsing Keyframe Animation */
 @keyframes support-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 0 0 var(--color-primary-alpha-40);
   }
   70% {
-    box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 15px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -790,7 +786,7 @@
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--glass-banner);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   margin-bottom: var(--space-md);
@@ -801,10 +797,10 @@
   animation: announcement-slide-in 0.5s ease-out forwards;
 }
 
-/* The dark glass assumes a dark page — light mode gets a white glass pill */
+/* The dark glass assumes a dark page — light mode's white glass pill comes
+   from the themed --glass-banner token */
 [data-theme="light"] .announcement-banner {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: #e2e8f0;
+  border-color: var(--color-border);
 }
 
 @keyframes announcement-slide-in {
@@ -874,7 +870,7 @@
 
 .announcement-banner__close:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-hover-wash);
 }
 
 .announcement-banner__close-icon {
@@ -882,66 +878,54 @@
   height: 16px;
 }
 
-/* Warnings (Yellow/Orange Neon) */
+/* Warnings (Yellow/Orange Neon) — text/icon/bright tones are themed tokens so
+   light mode gets its darker readable shades without extra override rules. */
 .announcement-banner--warning {
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+  border-color: var(--color-warning-alpha-50);
+  box-shadow: 0 4px 20px var(--color-warning-alpha-15);
   animation: announcement-pulse-warning 2s infinite alternate ease-in-out;
 }
 .announcement-banner--warning .announcement-banner__icon-wrapper {
-  background: rgba(245, 158, 11, 0.15);
-  color: rgb(245, 158, 11);
+  background: var(--color-warning-alpha-15);
+  color: var(--color-warning-icon);
 }
 .announcement-banner--warning .announcement-banner__text {
-  color: rgb(251, 191, 36);
+  color: var(--color-warning-bright);
 }
 
-/* Light theme: the neon amber/green text tones are tuned for the dark page —
-   on the white glass pill they nearly vanish (amber-on-white ≈ 1.6:1), so
-   light mode gets darker readable shades of the same hues. */
-[data-theme="light"] .announcement-banner--warning .announcement-banner__icon-wrapper {
-  color: #d97706;
-}
-[data-theme="light"] .announcement-banner--warning .announcement-banner__text {
-  color: #b45309;
-}
-[data-theme="light"] .announcement-banner--promo .announcement-banner__text {
-  color: #15803d;
-}
-
-/* Promotions/Info (Green Neon) */
+/* Promotions/Info (Green Neon — follows the client brand) */
 .announcement-banner--promo {
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
+  border-color: var(--color-primary-alpha-50);
+  box-shadow: 0 4px 20px var(--color-primary-alpha-15);
   animation: announcement-pulse-promo 2s infinite alternate ease-in-out;
 }
 .announcement-banner--promo .announcement-banner__icon-wrapper {
-  background: rgba(34, 197, 94, 0.15);
-  color: rgb(34, 197, 94);
+  background: var(--color-primary-alpha-15);
+  color: var(--color-primary);
 }
 .announcement-banner--promo .announcement-banner__text {
-  color: rgb(74, 222, 128);
+  color: var(--color-primary-bright-text);
 }
 
 @keyframes announcement-pulse-warning {
   0% {
-    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 15px var(--color-warning-alpha-10);
+    border-color: var(--color-warning-alpha-30);
   }
   100% {
-    box-shadow: 0 4px 25px rgba(245, 158, 11, 0.35);
-    border-color: rgba(245, 158, 11, 0.7);
+    box-shadow: 0 4px 25px var(--color-warning-alpha-35);
+    border-color: var(--color-warning-alpha-70);
   }
 }
 
 @keyframes announcement-pulse-promo {
   0% {
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: 0 4px 15px var(--color-primary-alpha-10);
+    border-color: var(--color-primary-alpha-30);
   }
   100% {
-    box-shadow: 0 4px 25px rgba(34, 197, 94, 0.35);
-    border-color: rgba(34, 197, 94, 0.7);
+    box-shadow: 0 4px 25px var(--color-primary-alpha-35);
+    border-color: var(--color-primary-alpha-70);
   }
 }
 
@@ -989,7 +973,7 @@
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-primary-bg);
-  border: 1px dashed rgba(34, 197, 94, 0.2);
+  border: 1px dashed var(--color-primary-alpha-20);
   border-radius: var(--radius-md);
 }
 

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="WiFi Portal">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" id="metaThemeColor" content="#020617">
+  <meta name="theme-color" id="metaThemeColor" content="{% if config.theme and config.theme.backgroundColor %}{{ config.theme.backgroundColor }}{% else %}#020617{% endif %}">
   <script>
     // Apply the saved (or OS-preferred) theme BEFORE first paint — without
     // this, light-theme users get a dark flash on every page load.
@@ -29,35 +29,50 @@
   <title>$(hostname) - {{ i18n[page + '_title'] }}</title>
   <style>
 {{ css }}
-    /* Dynamic Theme Overrides from config.json — scoped to the DARK theme.
-       Unscoped, these beat the [data-theme="light"] palette (same
-       specificity, later position) and light mode rendered half-dark:
-       surfaces switched but the page background and brand colors never did.
-       config.theme hints describe the dark look ("الخلفية الكلي الداكنة"),
-       so dark is where the brand colors belong; light keeps its own
-       contrast-tuned palette. Radius is theme-independent and stays on
-       :root. */
+    /* Dynamic Theme Overrides from config.json. Radius is theme-independent
+       and stays on :root. Brand colors come from build.js
+       (scripts/color-utils.js) as `themeTokens`: every tint/glow/glass the
+       static CSS references is derived from the client's primaryColor /
+       backgroundColor at BUILD time — old WebViews need zero runtime color
+       math. Blocks mirror theme.css: the OS-light media fallback, the manual
+       light override, and the dark re-declaration (config hints describe the
+       dark look, so dark is where the brand colors belong; light keeps its
+       own contrast-tuned ramp, derived for non-default client colors). */
     :root {
       {% if config.theme.cardRadius %}
       --radius-md: calc({{ config.theme.cardRadius }} - 4px);
       --radius-lg: {{ config.theme.cardRadius }};
       {% endif %}
     }
-    {% if config.theme.primaryColor or config.theme.backgroundColor %}
+    {% if themeTokens %}
+      {% if themeTokens.light %}
+    @media (prefers-color-scheme: light) {
+      :root {
+        {% for key, value in themeTokens.light %}
+        --{{ key }}: {{ value }};
+        {% endfor %}
+      }
+    }
+    [data-theme="light"] {
+        {% for key, value in themeTokens.light %}
+      --{{ key }}: {{ value }};
+        {% endfor %}
+    }
+      {% endif %}
+      {% if themeTokens.dark %}
     [data-theme="dark"] {
-      {% if config.theme.primaryColor %}
-      --color-primary: {{ config.theme.primaryColor }};
+        {% for key, value in themeTokens.dark %}
+      --{{ key }}: {{ value }};
+        {% endfor %}
+    }
+      {% endif %}
+    {% endif %}
+    {% if config.theme.primaryColor %}
+    [data-theme="dark"] {
       --color-input-focus: {{ config.theme.primaryColor }};
-      --color-primary-hover: {{ config.theme.primaryColor }}e6; /* slight transparency */
-      --color-primary-active: {{ config.theme.primaryColor }}cc;
       --svg-accent: {{ config.theme.primaryColor }};
-      --color-primary-bg: {{ config.theme.primaryColor }}26; /* 15% opacity bg */
       --color-success: {{ config.theme.primaryColor }};
       --color-success-bg: {{ config.theme.primaryColor }}26;
-      {% endif %}
-      {% if config.theme.backgroundColor %}
-      --color-bg: {{ config.theme.backgroundColor }};
-      {% endif %}
     }
     {% endif %}
   </style>

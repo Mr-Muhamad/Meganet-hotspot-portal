@@ -139,7 +139,7 @@
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,7 +270,7 @@
   background: linear-gradient(
     90deg,
     var(--color-primary) 0%,
-    #48ff00 50%,
+    var(--color-primary-bright) 50%,
     var(--color-primary) 100%
   );
   background-size: 200% 100%;
@@ -281,7 +281,7 @@
   background: linear-gradient(
     90deg,
     var(--color-warning) 0%,
-    #fbbf24 50%,
+    var(--color-warning-bright) 50%,
     var(--color-warning) 100%
   );
 }
@@ -290,7 +290,7 @@
   background: linear-gradient(
     90deg,
     var(--color-error) 0%,
-    #f87171 50%,
+    var(--color-error-bright) 50%,
     var(--color-error) 100%
   );
 }
@@ -507,7 +507,7 @@
 .stat-card--pwa {
   background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-hover) 100%);
   border: 1px solid var(--color-primary);
-  box-shadow: 0 4px 12px rgba(72, 255, 0, 0.1);
+  box-shadow: 0 4px 12px var(--color-primary-alpha-10);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
@@ -613,8 +613,8 @@
   width: 100%;
 }
 .activity-badge {
-  background: rgba(34, 197, 94, 0.03);
-  border: 1px solid rgba(34, 197, 94, 0.1);
+  background: var(--color-primary-alpha-03);
+  border: 1px solid var(--color-primary-alpha-10);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   display: flex;
@@ -625,12 +625,12 @@
   cursor: default;
 }
 .activity-badge--warning {
-  background: rgba(234, 179, 8, 0.03);
-  border-color: rgba(234, 179, 8, 0.1);
+  background: var(--color-warning-alpha-03);
+  border-color: var(--color-warning-alpha-10);
 }
 .activity-badge--danger {
-  background: rgba(239, 68, 68, 0.03);
-  border-color: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-alpha-03);
+  border-color: var(--color-error-alpha-10);
 }
 .activity-badge__label {
   font-size: 10px;
@@ -640,13 +640,13 @@
   gap: 4px;
 }
 .activity-badge__icon {
-  filter: drop-shadow(0 0 3px rgba(34, 197, 94, 0.4));
+  filter: drop-shadow(0 0 3px var(--color-primary-alpha-40));
 }
 .activity-badge--warning .activity-badge__icon {
-  filter: drop-shadow(0 0 3px rgba(234, 179, 8, 0.4));
+  filter: drop-shadow(0 0 3px var(--color-warning-alpha-40));
 }
 .activity-badge--danger .activity-badge__icon {
-  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4));
+  filter: drop-shadow(0 0 3px var(--color-error-alpha-40));
 }
 .activity-badge__value {
   font-size: var(--font-size-xs);
@@ -790,6 +790,10 @@
   font-weight: bold;
   margin-left: 2px;
 }
+/* JS sets one of these classes instead of inline style colors so the hues
+   follow the theme tokens (warning amber / live emerald). */
+.mac-type-display--random { color: var(--color-warning); }
+.mac-type-display--device { color: var(--color-online); }
 
 /* ===== Shared: extracted inline styles (migration 2026-11) ===== */
 
@@ -805,8 +809,8 @@
   gap: 4px;
   padding: 2px 6px;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: var(--color-online-alpha-10);
+  border: 1px solid var(--color-online-alpha-20);
   margin-left: 4px;
 }
 .status-dot-badge__dot {
@@ -814,13 +818,13 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
+  background: var(--color-online);
+  box-shadow: 0 0 8px var(--color-online);
   animation: status-pulse-dot 1.5s infinite ease-in-out;
 }
 .status-dot-badge__label {
   font-size: 9px;
-  color: #10b981;
+  color: var(--color-online);
   font-weight: bold;
   line-height: 1;
 }
@@ -848,7 +852,7 @@
   height: 44px;
   border-radius: var(--radius-full);
   border: 2px solid var(--color-primary);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 10px var(--color-primary-alpha-30);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1022,9 +1026,9 @@
    browser through the captive-portal escape (qrscan=1 marker) so the next
    tap (the camera) is obvious. */
 @keyframes qr-scan-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-  70% { box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0% { box-shadow: 0 0 0 0 var(--color-primary-alpha-50); }
+  70% { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 .qr-scan-btn--attn { animation: qr-scan-pulse 1.6s ease-out 3; }
 @media (prefers-reduced-motion: reduce) {
@@ -1046,8 +1050,8 @@
   display: none;
   margin-top: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: var(--color-info-alpha-10);
+  border: 1px solid var(--color-info-alpha-35);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);

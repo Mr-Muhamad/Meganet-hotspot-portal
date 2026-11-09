@@ -49,9 +49,17 @@ var ui = {
           themeToggle.setAttribute('aria-label', i18n.t('theme_switch_to_dark'));
         }
       }
-      // Mobile browser chrome / PWA title bar follows the theme.
+      // Mobile browser chrome / PWA title bar follows the theme. Reads the
+      // LIVE --color-bg token so a client-branded background flows into the
+      // browser chrome too (these used to be two hardcoded hex literals).
       var meta = document.getElementById('metaThemeColor');
-      if (meta) meta.setAttribute('content', theme === 'light' ? '#f8fafc' : '#020617');
+      if (meta) {
+        var bgToken = '';
+        try {
+          bgToken = (getComputedStyle(document.documentElement).getPropertyValue('--color-bg') || '').trim();
+        } catch (metaErr) { /* keep current content */ }
+        meta.setAttribute('content', bgToken || (theme === 'light' ? '#f8fafc' : '#020617'));
+      }
     } catch (err) {
       console.error('Update theme icon error:', err);
     }
@@ -261,6 +269,19 @@ var ui = {
       var connectionDistance = 100;
       var mouse = { x: null, y: null, radius: 130 };
 
+      // Brand-tied canvas colors: read the LIVE --color-primary token so a
+      // client brand recolors connections and pointer lines without touching
+      // JS (falls back to the shipped green when the token is unavailable).
+      // Nodes stay neutral blue/indigo — they read as "devices", not brand.
+      var brandRgb = '34, 197, 94';
+      try {
+        var tokenRaw = (getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '').trim();
+        var tokenMatch = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(tokenRaw);
+        if (tokenMatch) {
+          brandRgb = parseInt(tokenMatch[1], 16) + ', ' + parseInt(tokenMatch[2], 16) + ', ' + parseInt(tokenMatch[3], 16);
+        }
+      } catch (colorErr) { /* keep the shipped-green fallback */ }
+
       // Set canvas size
       var resizeCanvas = function() {
         if (!canvas) return;
@@ -393,7 +414,7 @@ var ui = {
                 if (isLight) {
                   ctx.strokeStyle = 'rgba(148, 163, 184, ' + alpha + ')';
                 } else {
-                  ctx.strokeStyle = 'rgba(34, 197, 94, ' + alpha + ')';
+                  ctx.strokeStyle = 'rgba(' + brandRgb + ', ' + alpha + ')';
                 }
                 
                 ctx.lineWidth = 0.8;
@@ -416,7 +437,7 @@ var ui = {
               if (isLight) {
                 ctx.strokeStyle = 'rgba(79, 70, 229, ' + alphaPointer + ')'; /* light mode: indigo pointer lines */
               } else {
-                ctx.strokeStyle = 'rgba(59, 130, 246, ' + alphaPointer + ')'; /* dark mode: blue glow pointer lines */
+                ctx.strokeStyle = 'rgba(' + brandRgb + ', ' + alphaPointer + ')'; /* dark mode: brand glow pointer lines */
               }
               
               ctx.lineWidth = 1;

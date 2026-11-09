@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { minify } = require('html-minifier');
 const nunjucks = require('nunjucks');
+const { deriveThemeTokens } = require('./scripts/color-utils.js');
 
 // Configure Nunjucks
 const templatesDir = path.join(__dirname, 'src', 'templates');
@@ -138,6 +139,12 @@ function generatePage(page, lang, options = {}) {
     const allTranslations = loadTranslations(lang) || {};
     const i18n = allTranslations[lang] || allTranslations.en || {};
 
+    // White-label brand tokens: derive every tint/glow/glass from the
+    // client's primaryColor/backgroundColor at BUILD time (see
+    // scripts/color-utils.js) — base.html injects them after the static CSS.
+    const theme = config.theme || {};
+    const themeTokens = deriveThemeTokens(theme.primaryColor, theme.backgroundColor);
+
     const logoInline = inlineSVG(path.join(__dirname, 'src', 'assets', 'logo.svg'));
     let prandTitleInline = inlineSVG(path.join(__dirname, 'src', 'assets', 'prand-title.svg'));
 
@@ -152,7 +159,8 @@ function generatePage(page, lang, options = {}) {
       minify: options.minify !== false,
       logoInline: logoInline,
       prandTitleInline: prandTitleInline,
-      config: config
+      config: config,
+      themeTokens: themeTokens
     });
 
     if (options.minify !== false) {
@@ -298,10 +306,26 @@ function build(options = {}) {
   }
 
   const manifestSource = path.join(__dirname, 'src', 'manifest.json');
-  const manifestDest = path.join(distDir, 'manifest.json');
+  const manifestDest = path.join(__dirname, 'dist', 'manifest.json');
   if (fs.existsSync(manifestSource)) {
-    fs.copyFileSync(manifestSource, manifestDest);
-    console.log('✓ Copied manifest.json');
+    // The PWA install splash/title bar must follow the client brand instead
+    // of the template's slate defaults.
+    let manifest = JSON.parse(fs.readFileSync(manifestSource, 'utf8'));
+    let theme = {};
+    try {
+      const configPath = path.join(__dirname, 'config.json');
+      if (fs.existsSync(configPath)) {
+        theme = (JSON.parse(fs.readFileSync(configPath, 'utf8')).theme) || {};
+      }
+    } catch (err) {
+      console.error('Error loading config for manifest:', err);
+    }
+    if (theme.backgroundColor) {
+      manifest.background_color = theme.backgroundColor;
+      manifest.theme_color = theme.backgroundColor;
+    }
+    fs.writeFileSync(manifestDest, JSON.stringify(manifest, null, 2) + '\n');
+    console.log('✓ Copied manifest.json' + (theme.backgroundColor ? ' (theme colors from config)' : ''));
   }
 
   copyAssets();

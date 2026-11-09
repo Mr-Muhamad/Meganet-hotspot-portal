@@ -254,10 +254,10 @@
               var lang = document.documentElement.getAttribute('lang') || 'en';
               if (isRandom) {
                 typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
-                typeDisplay.style.color = '#eab308';
+                typeDisplay.classList.add('mac-type-display--random');
               } else {
                 typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
-                typeDisplay.style.color = '#10b981';
+                typeDisplay.classList.add('mac-type-display--device');
               }
             }
           }

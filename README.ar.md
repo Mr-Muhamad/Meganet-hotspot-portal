@@ -23,7 +23,7 @@
   <strong>أوضاع تسجيل الدخول: كود شحن &middot; باقة &middot; مزدوج — مضيء</strong>
 </p>
 
-**أحدث إصدار: [v2.3.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — مسح كروت مثبت ميدانيًا (jsQR)، دخول موضعي لروابط البيانات، وتحذير مبكر بانتهاء الجلسة مع خروج تلقائي.
+**أحدث إصدار: [v2.4.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — مسح كروت مثبت ميدانيًا (jsQR)، دخول موضعي لروابط البيانات، تحذير مبكر بانتهاء الجلسة مع خروج تلقائي، ونظام ألوان white-label (أي هوية عميل من الإعدادات).
 
 ---
 

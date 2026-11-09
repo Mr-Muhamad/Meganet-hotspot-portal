@@ -1,7 +1,7 @@
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
  * Digest Algorithm, as defined in RFC 1321.
- * MikroTik Hotspot CHAP version 2.3.0
+ * MikroTik Hotspot CHAP version 2.4.0
  * Based on Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
  * Distributed under the BSD License
  *

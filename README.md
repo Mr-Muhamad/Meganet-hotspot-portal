@@ -23,7 +23,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
   <strong>Login modes: voucher &middot; normal &middot; both — Light</strong>
 </p>
 
-**Latest release: [v2.3.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout.
+**Latest release: [v2.4.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system (any client brand from config).
 
 ---
 

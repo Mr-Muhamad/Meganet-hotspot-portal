@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-09
+
+### Added
+- **White-label color system — a client rebrand is now config-only**: every brand-colored rgba literal in the component CSS (~96 across components/media/layout), the particle-canvas and pointer-line colors, the meta theme-color pair, the MAC-type inline colors and the PWA manifest slate defaults used to be hardcoded green — a non-green `theme.primaryColor` recolored buttons/links but left mismatched green glows, hairlines, pulses and light-theme tints behind. All of them are now CSS custom properties derived at BUILD time from `config.json`'s `theme.primaryColor` + `theme.backgroundColor` by `scripts/color-utils.js` (hex→HSL→alpha ladder + luminance-picked readable text-on-color + background-hued surfaces/glass), injected into all three palette blocks (OS-light media fallback, manual light, dark) — zero runtime color math, so old captive-portal WebViews are unaffected. **The shipped green build is pixel-identical**: for the default palette the hand-tuned Tailwind hover/active/text ramp and slate surfaces stay static (only the exact-value alpha ladder is derived), pinned by unit tests. WhatsApp/phone affordances, the online-dot emerald, info blue and warning amber remain fixed semantic accents on every client. This is the round that makes "change the visual experience only" literally true: a café/hotel/hospital client = edit config + swap 3 brand files + rebuild
+
 ## [2.3.0] - 2026-11-08
 
 ### Added
@@ -182,6 +187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.4.0**: White-label color system — every brand color/glow/glass derives at build time from `config.json` (scripts/color-utils.js); a client rebrand is config + logo files only, shipped green build pixel-identical
 - **2.3.0**: Live expiry intelligence — the status page warns as the session nears its end (dynamic 5-minute warning, critical escalation under one minute) and auto-logs out at zero instead of silently reloading
 - **2.2.1**: Field-proven scanning (jsQR replaces llqrcode — real cards now read from camera photos), credential link cards log in in-place (stale-$dnsname-immune, phishing route closed), alogin back-button trap fixed
 - **2.2.0**: Performance round (rAF leak, passive touch, 77% smaller icon, tap-only upstream probe), empty-warning-box fix, composite README visuals for all pages and login modes

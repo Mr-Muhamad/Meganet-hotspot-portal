@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-11-10
+
+### Added
+- **"Language of the place" — the portal now speaks the client's words, not just its colors** (`config.json` only, no code):
+  - **`i18nOverrides`**: any portal wording can be replaced from config — plain string for both languages or `{ en, ar }` per language. Unknown keys are rejected at build time (checked against the real dictionary), and the merge never injects new keys
+  - **`theme.preset`**: ready-made "place personalities" — `meganet` / `cafe` / `hotel` / `clinic` — each fills the default theme, corner radius and animated-background switch ONLY where the operator left them unset; explicit config always wins
+  - **`theme.defaultTheme`**: the theme a first-time visitor sees (`light`/`dark`), applied pre-paint; the manual toggle and stored cookie keep working exactly as before
+- The café demo now uses its own words end-to-end ("كود القعدة", "افتح النت", "اسأل الكاشير") over the café preset — proven with a full build + visual audit in both themes, rolled back byte-identical
+
+### Fixed
+- **Regression from the v2.4.0 restructure (caught by the E2E theme suite)**: the config `backgroundColor` dark override had been dropped from `base.html`, so any custom page background silently fell back to `#020617`. Restored; `theme.spec.js` is now config-aware (resolves the effective preset and parametrizes default/toggle/meta expectations)
+
 ## [2.4.0] - 2026-11-09
 
 ### Added
@@ -187,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.5.0**: "Language of the place" — i18nOverrides (any wording from config), theme presets (cafe/hotel/clinic/meganet), defaultTheme for first-time visitors; fixed a v2.4.0 background-injection regression
 - **2.4.0**: White-label color system — every brand color/glow/glass derives at build time from `config.json` (scripts/color-utils.js); a client rebrand is config + logo files only, shipped green build pixel-identical
 - **2.3.0**: Live expiry intelligence — the status page warns as the session nears its end (dynamic 5-minute warning, critical escalation under one minute) and auto-logs out at zero instead of silently reloading
 - **2.2.1**: Field-proven scanning (jsQR replaces llqrcode — real cards now read from camera photos), credential link cards log in in-place (stale-$dnsname-immune, phishing route closed), alogin back-button trap fixed

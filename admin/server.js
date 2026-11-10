@@ -37,11 +37,29 @@ const ADMIN_DIR = path.join(REPO_ROOT, '.admin');
 const { createProfileStore } = require('./lib/profile-store.js');
 const { createWorkspace } = require('./lib/workspace.js');
 const { validate } = require(path.join(REPO_ROOT, 'scripts', 'validate-config.js'));
-const { PRESETS } = require(path.join(REPO_ROOT, 'scripts', 'presets.js'));
+const { PRESETS, resolveEffectiveConfig, CUSTOM_PRESET_RE } = require(path.join(REPO_ROOT, 'scripts', 'presets.js'));
 const { deriveThemeTokens } = require(path.join(REPO_ROOT, 'scripts', 'color-utils.js'));
 
 const store = createProfileStore(ADMIN_DIR);
 const workspace = createWorkspace({ repoRoot: REPO_ROOT });
+const CUSTOM_PRESETS_FILE = path.join(ADMIN_DIR, 'custom-presets.json');
+
+function loadCustomPresets() {
+  try {
+    return JSON.parse(fs.readFileSync(CUSTOM_PRESETS_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomPresets(map) {
+  fs.mkdirSync(ADMIN_DIR, { recursive: true });
+  fs.writeFileSync(CUSTOM_PRESETS_FILE, JSON.stringify(map, null, 2) + '\n', 'utf8');
+}
+
+function allPresets() {
+  return Object.assign({}, PRESETS, loadCustomPresets());
+}
 
 // Crash-safe recovery: if a previous build was killed mid-apply (power loss,
 // kill -9), restore the factory workspace from the backup before serving.
@@ -116,7 +134,13 @@ function buildTemplateConfig() {
     }
     return out;
   };
-  return strip(example);
+  const clean = strip(example);
+  // The EXAMPLE's own i18n overrides and preset must not become the
+  // template's — new profiles start dictionary-free and preset-free so the
+  // chosen PRESET's wording flows in (operator keys still win when added).
+  delete clean.i18nOverrides;
+  if (clean.theme) delete clean.theme.preset;
+  return clean;
 }
 
 const TEMPLATE_CONFIG = buildTemplateConfig();
@@ -168,12 +192,88 @@ async function handleApi(req, res, url, method) {
       const en = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'src', 'i18n', 'en.json'), 'utf8'));
       knownKeys = Object.keys(en.en || {});
     } catch { /* empty */ }
+    const presets = Object.entries(allPresets()).map(([id, p]) => ({
+      id,
+      label: p.label,
+      theme: p.theme,
+      preview: p.preview || null,
+      custom: id.startsWith('custom:')
+    }));
     return sendJson(res, 200, {
       knownKeys,
-      presets: Object.entries(PRESETS).map(([id, p]) => ({ id, label: p.label, theme: p.theme })),
+      presets,
       planIcons: ['globe', 'briefcase', 'graduation-cap', 'ghost', 'star', 'shield', 'crown', 'package'],
       template: TEMPLATE_CONFIG
     });
+  }
+
+  // POST /api/presets — save the CURRENT profile's effective personality as a
+  // custom preset { slug (source profile), id }
+  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 2) {
+    const body = await readJsonBody(req);
+    const customId = 'custom:' + String(body.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40);
+    if (!CUSTOM_PRESET_RE.test(customId)) {
+      return sendJson(res, 400, { error: 'invalid preset id' });
+    }
+    const source = store.get(body.slug);
+    const effective = resolveEffectiveConfig(source.config, loadCustomPresets());
+    const map = loadCustomPresets();
+    map[customId] = {
+      label: body.label || customId,
+      theme: {
+        defaultTheme: effective.theme.defaultTheme || 'dark',
+        cardRadius: effective.theme.cardRadius || '16px',
+        enableNetworkBackground: effective.theme.enableNetworkBackground !== false
+      },
+      i18nOverrides: effective.i18nOverrides || {},
+      announcement: source.announcements || null,
+      preview: {
+        colors: [effective.theme.primaryColor || '#22c55e', effective.theme.backgroundColor || '#020617'],
+        radius: effective.theme.cardRadius || '16px'
+      }
+    };
+    saveCustomPresets(map);
+    return sendJson(res, 201, { id: customId, presets: Object.keys(map) });
+  }
+
+  // DELETE /api/presets/:id — remove a custom preset
+  if (method === 'DELETE' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 3) {
+    const id = decodeURIComponent(parts[2]);
+    const map = loadCustomPresets();
+    if (!map[id]) return sendJson(res, 404, { error: 'custom preset not found' });
+    delete map[id];
+    saveCustomPresets(map);
+    return sendJson(res, 200, { ok: true });
+  }
+
+  // GET /api/profiles/:id/export — full bundle (config + announcements + assets b64)
+  if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts[3] === 'export' && parts.length === 4) {
+    const profile = store.get(parts[2]);
+    const assets = profile.assets.map(a => ({
+      name: a.name,
+      dataBase64: fs.readFileSync(path.join(store.profilesDir, profile.id, 'assets', a.name)).toString('base64')
+    }));
+    const bundle = { name: profile.name, config: profile.config, announcements: profile.announcements, assets };
+    const payload = JSON.stringify(bundle, null, 2);
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${profile.id}-profile.json"`,
+      'Content-Length': Buffer.byteLength(payload)
+    });
+    return res.end(payload);
+  }
+
+  // POST /api/profiles/import — restore a bundle { slug, bundle }
+  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'profiles' && parts[2] === 'import' && parts.length === 3) {
+    const body = await readJsonBody(req, 20);
+    const bundle = body.bundle || {};
+    if (!bundle.config) return sendJson(res, 400, { error: 'bundle has no config' });
+    const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
+    if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
+    for (const asset of bundle.assets || []) {
+      store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
+    }
+    return sendJson(res, 201, { profile: store.get(profile.id) });
   }
 
   // GET /api/download/:id
@@ -220,7 +320,19 @@ async function handleApi(req, res, url, method) {
     if (method === 'POST' && parts.length === 2) {
       const body = await readJsonBody(req);
       const profile = store.create(body.slug, body.name, TEMPLATE_CONFIG);
-      return sendJson(res, 201, { profile });
+      // The chosen preset is written INTO the config so build-time resolution
+      // flows its theme defaults + base dictionary (and the welcome
+      // announcement is seeded — the operator can edit it afterwards).
+      const presetId = body.preset && allPresets()[body.preset] ? body.preset : null;
+      if (presetId) {
+        profile.config.theme.preset = presetId;
+        store.saveConfig(body.slug, profile.config, validate);
+      }
+      const preset = presetId ? allPresets()[presetId] : null;
+      if (preset && preset.announcement && !store.get(body.slug).announcements) {
+        store.saveAnnouncements(body.slug, preset.announcement);
+      }
+      return sendJson(res, 201, { profile: store.get(body.slug) });
     }
 
     // GET /api/profiles/:id
@@ -279,8 +391,15 @@ async function handleApi(req, res, url, method) {
     // POST /api/profiles/:id/build
     if (method === 'POST' && action === 'build') {
       const profile = store.get(id);
+      // Custom presets live outside the repo, so resolve them HERE before the
+      // build (built-in presets are resolved inside build.js itself; explicit
+      // config values already present simply win).
+      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
       const zipPath = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
-      const result = await workspace.runBuildCycle({ ...profile, dir: path.join(store.profilesDir, id) }, zipPath);
+      const result = await workspace.runBuildCycle(
+        { ...profile, config: effective, dir: path.join(store.profilesDir, id) },
+        zipPath
+      );
       return sendJson(res, 200, { ok: true, distFiles: result.distFiles, downloadUrl: `/api/download/${id}` });
     }
 

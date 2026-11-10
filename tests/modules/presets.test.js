@@ -7,8 +7,32 @@ const { PRESETS, resolveEffectiveConfig } = require('../../scripts/presets.js');
 const { applyI18nOverrides } = require('../../build.js');
 
 describe('presets', () => {
-  test('ships the four documented personalities', () => {
-    expect(Object.keys(PRESETS).sort()).toEqual(['cafe', 'clinic', 'hotel', 'meganet']);
+  test('ships the twelve documented personalities', () => {
+    expect(Object.keys(PRESETS).sort()).toEqual([
+      'bakery', 'cafe', 'clinic', 'coworking', 'gym', 'hotel',
+      'mall', 'meganet', 'mobile-shop', 'netcafe', 'restaurant', 'school'
+    ]);
+  });
+
+  test('preset v2: each preset carries theme + dictionary + announcement + preview', () => {
+    for (const [id, p] of Object.entries(PRESETS)) {
+      expect(p.theme).toHaveProperty('defaultTheme');
+      expect(p.theme).toHaveProperty('cardRadius');
+      expect(p.theme).toHaveProperty('enableNetworkBackground');
+      expect(typeof p.i18nOverrides).toBe('object');
+      expect(p.preview).toHaveProperty('colors');
+      expect(p.preview).toHaveProperty('radius');
+      if (id !== 'meganet') {
+        // every non-default preset speaks its place's language
+        expect(Object.keys(p.i18nOverrides).length).toBeGreaterThan(0);
+        expect(p.announcement).not.toBeNull();
+      }
+    }
+  });
+
+  test('the café preset speaks café from the start', () => {
+    expect(PRESETS.cafe.i18nOverrides.voucher_label).toBe('كود القعدة');
+    expect(PRESETS.cafe.announcement.message_ar[0]).toContain('قهوتنا');
   });
 
   test('fills unset theme fields from the preset', () => {
@@ -53,6 +77,27 @@ describe('presets', () => {
     };
     const effective = resolveEffectiveConfig(raw);
     expect(effective.i18nOverrides.login_button).toEqual({ en: 'Go' });
+    // but the rest of the preset dictionary still flows in
+    expect(effective.i18nOverrides.voucher_label).toBe('كود القعدة');
+  });
+
+  test('custom (admin-saved) presets resolve via extraPresets', () => {
+    const customs = {
+      'custom:mycafe': {
+        label: 'My café',
+        theme: { defaultTheme: 'light', cardRadius: '28px', enableNetworkBackground: false },
+        i18nOverrides: { voucher_label: 'كود الطاولة' },
+        announcement: null,
+        preview: { colors: ['#123456'], radius: '28px' }
+      }
+    };
+    const raw = { theme: { preset: 'custom:mycafe', primaryColor: '#123456', backgroundColor: '#0b0b1e' } };
+    const effective = resolveEffectiveConfig(raw, customs);
+    expect(effective.theme.cardRadius).toBe('28px');
+    expect(effective.theme.defaultTheme).toBe('light');
+    expect(effective.i18nOverrides.voucher_label).toBe('كود الطاولة');
+    // built-ins still work alongside
+    expect(resolveEffectiveConfig({ theme: { preset: 'gym' } }, customs).theme.cardRadius).toBe('8px');
   });
 });
 

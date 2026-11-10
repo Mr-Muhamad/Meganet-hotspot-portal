@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.6.0] - 2026-11-10
+## [2.7.0] - 2026-11-10
+
+### Added
+- **Eight new place presets** (`restaurant`, `gym`, `netcafe`, `mall`, `school`, `coworking`, `bakery`, `mobile-shop`) — the preset library is now 12 personalities
+- **Preset v2 — three-dimensional personalities**: each preset now carries a base client DICTIONARY (its own wording: café says "كود القعدة" from the first second, hotel "رقم الغرفة", clinic "كود الزيارة", …) plus a suggested welcome ANNOUNCEMENT seeded into new profiles created with that preset — operator keys and edits always win
+- **Missing config fields exposed in the admin UI**: `voucherPasswordMode` (same/empty — wrong value blocks login), the whole `security` section (max attempts + block minutes), optional external `qrScannerUrl`
+- **Agent images as a dropdown** from the profile's uploaded files (was manual filename typing)
+- **Preset visual preview** (sample colors + radius under the picker) and **custom presets**: save any profile's effective personality as `custom:<id>` and reuse it for similar clients; custom presets resolve at build time and pass schema validation (`custom:` namespace)
+- **Profile export/import** — JSON bundle (config + announcements + assets) to move a client between machines or back it up
+
+### Fixed
+- **New-profile template carried the example's `i18nOverrides` and an explicit `meganet` preset** — both silently defeated the chosen preset's dictionary and theme defaults at build time; new profiles now start dictionary-free/preset-free and the creation-time preset choice is written into the config
+
+
 
 ### Added
 - **Local portal generator (`npm run admin`)** — a web UI that turns the white-label system into a production workflow: create/duplicate/rename/delete isolated client profiles, edit every config section (general, theme + presets, features, plans, support, announcements, i18n overrides) in forms, upload brand assets, then Build & Download — the profile is applied to a temporary workspace, the real build runs, `dist/` is served as a zip, and the workspace is restored byte-identical. Loopback-only (binds `127.0.0.1`, refuses all other connections); every save passes the real config schema — invalid values are rejected inline and never persisted. No build step needed for the UI itself.
@@ -207,6 +220,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.7.0**: Preset library ×3 (12 place personalities) + preset v2 (each preset carries its own wording + welcome announcement) + missing config fields in the admin UI (voucherPasswordMode, security, external scanner) + custom presets & profile export/import
 - **2.6.0**: Local portal generator (`npm run admin`) — web UI for producing client portals: profiles, config forms, brand assets, build → zip download, byte-identical workspace restore
 - **2.5.0**: "Language of the place" — i18nOverrides (any wording from config), theme presets (cafe/hotel/clinic/meganet), defaultTheme for first-time visitors; fixed a v2.4.0 background-injection regression
 - **2.4.0**: White-label color system — every brand color/glow/glass derives at build time from `config.json` (scripts/color-utils.js); a client rebrand is config + logo files only, shipped green build pixel-identical

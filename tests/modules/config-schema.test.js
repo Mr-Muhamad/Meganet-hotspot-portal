@@ -57,6 +57,16 @@ describe('config schema validation', () => {
   mistake('a non-string i18n override', 'i18nOverrides.voucher_label', c => { c.i18nOverrides = { voucher_label: 42 }; });
   mistake('a non-string language in an i18n override pair', 'i18nOverrides.voucher_label.en', c => { c.i18nOverrides = { voucher_label: { en: 1, ar: 'x' } }; });
   mistake('an unknown theme preset', 'theme.preset', c => { c.theme.preset = 'bank'; });
+
+  test('accepts built-in and custom: presets, rejects typos', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    config.theme.preset = 'gym';
+    expect(validate(config).errors).toEqual([]);
+    config.theme.preset = 'custom:my-cafe-1';
+    expect(validate(config).errors).toEqual([]);
+    config.theme.preset = 'Custom:Evil'; // uppercase not allowed
+    expect(validate(config).errors.some(e => e.startsWith('theme.preset'))).toBe(true);
+  });
   mistake('an invalid defaultTheme', 'theme.defaultTheme', c => { c.theme.defaultTheme = 'sepia'; });
 
   test('accepts a valid preset + overrides + defaultTheme', () => {

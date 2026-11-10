@@ -77,6 +77,8 @@
   <div class="brand"><span class="dot"></span> بوابة التوليد</div>
   <div id="profileList"></div>
   <button class="newbtn" onclick="createProfile()">＋ بريفايل جديد</button>
+  <button class="newbtn" onclick="exportProfile()">⬇ تصدير البروفايل الحالي</button>
+  <button class="newbtn" onclick="importProfile()">⬆ استيراد بروفايل</button>
 </aside>
 
 <main>
@@ -222,14 +224,20 @@ function captureDraft(tab) {
     } else if (tab === 'features') {
       state.drafts.features = {
         loginMode: $('#f-login').value,
+        voucherPasswordMode: $('#f-pass').value,
         enableQRScanner: $('#f-qr').value === 'true',
+        qrScannerUrl: $('#f-qrurl').value.trim(),
         voucherMinLength: $('#f-min').value,
         enableLanguageToggle: $('#f-lang').value === 'true',
         enableClonePrevention: $('#f-clone').value === 'true',
         enableSmartAssistant: $('#f-smart').value === 'true',
         quotaDisplayFormat: $('#f-quota').value,
         kbBase: parseInt($('#f-kb').value, 10),
-        enableTechDetails: $('#f-tech').value === 'true'
+        enableTechDetails: $('#f-tech').value === 'true',
+        security: {
+          maxAttempts: parseInt($('#f-sec-max').value, 10) || 5,
+          blockDurationMinutes: parseInt($('#f-sec-block').value, 10) || 2
+        }
       };
     } else if (tab === 'plans') {
       const rows = [];
@@ -254,7 +262,7 @@ function captureDraft(tab) {
           role: $('#s-role-' + i).value.trim(),
           phone: $('#s-phone-' + i).value.trim(),
           whatsapp: $('#s-wa-' + i).value.trim(),
-          image: $('#s-img-' + i).value.trim()
+          image: $('#s-img-' + i).value
         });
       });
       state.drafts.support = agents;
@@ -283,7 +291,10 @@ function applyDrafts(c) {
 
   if (d.features) {
     c.features.loginMode = d.features.loginMode;
+    c.features.voucherPasswordMode = d.features.voucherPasswordMode;
     c.features.enableQRScanner = d.features.enableQRScanner;
+    if (d.features.qrScannerUrl) c.features.qrScannerUrl = d.features.qrScannerUrl;
+    else delete c.features.qrScannerUrl;
     const min = d.features.voucherMinLength;
     if (min === '') delete c.features.voucherMinLength; else c.features.voucherMinLength = parseInt(min, 10);
     c.features.enableLanguageToggle = d.features.enableLanguageToggle;
@@ -292,6 +303,9 @@ function applyDrafts(c) {
     c.features.quotaDisplayFormat = d.features.quotaDisplayFormat;
     c.features.kbBase = d.features.kbBase;
     c.features.enableTechDetails = d.features.enableTechDetails;
+    c.security = c.security || {};
+    c.security.maxAttempts = d.features.security.maxAttempts;
+    c.security.blockDurationMinutes = d.features.security.blockDurationMinutes;
   }
 
   if (d.plans) {
@@ -370,9 +384,24 @@ function formTheme(c) {
   grid.className = 'grid';
 
   const presetSel = '<select id="t-preset"><option value="">بدون بريسيت (يدوي)</option>' +
-    state.meta.presets.map(p => '<option value="' + p.id + '"' + (t.preset === p.id ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('') +
-    '</select>';
-  grid.appendChild(field('بريسيت الشخصية', presetSel, 'يملأ الإعدادات غير المحددة فقط — أي قيمة صريحة تتغلب عليه'));
+    state.meta.presets.map(p =>
+      '<option value="' + esc(p.id) + '"' + (t.preset === p.id ? ' selected' : '') + '>' +
+      (p.custom ? '★ ' : '') + esc(p.label) + '</option>').join('') +
+    '</select>' +
+    '<div id="preset-preview" style="margin-top:8px"></div>' +
+    '<button class="rowbtn" style="margin-top:8px" onclick="saveCurrentAsPreset()">💾 احفظ الإعدادات الحالية كشخصية مخصصة</button>';
+  grid.appendChild(field('بريسيت الشخصية', presetSel, 'يملأ الثيم + قاموس الكلمات + إعلان الترحيب (للبروفايل الجديد) — أي قيمة صريحة تتغلب عليه'));
+
+  // live preview: sample colors + radius under the dropdown
+  const renderPreview = () => {
+    const sel = $('#t-preset');
+    const p = state.meta.presets.find(x => x.id === sel.value);
+    const box = $('#preset-preview');
+    if (!p || !p.preview) { box.innerHTML = ''; return; }
+    box.innerHTML = p.preview.colors.map(c =>
+      '<span class="swatch" style="display:inline-block;background:' + esc(c) + ';width:22px;height:22px;margin-inline-end:6px;vertical-align:middle"></span>'
+    ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
+  };
 
   grid.appendChild(field('الثيم الافتراضي',
     '<select id="t-default"><option value="dark"' + (t.defaultTheme !== 'light' ? ' selected' : '') + '>داكن</option>' +
@@ -397,23 +426,40 @@ function formTheme(c) {
 
   card.appendChild(grid);
   $('#content').appendChild(card);
-
-  // live swatch sync
   const sync = () => {
     $('#t-primary-swatch').style.background = $('#t-primary').value;
     $('#t-bg-swatch').style.background = $('#t-bg').value;
+    renderPreview();
   };
   $('#t-primary').addEventListener('input', sync);
   $('#t-bg').addEventListener('input', sync);
+  $('#t-preset').addEventListener('change', sync);
   sync();
   return card;
 }
 
+async function saveCurrentAsPreset() {
+  if (!state.current) return;
+  const id = prompt('معرّف الشخصية (إنجليزي):', state.current.id + '-style');
+  if (!id) return;
+  try {
+    captureDraft(state.tab);
+    const data = await api('/presets', {
+      method: 'POST',
+      body: JSON.stringify({ slug: state.current.id, id, label: state.current.name + ' — شخصية مخصصة' })
+    });
+    toast('تم حفظ الشخصية: ' + data.id);
+    state.meta = await api('/meta'); // refresh the presets list
+    renderTab();
+  } catch (e) { toast(e.message, true); }
+}
+
 // ---------------------------------------------------------------------------
-// Features
+// Features + Security
 // ---------------------------------------------------------------------------
 function formFeatures(c) {
   const f = c.features || {};
+  const sec = c.security || {};
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>وظائف البوابة</h3>';
@@ -427,9 +473,18 @@ function formFeatures(c) {
       ({ voucher_only: 'كوبونات فقط', normal_only: 'حسابات فقط', both: 'الاتنين' }[m]) + '</option>').join('') +
     '</select>'));
 
+  grid.appendChild(field('كلمة مرور الكوبونات',
+    '<select id="f-pass"><option value="same"' + (f.voucherPasswordMode !== 'empty' ? ' selected' : '') + '>نفس الكود</option>' +
+    '<option value="empty"' + (f.voucherPasswordMode === 'empty' ? ' selected' : '') + '>بدون كلمة مرور</option></select>',
+    'حسب نظام كروت شبكتك — الخطأ هنا يمنع الدخول'));
+
   grid.appendChild(field('مسح QR',
     '<select id="f-qr"><option value="true"' + (f.enableQRScanner !== false ? ' selected' : '') + '>مفعل</option>' +
     '<option value="false"' + (f.enableQRScanner === false ? ' selected' : '') + '>مقفول</option></select>'));
+
+  grid.appendChild(field('ماسح QR خارجي (اختياري)',
+    '<input id="f-qrurl" type="text" value="' + esc(f.qrScannerUrl || '') + '" placeholder="اتركه فارغاً للماسح المدمج">',
+    'رابط ماسح خارجي يستبدل الماسح المدمج — يحتاج walled garden'));
 
   grid.appendChild(field('أدنى طول لكود الشحن',
     '<input id="f-min" type="number" min="1" value="' + (f.voucherMinLength || '') + '">',
@@ -460,7 +515,24 @@ function formFeatures(c) {
     '<option value="false"' + (f.enableTechDetails === false ? ' selected' : '') + '>مخفية</option></select>'));
 
   card.appendChild(grid);
-  return card;
+
+  // Security card (was missing from the UI entirely)
+  const secCard = document.createElement('div');
+  secCard.className = 'card';
+  secCard.innerHTML = '<h3>الحماية ومكافحة التخمين</h3>';
+  const secGrid = document.createElement('div');
+  secGrid.className = 'grid';
+  secGrid.appendChild(field('أقصى محاولات دخول خاطئة',
+    '<input id="f-sec-max" type="number" min="1" value="' + (sec.maxAttempts || 5) + '">',
+    'عدد المحاولات قبل حظر الجهاز'));
+  secGrid.appendChild(field('مدة الحظر (دقائق)',
+    '<input id="f-sec-block" type="number" min="1" value="' + (sec.blockDurationMinutes || 2) + '">'));
+  secCard.appendChild(secGrid);
+
+  const wrap = document.createElement('div');
+  wrap.appendChild(card);
+  wrap.appendChild(secCard);
+  return wrap;
 }
 
 // ---------------------------------------------------------------------------
@@ -521,17 +593,24 @@ function formSupport(c) {
   grid.className = 'grid';
 
   const agents = c.support && c.support.agents ? c.support.agents : [];
+  const imageAssets = state.current.assets.filter(a => /\.(png|jpe?g|webp)$/i.test(a.name));
   agents.forEach((agent, i) => {
     const box = document.createElement('div');
     box.className = 'card';
     box.style.marginBottom = '10px';
+    const imgOptions = ['<option value="">بدون صورة</option>']
+      .concat(imageAssets.map(a =>
+        '<option value="' + esc(a.name) + '"' + (agent.image === a.name ? ' selected' : '') + '>' + esc(a.name) + '</option>'))
+      .join('');
     box.innerHTML =
       '<div class="grid">' +
       field('الاسم', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">') +
       field('الدور', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">') +
       field('التليفون', '<input id="s-phone-' + i + '" value="' + esc(agent.phone || '') + '">') +
       field('واتساب (بكود الدولة)', '<input id="s-wa-' + i + '" value="' + esc(agent.whatsapp || '') + '">') +
-      field('صورة (اسم الملف في تبويب الملفات)', '<input id="s-img-' + i + '" value="' + esc(agent.image || '') + '">') +
+      field('صورة (من ملفات الهوية المرفوعة)',
+        '<select id="s-img-' + i + '">' + imgOptions + '</select>',
+        imageAssets.length ? '' : 'ارفع صور الوكلاء من تبويب الملفات أولاً') +
       '</div>' +
       '<button class="rowbtn" style="margin-top:10px" onclick="removeAgent(' + i + ')">إزالة</button>';
     grid.appendChild(box);
@@ -819,6 +898,44 @@ async function deleteProfile(id) {
     $('#content').innerHTML = '';
     await loadProfiles();
   } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// Export / Import (transfer a profile between machines, or back it up)
+// ---------------------------------------------------------------------------
+function exportProfile() {
+  if (!state.current) return toast('اختر بريفايل أولاً', true);
+  const a = document.createElement('a');
+  a.href = '/api/profiles/' + encodeURIComponent(state.current.id) + '/export';
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function importProfile() {
+  const file = prompt('مسار ملف البروفايل المصدَّر على جهازك (لصق المسار الكامل):');
+  if (!file) return;
+  // The browser cannot read arbitrary paths — use a file input instead.
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async () => {
+    const f = input.files[0];
+    if (!f) return;
+    try {
+      const bundle = JSON.parse(await f.text());
+      const slug = prompt('معرّف البروفايل المستورد:', (bundle.name || 'imported').replace(/\s+/g, '-').toLowerCase().slice(0, 40));
+      if (!slug) return;
+      const data = await api('/profiles/import', {
+        method: 'POST',
+        body: JSON.stringify({ slug, name: bundle.name, bundle })
+      });
+      await loadProfiles(data.profile.id);
+      toast('تم الاستيراد');
+    } catch (e) { toast(e.message, true); }
+  };
+  input.click();
 }
 
 // ---------------------------------------------------------------------------

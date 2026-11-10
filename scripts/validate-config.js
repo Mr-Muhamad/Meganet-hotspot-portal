@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { BUILTIN_PRESET_IDS, CUSTOM_PRESET_RE } = require('./presets.js');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const ASSETS_DIR = path.join(__dirname, '..', 'src', 'assets');
@@ -49,7 +50,7 @@ const SCHEMA = {
       backgroundColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, hint: 'CSS hex color like #020617' },
       cardRadius: { type: 'string', pattern: /^\d+(\.\d+)?(px|rem|em|%)$/, hint: 'CSS length like 16px' }, // required unless theme.preset is set (see cross-field rules)
       enableNetworkBackground: { type: 'boolean' },
-      preset: { type: 'string', enum: ['meganet', 'cafe', 'hotel', 'clinic'], hint: 'ready-made personality bundle (theme defaults + base dictionary)' },
+      preset: { type: 'string', hint: 'built-in preset id (meganet/cafe/hotel/clinic/...) or custom:<id> saved in the admin tool' },
       defaultTheme: { type: 'string', enum: ['light', 'dark'], hint: 'theme a first-time visitor sees before any toggle' }
     }
   },
@@ -231,6 +232,14 @@ function validate(config) {
   // cardRadius may be omitted only when a theme preset provides it.
   if (config.theme && !config.theme.preset && config.theme.cardRadius === undefined) {
     errors.push('theme.cardRadius: missing — required unless theme.preset is set');
+  }
+
+  // theme.preset must be a built-in id or a custom:<id> saved in the admin tool
+  if (config.theme && config.theme.preset !== undefined && config.theme.preset !== null) {
+    const p = String(config.theme.preset);
+    if (!BUILTIN_PRESET_IDS.includes(p) && !CUSTOM_PRESET_RE.test(p)) {
+      errors.push(`theme.preset: "${p}" is not a built-in preset [${BUILTIN_PRESET_IDS.join(', ')}] nor a custom:<id> preset`);
+    }
   }
 
   // --- asset cross-check (non-fatal) --------------------------------------

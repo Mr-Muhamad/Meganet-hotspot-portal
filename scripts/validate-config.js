@@ -21,6 +21,17 @@ const ASSETS_DIR = path.join(__dirname, '..', 'src', 'assets');
 // Icons the plans template actually knows how to render (plans.html).
 const PLAN_ICONS = ['globe', 'briefcase', 'graduation-cap', 'ghost', 'star', 'shield', 'crown', 'package'];
 
+// Known translation keys (from src/i18n/en.json) — i18nOverrides may only
+// override real keys, so a typo like "voucher_lable" fails at build time.
+const I18N_KEY_SOURCE = path.join(__dirname, '..', 'src', 'i18n', 'en.json');
+let KNOWN_I18N_KEYS = new Set();
+try {
+  const enData = JSON.parse(fs.readFileSync(I18N_KEY_SOURCE, 'utf8'));
+  KNOWN_I18N_KEYS = new Set(Object.keys(enData.en || {}));
+} catch (err) {
+  /* dictionary unreadable — unknown-key errors are skipped, schema stays usable */
+}
+
 const SCHEMA = {
   general: {
     type: 'object',
@@ -36,8 +47,10 @@ const SCHEMA = {
     fields: {
       primaryColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, hint: 'CSS hex color like #22c55e' },
       backgroundColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, hint: 'CSS hex color like #020617' },
-      cardRadius: { type: 'string', required: true, pattern: /^\d+(\.\d+)?(px|rem|em|%)$/, hint: 'CSS length like 16px' },
-      enableNetworkBackground: { type: 'boolean' }
+      cardRadius: { type: 'string', pattern: /^\d+(\.\d+)?(px|rem|em|%)$/, hint: 'CSS length like 16px' }, // required unless theme.preset is set (see cross-field rules)
+      enableNetworkBackground: { type: 'boolean' },
+      preset: { type: 'string', enum: ['meganet', 'cafe', 'hotel', 'clinic'], hint: 'ready-made personality bundle (theme defaults + base dictionary)' },
+      defaultTheme: { type: 'string', enum: ['light', 'dark'], hint: 'theme a first-time visitor sees before any toggle' }
     }
   },
   features: {
@@ -78,6 +91,10 @@ const SCHEMA = {
   radiusErrorTranslations: {
     type: 'object',
     freeValues: 'string' // RouterOS Reply-Message substring → Arabic translation
+  },
+  i18nOverrides: {
+    type: 'object',
+    i18nKeys: true // every key must be real; value = string or { en, ar }
   },
   support: {
     type: 'object',
@@ -186,10 +203,35 @@ function validate(config) {
         }
       }
     }
+
+    if (sectionRule.i18nKeys) {
+      for (const [k, v] of Object.entries(value)) {
+        if (k.startsWith('_')) continue; // comments/hints
+        if (!KNOWN_I18N_KEYS.has(k)) {
+          errors.push(`${section}.${k}: unknown i18n key — it must be one of the portal's translation keys (e.g. voucher_label)`);
+          continue;
+        }
+        const isPair = v && typeof v === 'object' && !Array.isArray(v);
+        if (isPair) {
+          for (const lang of ['en', 'ar']) {
+            if (v[lang] !== undefined && typeof v[lang] !== 'string') {
+              errors.push(`${section}.${k}.${lang}: expected a string translation`);
+            }
+          }
+        } else if (typeof v !== 'string') {
+          errors.push(`${section}.${k}: ${describe(v)} is ${typeof v}, expected a string or { en, ar } object`);
+        }
+      }
+    }
   }
 
   // --- cross-field rules --------------------------------------------------
   // (qrScannerUrl is optional: the default is the self-hosted qr.html scanner)
+
+  // cardRadius may be omitted only when a theme preset provides it.
+  if (config.theme && !config.theme.preset && config.theme.cardRadius === undefined) {
+    errors.push('theme.cardRadius: missing — required unless theme.preset is set');
+  }
 
   // --- asset cross-check (non-fatal) --------------------------------------
 

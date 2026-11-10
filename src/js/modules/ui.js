@@ -5,18 +5,18 @@
 var ui = {
   initTheme: function() {
     try {
-      // Pre-paint script in <head> already applied the cookie (or OS
-      // preference) — this aligns the icon and meta color with it. First
-      // visit follows the OS preference; only a manual toggle stores a
-      // cookie, so OS changes keep propagating until the user chooses.
+      // The pre-paint script in <head> already applied the saved cookie or
+      // the portal's configured default theme (config.theme.defaultTheme) —
+      // this only aligns the toggle icon and meta color with what is on
+      // screen. No cookie = keep the pre-paint theme; a manual toggle is the
+      // only thing that stores a cookie.
       var savedTheme = util.getCookie('hotspot_theme');
       var theme;
       if (savedTheme === 'light' || savedTheme === 'dark') {
         theme = savedTheme;
         document.documentElement.setAttribute('data-theme', theme);
       } else {
-        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
+        theme = document.documentElement.getAttribute('data-theme') || 'dark';
       }
       ui.updateThemeIcon(theme);
     } catch (err) {

@@ -10,14 +10,17 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" id="metaThemeColor" content="{% if config.theme and config.theme.backgroundColor %}{{ config.theme.backgroundColor }}{% else %}#020617{% endif %}">
   <script>
-    // Apply the saved (or OS-preferred) theme BEFORE first paint — without
-    // this, light-theme users get a dark flash on every page load.
+    // Apply the saved theme BEFORE first paint — without this, light-theme
+    // users get a dark flash on every page load. First-time visitors with no
+    // cookie get the portal's configured default theme (config.theme.defaultTheme
+    // or "dark" when unset) instead of the OS preference, so each client
+    // controls how the portal opens.
     (function() {
       try {
         var m = document.cookie.match(/(?:^| )hotspot_theme=([^;]+)/);
         var t = m ? decodeURIComponent(m[1]) : null;
         if (t !== 'light' && t !== 'dark') {
-          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+          t = '{% if config.theme and config.theme.defaultTheme %}{{ config.theme.defaultTheme }}{% else %}dark{% endif %}';
         }
         document.documentElement.setAttribute('data-theme', t);
       } catch (err) { /* keep the hardcoded dark default */ }
@@ -67,12 +70,17 @@
     }
       {% endif %}
     {% endif %}
-    {% if config.theme.primaryColor %}
+    {% if config.theme.primaryColor or config.theme.backgroundColor %}
     [data-theme="dark"] {
+      {% if config.theme.primaryColor %}
       --color-input-focus: {{ config.theme.primaryColor }};
       --svg-accent: {{ config.theme.primaryColor }};
       --color-success: {{ config.theme.primaryColor }};
       --color-success-bg: {{ config.theme.primaryColor }}26;
+      {% endif %}
+      {% if config.theme.backgroundColor %}
+      --color-bg: {{ config.theme.backgroundColor }};
+      {% endif %}
     }
     {% endif %}
   </style>

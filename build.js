@@ -3,6 +3,7 @@ const path = require('path');
 const { minify } = require('html-minifier');
 const nunjucks = require('nunjucks');
 const { deriveThemeTokens } = require('./scripts/color-utils.js');
+const { resolveEffectiveConfig } = require('./scripts/presets.js');
 
 // Configure Nunjucks
 const templatesDir = path.join(__dirname, 'src', 'templates');
@@ -30,6 +31,29 @@ function loadTranslations(lang) {
   }
   
   return result;
+}
+
+// Apply config.i18nOverrides on top of the runtime dictionary (the JSON
+// embedded in every page via #i18n-data). A value may be a plain string
+// (both languages) or { en, ar } for per-language wording. Client wording
+// never removes keys — it only replaces the displayed text.
+function applyI18nOverrides(allTranslations, overrides) {
+  if (!overrides || typeof overrides !== 'object') return allTranslations;
+  const merged = JSON.parse(JSON.stringify(allTranslations));
+  for (const [key, value] of Object.entries(overrides)) {
+    if (key.startsWith('_')) continue; // comment/hint keys
+    const pair = value && typeof value === 'object' && !Array.isArray(value)
+      ? value
+      : { en: value, ar: value };
+    for (const lang of ['en', 'ar']) {
+      // Only keys that actually exist in the dictionary are replaced — an
+      // unknown override key (typo) must never inject a new key.
+      if (merged[lang] && Object.prototype.hasOwnProperty.call(merged[lang], key) && pair[lang] !== undefined) {
+        merged[lang][key] = pair[lang];
+      }
+    }
+  }
+  return merged;
 }
 
 // Build CSS from separate files
@@ -124,7 +148,8 @@ function inlineSVG(filePath) {
 // Generate page HTML
 function generatePage(page, lang, options = {}) {
   try {
-    // Load config.json or fallback to config.example.json
+    // Load config.json or fallback to config.example.json, then resolve the
+    // white-label preset (theme defaults + base i18n overrides).
     let config = {};
     const configPath = path.join(__dirname, 'config.json');
     const configExamplePath = path.join(__dirname, 'config.example.json');
@@ -133,10 +158,11 @@ function generatePage(page, lang, options = {}) {
     } else if (fs.existsSync(configExamplePath)) {
       config = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
     }
+    config = resolveEffectiveConfig(config);
 
     const css = buildCSS();
     const js = buildJS(page);
-    const allTranslations = loadTranslations(lang) || {};
+    const allTranslations = applyI18nOverrides(loadTranslations(lang) || {}, config.i18nOverrides);
     const i18n = allTranslations[lang] || allTranslations.en || {};
 
     // White-label brand tokens: derive every tint/glow/glass from the
@@ -364,4 +390,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { build, generatePage };
+module.exports = { build, generatePage, applyI18nOverrides };

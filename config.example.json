@@ -18,7 +18,11 @@
     "cardRadius": "16px",
     "cardRadius_hints": "درجة انحناء حواف الكروت والأزرار (حادة 0px، مستديرة خفيفة 8px، مستديرة جداً 16px)",
     "enableNetworkBackground": true,
-    "enableNetworkBackground_hints": "تفعيل (true) أو إيقاف (false) خلفية الشبكة العصبية التفاعلية المتحركة بالـ Canvas"
+    "enableNetworkBackground_hints": "تفعيل (true) أو إيقاف (false) خلفية الشبكة العصبية التفاعلية المتحركة بالـ Canvas",
+    "preset": "meganet",
+    "preset_hints": "بريسيت 'شخصية المكان' الجاهز — يملأ الإعدادات غير المحددة فقط (أي قيمة صريحة هنا تتغلب عليه). الخيارات: meganet (دارك نيون)، cafe (نهاري، حواف 24px، بدون شبكة)، hotel (دارك فخم، حواف 12px)، clinic (نهاري نظيف، حواف 18px). اتركه فارغاً أو احذفه لتفعيل يدوي كامل",
+    "defaultTheme": "dark",
+    "defaultTheme_hints": "الثيم اللي أول زيارة للزائر تشوفه قبل أي تبديل: light أو dark. (عند غيابه: dark). زر التبديل وكوكيز المستخدم يكملوا كما هم"
   },
   "_comment_features": "=== إعدادات الوظائف المتاحة في البوابة ===",
   "features": {
@@ -164,6 +168,13 @@
     "transfer limit reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
     "traffic limit is reached": "لقد استهلكت كامل سعة التحميل المتاحة لحسابك.",
     "unknown user profile": "هناك مشكلة فى الباقه."
+  },
+  "_comment_i18n": "=== قاموس العميل: استبدال أي كلمة في البوابة بدون كود (اختياري) ===",
+  "i18nOverrides": {
+    "_comment": "المفتاح = مفتاح ترجمة أصلي من البوابة (مثال: voucher_label). القيمة = نص واحد للغتين أو { en, ar } لتمييز الإنجليزية والعربية. أي مفتاح غير معروف يُرفض عند البناء",
+    "voucher_label": "رقم التذكرة",
+    "login_button": { "en": "Get Online", "ar": "افتح النت" },
+    "plans_link": { "en": "See our offers", "ar": "شوف عروضنا" }
   },
   "_comment_support": "=== إعدادات أفراد الدعم الفني بالنافذة العائمة ===",
   "support": {

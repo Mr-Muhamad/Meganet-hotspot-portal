@@ -1,15 +1,27 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 /**
- * Theme flow: first visit follows the OS preference (pre-paint, no dark
- * flash), a manual toggle is remembered for a year, the toast/aria-labels
- * are localized, meta theme-color follows, and every page applies the
- * cookie. Screenshots of both themes double as the visual audit artifacts.
+ * Theme flow: first visit follows the portal's configured default theme
+ * (config.theme.defaultTheme, or dark when unset — pre-paint, no flash), a
+ * manual toggle is remembered for a year, the toast/aria-labels are
+ * localized, meta theme-color follows, and every page applies the cookie.
+ * Screenshots of both themes double as the visual audit artifacts.
  */
 
 const DEFAULT = 'http://127.0.0.1:8790';
 
-test('first visit follows the OS color scheme (no cookie)', async ({ browser }) => {
+const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'config.json'), 'utf8'));
+// The build applies theme presets (scripts/presets.js) — mirror that here so
+// the expected default matches what the served pages actually render.
+const effective = require('../../scripts/presets.js').resolveEffectiveConfig(cfg);
+const DEFAULT_THEME = effective.theme?.defaultTheme || 'dark';
+const DARK_META = effective.theme?.backgroundColor || '#020617';
+const LIGHT_META = '#f8fafc';
+
+test('first visit follows the portal default theme (no cookie)', async ({ browser }) => {
+  // the OS color scheme no longer picks the first theme — the config default does
   const lightCtx = await browser.newContext({ colorScheme: 'light' });
   const darkCtx = await browser.newContext({ colorScheme: 'dark' });
 
@@ -18,10 +30,10 @@ test('first visit follows the OS color scheme (no cookie)', async ({ browser }) 
   await lightPage.goto(`${DEFAULT}/ar/login.html`);
   await darkPage.goto(`${DEFAULT}/ar/login.html`);
 
-  await expect(lightPage.locator('html')).toHaveAttribute('data-theme', 'light');
-  await expect(darkPage.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(lightPage.locator('html')).toHaveAttribute('data-theme', DEFAULT_THEME);
+  await expect(darkPage.locator('html')).toHaveAttribute('data-theme', DEFAULT_THEME);
 
-  // OS-following is not a choice: no cookie until the user toggles manually
+  // a default is not a choice: no cookie until the user toggles manually
   const lightCookies = await lightCtx.cookies();
   expect(lightCookies.find((c) => c.name === 'hotspot_theme')).toBeUndefined();
 
@@ -30,27 +42,32 @@ test('first visit follows the OS color scheme (no cookie)', async ({ browser }) 
 });
 
 test('manual toggle flips everything and is remembered across pages', async ({ page }) => {
+  const other = DEFAULT_THEME === 'dark' ? 'light' : 'dark';
+  const meta = DEFAULT_THEME === 'dark' ? DARK_META : LIGHT_META;
+  const otherMeta = other === 'dark' ? DARK_META : LIGHT_META;
+  const toastOther = other === 'dark' ? 'الوضع الليلي' : 'الوضع النهاري';
+  const ariaAfterToggle = other === 'dark' ? 'التبديل للوضع النهاري' : 'التبديل للوضع الليلي';
+
   await page.goto(`${DEFAULT}/ar/login.html`);
-  // the default Playwright context is light-OS → the first visit lands light
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', DEFAULT_THEME);
 
   await page.locator('.theme-toggle').click();
 
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', other);
   // localized confirmation toast
-  await expect(page.locator('.toast')).toContainText('الوضع الليلي');
+  await expect(page.locator('.toast')).toContainText(toastOther);
   // the choice is stored
   const cookies = await page.context().cookies();
-  expect(cookies.find((c) => c.name === 'hotspot_theme')?.value).toBe('dark');
+  expect(cookies.find((c) => c.name === 'hotspot_theme')?.value).toBe(other);
   // mobile browser chrome follows
-  await expect(page.locator('#metaThemeColor')).toHaveAttribute('content', '#020617');
+  await expect(page.locator('#metaThemeColor')).toHaveAttribute('content', otherMeta);
   // screen-reader label is localized
-  await expect(page.locator('.theme-toggle')).toHaveAttribute('aria-label', 'التبديل للوضع النهاري');
+  await expect(page.locator('.theme-toggle')).toHaveAttribute('aria-label', ariaAfterToggle);
 
   // persistence: another page applies the stored choice
   await page.goto(`${DEFAULT}/ar/plans.html`);
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('#metaThemeColor')).toHaveAttribute('content', '#020617');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', other);
+  await expect(page.locator('#metaThemeColor')).toHaveAttribute('content', otherMeta);
 });
 
 test('a stored light theme applies before paint and survives navigation', async ({ page }) => {

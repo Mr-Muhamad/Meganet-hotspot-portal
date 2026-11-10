@@ -52,6 +52,34 @@ describe('config schema validation', () => {
   mistake('a voucherMinLength below 1', 'features.voucherMinLength', c => { c.features.voucherMinLength = 0; });
   mistake('a voucherMinLength that is not a number', 'features.voucherMinLength', c => { c.features.voucherMinLength = 'four'; });
 
+  // v2.5.0 — "language of the place" settings
+  mistake('an unknown i18n override key', 'i18nOverrides.voucher_lable', c => { c.i18nOverrides = { voucher_lable: 'x' }; });
+  mistake('a non-string i18n override', 'i18nOverrides.voucher_label', c => { c.i18nOverrides = { voucher_label: 42 }; });
+  mistake('a non-string language in an i18n override pair', 'i18nOverrides.voucher_label.en', c => { c.i18nOverrides = { voucher_label: { en: 1, ar: 'x' } }; });
+  mistake('an unknown theme preset', 'theme.preset', c => { c.theme.preset = 'bank'; });
+  mistake('an invalid defaultTheme', 'theme.defaultTheme', c => { c.theme.defaultTheme = 'sepia'; });
+
+  test('accepts a valid preset + overrides + defaultTheme', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    config.theme.preset = 'cafe';
+    config.theme.defaultTheme = 'light';
+    delete config.theme.cardRadius; // preset supplies it
+    config.theme.enableNetworkBackground = false;
+    config.i18nOverrides = {
+      voucher_label: 'Table code',
+      login_button: { en: 'Get Online', ar: 'افتح النت' }
+    };
+    expect(validate(config).errors).toEqual([]);
+  });
+
+  test('cardRadius is required when no preset provides it', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    delete config.theme.preset;
+    delete config.theme.cardRadius;
+    const { errors } = validate(config);
+    expect(errors.some(e => e.startsWith('theme.cardRadius'))).toBe(true);
+  });
+
   test('accepts voucherMinLength when it is unset (feature off by default)', () => {
     const config = JSON.parse(JSON.stringify(valid));
     config.features.voucherMinLength = null;

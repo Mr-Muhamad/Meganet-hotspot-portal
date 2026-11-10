@@ -118,7 +118,13 @@ async function api(path, options) {
   const res = await fetch('/api' + path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
   let data = null;
   try { data = await res.json(); } catch {}
-  if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+  if (!res.ok) {
+    const err = new Error((data && data.error) || ('HTTP ' + res.status));
+    // the server's 422 carries the per-field validation errors — carry them
+    // on the thrown error so the UI can render the inline error box
+    if (data && data.validationErrors) err.validationErrors = data.validationErrors;
+    throw err;
+  }
   return data;
 }
 

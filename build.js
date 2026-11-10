@@ -10,7 +10,12 @@ const templatesDir = path.join(__dirname, 'src', 'templates');
 nunjucks.configure(templatesDir, {
   autoescape: false,
   trimBlocks: true,
-  lstripBlocks: true
+  lstripBlocks: true,
+  // Template caching OFF: the admin generator's long-lived server process
+  // rebuilds repeatedly, and a cached template served STALE pages after
+  // template edits (found by the browser visual-inspection round). The
+  // re-parse cost across 16 renders is negligible.
+  noCache: true
 });
 
 // Read translations

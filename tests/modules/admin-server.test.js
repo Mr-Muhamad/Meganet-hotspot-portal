@@ -9,6 +9,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+
+// Isolate ALL admin data (profiles + custom presets) in a temp dir BEFORE the
+// server module loads — jest runs must never pollute the real .admin store.
+const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-admin-data-'));
+process.env.ADMIN_DATA_DIR = ADMIN_TMP;
+
 const { startServer, server, store } = require('../../admin/server.js');
 const { createProfileStore } = require('../../admin/lib/profile-store.js');
 
@@ -62,6 +68,7 @@ describe('admin HTTP API', () => {
   afterAll(async () => {
     server.close();
     fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(ADMIN_TMP, { recursive: true, force: true });
   });
 
   function api(method, p, body) {

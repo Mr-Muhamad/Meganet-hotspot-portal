@@ -32,7 +32,11 @@ const { spawn } = require('child_process');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const ADMIN_DIR = path.join(REPO_ROOT, '.admin');
+// Test isolation: tests set ADMIN_DATA_DIR to a temp dir BEFORE requiring
+// this module, so jest runs never pollute the real .admin/profiles data.
+const ADMIN_DIR = process.env.ADMIN_DATA_DIR
+  ? path.resolve(process.env.ADMIN_DATA_DIR)
+  : path.join(REPO_ROOT, '.admin');
 
 const { createProfileStore } = require('./lib/profile-store.js');
 const { createWorkspace } = require('./lib/workspace.js');

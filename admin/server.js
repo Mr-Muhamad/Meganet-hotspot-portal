@@ -135,11 +135,16 @@ function buildTemplateConfig() {
     return out;
   };
   const clean = strip(example);
-  // The EXAMPLE's own i18n overrides and preset must not become the
-  // template's — new profiles start dictionary-free and preset-free so the
-  // chosen PRESET's wording flows in (operator keys still win when added).
+  // The EXAMPLE's own i18n overrides and explicit theme values must not
+  // become the template's — new profiles start neutral so the chosen PRESET's
+  // wording AND theme defaults flow in (operator keys still win when added).
   delete clean.i18nOverrides;
-  if (clean.theme) delete clean.theme.preset;
+  if (clean.theme) {
+    delete clean.theme.preset;
+    delete clean.theme.cardRadius;
+    delete clean.theme.enableNetworkBackground;
+    delete clean.theme.defaultTheme;
+  }
   return clean;
 }
 

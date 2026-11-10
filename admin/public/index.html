@@ -219,7 +219,7 @@ function captureDraft(tab) {
         primaryColor: $('#t-primary').value,
         backgroundColor: $('#t-bg').value,
         cardRadius: $('#t-radius').value.trim(),
-        enableNetworkBackground: $('#t-canvas').value === 'true'
+        enableNetworkBackground: $('#t-canvas').value // '' = let the preset decide
       };
     } else if (tab === 'features') {
       state.drafts.features = {
@@ -282,11 +282,16 @@ function applyDrafts(c) {
 
   if (d.theme) {
     if (d.theme.preset) c.theme.preset = d.theme.preset; else delete c.theme.preset;
-    c.theme.defaultTheme = d.theme.defaultTheme;
+    if (d.theme.defaultTheme) c.theme.defaultTheme = d.theme.defaultTheme;
+    else delete c.theme.defaultTheme;
     c.theme.primaryColor = d.theme.primaryColor;
     c.theme.backgroundColor = d.theme.backgroundColor;
-    c.theme.cardRadius = d.theme.cardRadius;
-    c.theme.enableNetworkBackground = d.theme.enableNetworkBackground;
+    // an empty radius means "let the preset supply it" (schema: required only
+    // without a preset)
+    if (d.theme.cardRadius) c.theme.cardRadius = d.theme.cardRadius;
+    else delete c.theme.cardRadius;
+    if (d.theme.enableNetworkBackground === '') delete c.theme.enableNetworkBackground;
+    else c.theme.enableNetworkBackground = d.theme.enableNetworkBackground === 'true';
   }
 
   if (d.features) {
@@ -404,7 +409,8 @@ function formTheme(c) {
   };
 
   grid.appendChild(field('الثيم الافتراضي',
-    '<select id="t-default"><option value="dark"' + (t.defaultTheme !== 'light' ? ' selected' : '') + '>داكن</option>' +
+    '<select id="t-default"><option value=""' + (!t.defaultTheme ? ' selected' : '') + '>(حسب البريسيت — ودارك بدونه)</option>' +
+    '<option value="dark"' + (t.defaultTheme === 'dark' ? ' selected' : '') + '>داكن</option>' +
     '<option value="light"' + (t.defaultTheme === 'light' ? ' selected' : '') + '>نهاري</option></select>',
     'أول زيارة للزائر'));
 
@@ -416,11 +422,12 @@ function formTheme(c) {
     '<div class="colorrow"><input id="t-bg" type="color" value="' + (t.backgroundColor || '#020617') + '"><span class="swatch" id="t-bg-swatch"></span></div>'));
 
   grid.appendChild(field('استدارة الحواف',
-    '<input id="t-radius" type="text" value="' + esc(t.cardRadius || '16px') + '">',
-    'مثال: 0px حاد · 16px متوسط · 24px ودود'));
+    '<input id="t-radius" type="text" value="' + esc(t.cardRadius || '') + '" placeholder="اتركها فارغة ليحددها البريسيت">',
+    'مثال: 0px حاد · 16px متوسط · 24px ودود — فارغة = من البريسيت'));
 
   grid.appendChild(field('الخلفية المتحركة',
-    '<select id="t-canvas"><option value="true"' + (t.enableNetworkBackground !== false ? ' selected' : '') + '>شغالة</option>' +
+    '<select id="t-canvas"><option value=""' + (t.enableNetworkBackground === undefined ? ' selected' : '') + '>(حسب البريسيت)</option>' +
+    '<option value="true"' + (t.enableNetworkBackground === true ? ' selected' : '') + '>شغالة</option>' +
     '<option value="false"' + (t.enableNetworkBackground === false ? ' selected' : '') + '>مقفولة</option></select>',
     'الجسيمات المتحركة خلف الصفحة'));
 
@@ -589,8 +596,9 @@ function formSupport(c) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>فريق الدعم</h3>';
+  // plain container: each agent card spans the full width (its own inner
+  // grid lays out the fields)
   const grid = document.createElement('div');
-  grid.className = 'grid';
 
   const agents = c.support && c.support.agents ? c.support.agents : [];
   const imageAssets = state.current.assets.filter(a => /\.(png|jpe?g|webp)$/i.test(a.name));
@@ -598,21 +606,28 @@ function formSupport(c) {
     const box = document.createElement('div');
     box.className = 'card';
     box.style.marginBottom = '10px';
+    const agentGrid = document.createElement('div');
+    agentGrid.className = 'grid';
+    // field() returns a DOM element — appendChild it, never concatenate into
+    // innerHTML (that would render "[object HTMLDivElement]")
     const imgOptions = ['<option value="">بدون صورة</option>']
       .concat(imageAssets.map(a =>
         '<option value="' + esc(a.name) + '"' + (agent.image === a.name ? ' selected' : '') + '>' + esc(a.name) + '</option>'))
       .join('');
-    box.innerHTML =
-      '<div class="grid">' +
-      field('الاسم', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">') +
-      field('الدور', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">') +
-      field('التليفون', '<input id="s-phone-' + i + '" value="' + esc(agent.phone || '') + '">') +
-      field('واتساب (بكود الدولة)', '<input id="s-wa-' + i + '" value="' + esc(agent.whatsapp || '') + '">') +
-      field('صورة (من ملفات الهوية المرفوعة)',
-        '<select id="s-img-' + i + '">' + imgOptions + '</select>',
-        imageAssets.length ? '' : 'ارفع صور الوكلاء من تبويب الملفات أولاً') +
-      '</div>' +
-      '<button class="rowbtn" style="margin-top:10px" onclick="removeAgent(' + i + ')">إزالة</button>';
+    agentGrid.appendChild(field('الاسم', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">'));
+    agentGrid.appendChild(field('الدور', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">'));
+    agentGrid.appendChild(field('التليفون', '<input id="s-phone-' + i + '" value="' + esc(agent.phone || '') + '">'));
+    agentGrid.appendChild(field('واتساب (بكود الدولة)', '<input id="s-wa-' + i + '" value="' + esc(agent.whatsapp || '') + '">'));
+    agentGrid.appendChild(field('صورة (من ملفات الهوية المرفوعة)',
+      '<select id="s-img-' + i + '">' + imgOptions + '</select>',
+      imageAssets.length ? '' : 'ارفع صور الوكلاء من تبويب الملفات أولاً'));
+    box.appendChild(agentGrid);
+    const del = document.createElement('button');
+    del.className = 'rowbtn';
+    del.style.marginTop = '10px';
+    del.textContent = 'إزالة';
+    del.onclick = () => removeAgent(i);
+    box.appendChild(del);
     grid.appendChild(box);
   });
 

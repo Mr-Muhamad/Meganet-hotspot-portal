@@ -31,7 +31,7 @@ describe('presets', () => {
   });
 
   test('the café preset speaks café from the start', () => {
-    expect(PRESETS.cafe.i18nOverrides.voucher_label).toBe('كود القعدة');
+    expect(PRESETS.cafe.i18nOverrides.voucher_label).toEqual({ en: 'Table code', ar: 'كود القعدة' });
     expect(PRESETS.cafe.announcement.message_ar[0]).toContain('قهوتنا');
   });
 
@@ -78,7 +78,7 @@ describe('presets', () => {
     const effective = resolveEffectiveConfig(raw);
     expect(effective.i18nOverrides.login_button).toEqual({ en: 'Go' });
     // but the rest of the preset dictionary still flows in
-    expect(effective.i18nOverrides.voucher_label).toBe('كود القعدة');
+    expect(effective.i18nOverrides.voucher_label).toEqual({ en: 'Table code', ar: 'كود القعدة' });
   });
 
   test('custom (admin-saved) presets resolve via extraPresets', () => {

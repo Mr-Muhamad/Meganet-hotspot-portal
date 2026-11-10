@@ -31,8 +31,8 @@ const PRESETS = {
     label: 'كافيه — نهاري دافئ، حواف ودودة، هادي',
     theme: { defaultTheme: 'light', cardRadius: '24px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'كود القعدة',
-      voucher_placeholder: 'اكتب كود القعدة هنا',
+      voucher_label: { en: 'Table code', ar: 'كود القعدة' },
+      voucher_placeholder: { en: 'Type your table code', ar: 'اكتب كود القعدة هنا' },
       login_button: { en: 'Get Online', ar: 'افتح النت' },
       plans_link: { en: 'See our offers', ar: 'شوف عروضنا' },
       support_title: { en: 'Ask the barista', ar: 'اسأل الكاشير' }
@@ -49,8 +49,8 @@ const PRESETS = {
     label: 'فندق — دارك فخم، حواف حادة، راقي',
     theme: { defaultTheme: 'dark', cardRadius: '12px', enableNetworkBackground: true },
     i18nOverrides: {
-      voucher_label: 'رقم الغرفة',
-      voucher_placeholder: 'اكتب رقم الغرفة',
+      voucher_label: { en: 'Room number', ar: 'رقم الغرفة' },
+      voucher_placeholder: { en: 'Type your room number', ar: 'اكتب رقم الغرفة' },
       login_button: { en: 'Welcome', ar: 'أهلاً بكم' },
       plans_link: { en: 'Our suites', ar: 'السويتات' },
       support_title: { en: 'Guest services', ar: 'خدمة الغرف' }
@@ -67,8 +67,8 @@ const PRESETS = {
     label: 'عيادة — نهاري نظيف، واضح وهادي',
     theme: { defaultTheme: 'light', cardRadius: '18px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'كود الزيارة',
-      voucher_placeholder: 'اكتب كود الزيارة',
+      voucher_label: { en: 'Visit code', ar: 'كود الزيارة' },
+      voucher_placeholder: { en: 'Type your visit code', ar: 'اكتب كود الزيارة' },
       login_button: { en: 'Connect', ar: 'دخول' },
       plans_link: { en: 'Our services', ar: 'خدماتنا' },
       support_title: { en: 'Reception', ar: 'الاستقبال' }
@@ -85,8 +85,8 @@ const PRESETS = {
     label: 'مطعم — دارك دافئ، عائلي',
     theme: { defaultTheme: 'dark', cardRadius: '20px', enableNetworkBackground: true },
     i18nOverrides: {
-      voucher_label: 'كود الحجز',
-      voucher_placeholder: 'اكتب كود الحجز',
+      voucher_label: { en: 'Booking code', ar: 'كود الحجز' },
+      voucher_placeholder: { en: 'Type your booking code', ar: 'اكتب كود الحجز' },
       login_button: { en: 'Get Online', ar: 'اتصل بالنت' },
       plans_link: { en: 'Our menu', ar: 'قائمتنا' },
       support_title: { en: 'Ask the waiter', ar: 'اسأل الجرسون' }
@@ -103,8 +103,8 @@ const PRESETS = {
     label: 'جيم — دارك حاد، طاقة وحزم',
     theme: { defaultTheme: 'dark', cardRadius: '8px', enableNetworkBackground: true },
     i18nOverrides: {
-      voucher_label: 'رقم الاشتراك',
-      voucher_placeholder: 'اكتب رقم الاشتراك',
+      voucher_label: { en: 'Membership no.', ar: 'رقم الاشتراك' },
+      voucher_placeholder: { en: 'Type your membership number', ar: 'اكتب رقم الاشتراك' },
       login_button: { en: 'Start Training', ar: 'ابدأ تمرينك' },
       plans_link: { en: 'Memberships', ar: 'الاشتراكات' },
       support_title: { en: 'Front desk', ar: 'الريسبشن' }
@@ -121,8 +121,8 @@ const PRESETS = {
     label: 'كافيه نت / جيمنج — دارك نيون تقني',
     theme: { defaultTheme: 'dark', cardRadius: '14px', enableNetworkBackground: true },
     i18nOverrides: {
-      voucher_label: 'كود الجهاز',
-      voucher_placeholder: 'اكتب كود الجهاز',
+      voucher_label: { en: 'Station code', ar: 'كود الجهاز' },
+      voucher_placeholder: { en: 'Type your station code', ar: 'اكتب كود الجهاز' },
       login_button: { en: 'Enter Game', ar: 'ادخل ولعب' },
       plans_link: { en: 'Rates', ar: 'الأسعار' },
       support_title: { en: 'The admin', ar: 'الأدمن' }
@@ -139,8 +139,8 @@ const PRESETS = {
     label: 'مول — نهاري تجاري نظيف',
     theme: { defaultTheme: 'light', cardRadius: '12px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'كود الزيارة',
-      voucher_placeholder: 'اكتب كود الزيارة',
+      voucher_label: { en: 'Visit code', ar: 'كود الزيارة' },
+      voucher_placeholder: { en: 'Type your visit code', ar: 'اكتب كود الزيارة' },
       login_button: { en: 'Connect', ar: 'اتصل' },
       plans_link: { en: 'Directory', ar: 'دليل المحلات' },
       support_title: { en: 'Guest desk', ar: 'كيسك الزوار' }
@@ -157,8 +157,8 @@ const PRESETS = {
     label: 'مدرسة/جامعة — نهاري مؤسسي',
     theme: { defaultTheme: 'light', cardRadius: '10px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'الرقم الأكاديمي',
-      voucher_placeholder: 'اكتب رقمك الأكاديمي',
+      voucher_label: { en: 'Academic ID', ar: 'الرقم الأكاديمي' },
+      voucher_placeholder: { en: 'Type your academic ID', ar: 'اكتب رقمك الأكاديمي' },
       login_button: { en: 'Sign In', ar: 'دخول الطالب' },
       plans_link: { en: 'Courses', ar: 'المقررات' },
       support_title: { en: 'IT support', ar: 'الدعم الفني' }
@@ -175,8 +175,8 @@ const PRESETS = {
     label: 'مساحة عمل — نهاري عصري عملي',
     theme: { defaultTheme: 'light', cardRadius: '16px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'كود العضوية',
-      voucher_placeholder: 'اكتب كود العضوية',
+      voucher_label: { en: 'Membership code', ar: 'كود العضوية' },
+      voucher_placeholder: { en: 'Type your membership code', ar: 'اكتب كود العضوية' },
       login_button: { en: 'Start Work', ar: 'ابدأ شغلك' },
       plans_link: { en: 'Memberships', ar: 'العضويات' },
       support_title: { en: 'Community manager', ar: 'مسؤول المساحة' }
@@ -193,8 +193,8 @@ const PRESETS = {
     label: 'مخبز/حلواني — نهاري بيوتي دافئ',
     theme: { defaultTheme: 'light', cardRadius: '26px', enableNetworkBackground: false },
     i18nOverrides: {
-      voucher_label: 'كود الطلب',
-      voucher_placeholder: 'اكتب كود الطلب',
+      voucher_label: { en: 'Order code', ar: 'كود الطلب' },
+      voucher_placeholder: { en: 'Type your order code', ar: 'اكتب كود الطلب' },
       login_button: { en: 'Get Online', ar: 'اتصل بالواي فاي' },
       plans_link: { en: 'Our sweets', ar: 'حلوياتنا' },
       support_title: { en: 'Ask the counter', ar: 'اسأل الكاشير' }
@@ -211,8 +211,8 @@ const PRESETS = {
     label: 'محل موبايلات — دارك تقني حاد',
     theme: { defaultTheme: 'dark', cardRadius: '10px', enableNetworkBackground: true },
     i18nOverrides: {
-      voucher_label: 'رقم الكارت',
-      voucher_placeholder: 'اكتب رقم الكارت',
+      voucher_label: { en: 'Card number', ar: 'رقم الكارت' },
+      voucher_placeholder: { en: 'Type your card number', ar: 'اكتب رقم الكارت' },
       login_button: { en: 'Activate', ar: 'تفعيل' },
       plans_link: { en: 'Charging cards', ar: 'كروت الشحن' },
       support_title: { en: 'The shop', ar: 'المحل' }

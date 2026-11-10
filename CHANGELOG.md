@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.5.0] - 2026-11-10
+## [2.6.0] - 2026-11-10
+
+### Added
+- **Local portal generator (`npm run admin`)** — a web UI that turns the white-label system into a production workflow: create/duplicate/rename/delete isolated client profiles, edit every config section (general, theme + presets, features, plans, support, announcements, i18n overrides) in forms, upload brand assets, then Build & Download — the profile is applied to a temporary workspace, the real build runs, `dist/` is served as a zip, and the workspace is restored byte-identical. Loopback-only (binds `127.0.0.1`, refuses all other connections); every save passes the real config schema — invalid values are rejected inline and never persisted. No build step needed for the UI itself.
+
+### Fixed
+- None (the admin tool is additive; the portal build path is unchanged)
+
+
 
 ### Added
 - **"Language of the place" — the portal now speaks the client's words, not just its colors** (`config.json` only, no code):
@@ -199,6 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **2.6.0**: Local portal generator (`npm run admin`) — web UI for producing client portals: profiles, config forms, brand assets, build → zip download, byte-identical workspace restore
 - **2.5.0**: "Language of the place" — i18nOverrides (any wording from config), theme presets (cafe/hotel/clinic/meganet), defaultTheme for first-time visitors; fixed a v2.4.0 background-injection regression
 - **2.4.0**: White-label color system — every brand color/glow/glass derives at build time from `config.json` (scripts/color-utils.js); a client rebrand is config + logo files only, shipped green build pixel-identical
 - **2.3.0**: Live expiry intelligence — the status page warns as the session nears its end (dynamic 5-minute warning, critical escalation under one minute) and auto-logs out at zero instead of silently reloading

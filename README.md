@@ -625,7 +625,26 @@ npm test                # Jest unit tests (incl. config schema + i18n health)
 npm run validate        # check dist/ completeness, MikroTik vars, a11y markers
 npm run validate:config # check config.json against its schema
 npm run preview         # serve dist/ with realistic demo data (see Local Preview)
+npm run admin           # local portal generator UI → http://127.0.0.1:8899
 ```
+
+## Portal Generator (admin)
+
+`npm run admin` opens a **local-only** web UI for producing client portals without
+touching config files by hand. It binds to `127.0.0.1` and refuses every
+non-loopback connection.
+
+- **Profiles**: each client (café, hotel, clinic, …) is an isolated profile;
+  profiles can be created, duplicated, renamed, deleted
+- **Tabs**: General · Theme (colors, preset, radius, default theme, canvas) ·
+  Features · Plans · Support · Announcements · Words (i18n overrides) · Files
+  (brand assets upload)
+- **Validation**: every save runs the real config schema; invalid values are
+  shown inline and never persisted
+- **Build & Download**: applies the profile to a temporary workspace, runs the
+  real build, serves `dist/` as a zip, then restores the repo byte-identical
+- **Preview**: launches the local preview server for the built portal
+- Client data lives in `.admin/profiles/` (gitignored)
 
 Key invariants:
 

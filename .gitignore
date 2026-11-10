@@ -54,3 +54,6 @@ playwright-report/
 
 # Superdesign temp artifacts (draft HTML fetches)
 .superdesign/tmp/
+
+# Admin generator local data (profiles, tmp zips)
+.admin/

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بوابة التوليد — ميجا نت</title>
+<style>
+  :root {
+    --bg: #0b0f1a; --panel: #111827; --panel2: #1a2333; --line: #26324a;
+    --text: #e5e9f2; --muted: #8b99b3; --acc: #22c55e; --acc2: #16a34a;
+    --danger: #ef4444; --warn: #f59e0b; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+  /* Sidebar */
+  aside { width: 260px; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .brand { padding: 18px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 8px var(--acc); }
+  #profileList { flex: 1; overflow-y: auto; padding: 8px; }
+  .profile-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 2px; border: 1px solid transparent; }
+  .profile-item:hover { background: var(--panel2); }
+  .profile-item.active { background: var(--panel2); border-color: var(--acc); }
+  .profile-item .pname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-item .pact { opacity: .35; display: flex; gap: 6px; }
+  .profile-item:hover .pact { opacity: 1; }
+  .iconbtn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 6px; }
+  .iconbtn:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .iconbtn.danger:hover { color: var(--danger); }
+  .newbtn { margin: 8px; padding: 11px; border-radius: var(--radius); border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; font-weight: 600; }
+  .newbtn:hover { border-color: var(--acc); color: var(--acc); }
+  /* Main */
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  header.top { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #profileTitle { font-size: 17px; font-weight: 700; flex: 1; }
+  .badge { font-size: 12px; color: var(--muted); background: var(--panel2); padding: 4px 10px; border-radius: 999px; }
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  .btn.primary { background: var(--acc); color: #052e16; }
+  .btn.primary:hover { background: var(--acc2); }
+  .btn.ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  .btn.ghost:hover { border-color: var(--muted); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .tabs { display: flex; gap: 4px; padding: 10px 22px 0; background: var(--panel); flex-wrap: wrap; }
+  .tab { padding: 9px 16px; border-radius: 10px 10px 0 0; background: transparent; color: var(--muted); border: none; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .tab.active { background: var(--bg); color: var(--text); }
+  .content { flex: 1; overflow-y: auto; padding: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 14px; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: inherit; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--acc); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .colorrow { display: flex; align-items: center; gap: 10px; }
+  .colorrow input[type=color] { width: 44px; height: 38px; padding: 2px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 12px; color: var(--muted); text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 6px; border-bottom: 1px solid var(--line); }
+  td input, td select { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 7px 9px; font-size: 13px; width: 100%; font-family: inherit; }
+  .rowbtn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 13px; }
+  .rowbtn:hover { border-color: var(--danger); color: var(--danger); }
+  .addbtn { margin-top: 8px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--acc); color: var(--text); padding: 12px 22px; border-radius: 12px; font-size: 14px; display: none; z-index: 50; }
+  .toast.error { border-color: var(--danger); }
+  .toast.show { display: block; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+  .errorbox { background: rgba(239,68,68,.1); border: 1px solid var(--danger); color: #fca5a5; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; white-space: pre-line; }
+  .planshint { font-size: 12px; color: var(--muted); margin: 8px 0; }
+  .status { font-size: 12px; color: var(--muted); }
+  .status.ok { color: var(--acc); }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><span class="dot"></span> بوابة التوليد</div>
+  <div id="profileList"></div>
+  <button class="newbtn" onclick="createProfile()">＋ بريفايل جديد</button>
+</aside>
+
+<main>
+  <header class="top">
+    <div id="profileTitle">اختر بريفايل</div>
+    <span class="badge" id="profileMeta"></span>
+    <button class="btn ghost" onclick="saveConfig()">حفظ</button>
+    <button class="btn primary" onclick="buildAndDownload()">بناء وتحميل zip</button>
+    <button class="btn ghost" onclick="togglePreview()" id="previewBtn">معاينة</button>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="content" id="content"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const state = { profiles: [], current: null, meta: null, tab: 'general', buildBusy: false };
+
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+function toast(msg, isError) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 3200);
+}
+
+async function api(path, options) {
+  const res = await fetch('/api' + path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Load meta + profiles
+// ---------------------------------------------------------------------------
+async function boot() {
+  try {
+    state.meta = await api('/meta');
+    await loadProfiles();
+  } catch (e) { toast('فشل التحميل: ' + e.message, true); }
+}
+
+async function loadProfiles(selectId) {
+  const data = await api('/profiles');
+  state.profiles = data.profiles;
+  renderProfileList(selectId);
+}
+
+function renderProfileList(selectId) {
+  const list = $('#profileList');
+  list.innerHTML = '';
+  for (const p of state.profiles) {
+    const row = document.createElement('div');
+    row.className = 'profile-item' + (state.current && state.current.id === p.id ? ' active' : '');
+    row.innerHTML =
+      '<span class="pname" title="' + esc(p.name) + '">' + esc(p.name) + '</span>' +
+      '<span class="pact">' +
+      '<button class="iconbtn" title="نسخ" onclick="event.stopPropagation();duplicateProfile(\'' + p.id + '\')">⧉</button>' +
+      '<button class="iconbtn" title="إعادة تسمية" onclick="event.stopPropagation();renameProfile(\'' + p.id + '\')">✎</button>' +
+      '<button class="iconbtn danger" title="حذف" onclick="event.stopPropagation();deleteProfile(\'' + p.id + '\')">🗑</button>' +
+      '</span>';
+    row.onclick = () => selectProfile(p.id);
+    list.appendChild(row);
+  }
+  if (selectId) selectProfile(selectId);
+}
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+async function selectProfile(id) {
+  try {
+    const data = await api('/profiles/' + encodeURIComponent(id));
+    state.current = data.profile;
+    $('#profileTitle').textContent = state.current.name;
+    $('#profileMeta').textContent =
+      state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
+    renderProfileList();
+    renderTabs();
+    renderTab();
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// Tabs
+// ---------------------------------------------------------------------------
+const TABS = [
+  { id: 'general', label: 'عام' },
+  { id: 'theme', label: 'الثيم' },
+  { id: 'features', label: 'المميزات' },
+  { id: 'plans', label: 'الباقات' },
+  { id: 'support', label: 'الدعم' },
+  { id: 'announcements', label: 'الإعلانات' },
+  { id: 'words', label: 'الكلمات' },
+  { id: 'assets', label: 'الملفات' }
+];
+
+function renderTabs() {
+  $('#tabs').innerHTML = TABS.map(t =>
+    '<button class="tab' + (state.tab === t.id ? ' active' : '') + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>'
+  ).join('');
+}
+
+function setTab(id) { state.tab = id; renderTabs(); renderTab(); }
+
+function renderTab() {
+  const c = state.current.config;
+  const el = $('#content');
+  el.innerHTML = '';
+  switch (state.tab) {
+    case 'general': el.appendChild(formGeneral(c)); break;
+    case 'theme': el.appendChild(formTheme(c)); break;
+    case 'features': el.appendChild(formFeatures(c)); break;
+    case 'plans': el.appendChild(formPlans(c)); break;
+    case 'support': el.appendChild(formSupport(c)); break;
+    case 'announcements': el.appendChild(formAnnouncements()); break;
+    case 'words': el.appendChild(formWords()); break;
+    case 'assets': el.appendChild(formAssets()); break;
+  }
+}
+
+function field(label, inputHtml, hint) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+  wrap.innerHTML = '<label>' + label + '</label>' + inputHtml + (hint ? '<div class="hint">' + hint + '</div>' : '');
+  return wrap;
+}
+
+// ---------------------------------------------------------------------------
+// General
+// ---------------------------------------------------------------------------
+function formGeneral(c) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>معلومات الشبكة</h3>';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.appendChild(field('اسم الشبكة', '<input id="g-network" value="' + esc(c.general.networkName) + '">'));
+  grid.appendChild(field('نص الفوتر', '<input id="g-powered-text" value="' + esc(c.general.poweredByText) + '">'));
+  grid.appendChild(field('اسم الفوتر', '<input id="g-powered-name" value="' + esc(c.general.poweredByName) + '">'));
+  grid.appendChild(field('رابط الفوتر', '<input id="g-powered-url" value="' + esc(c.general.poweredByUrl) + '">'));
+  card.appendChild(grid);
+  return card;
+}
+
+// ---------------------------------------------------------------------------
+// Theme
+// ---------------------------------------------------------------------------
+function formTheme(c) {
+  const t = c.theme || {};
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>الثيم والشخصية</h3>';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  const presetSel = '<select id="t-preset"><option value="">بدون بريسيت (يدوي)</option>' +
+    state.meta.presets.map(p => '<option value="' + p.id + '"' + (t.preset === p.id ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('') +
+    '</select>';
+  grid.appendChild(field('بريسيت الشخصية', presetSel, 'يملأ الإعدادات غير المحددة فقط — أي قيمة صريحة تتغلب عليه'));
+
+  grid.appendChild(field('الثيم الافتراضي',
+    '<select id="t-default"><option value="dark"' + (t.defaultTheme !== 'light' ? ' selected' : '') + '>داكن</option>' +
+    '<option value="light"' + (t.defaultTheme === 'light' ? ' selected' : '') + '>نهاري</option></select>',
+    'أول زيارة للزائر'));
+
+  grid.appendChild(field('اللون الأساسي',
+    '<div class="colorrow"><input id="t-primary" type="color" value="' + (t.primaryColor || '#22c55e') + '"><span class="swatch" id="t-primary-swatch"></span></div>',
+    'كل التوهجات والحدود والزجاج تتبع هذا اللون تلقائياً'));
+
+  grid.appendChild(field('لون الخلفية (دارك)',
+    '<div class="colorrow"><input id="t-bg" type="color" value="' + (t.backgroundColor || '#020617') + '"><span class="swatch" id="t-bg-swatch"></span></div>'));
+
+  grid.appendChild(field('استدارة الحواف',
+    '<input id="t-radius" type="text" value="' + esc(t.cardRadius || '16px') + '">',
+    'مثال: 0px حاد · 16px متوسط · 24px ودود'));
+
+  grid.appendChild(field('الخلفية المتحركة',
+    '<select id="t-canvas"><option value="true"' + (t.enableNetworkBackground !== false ? ' selected' : '') + '>شغالة</option>' +
+    '<option value="false"' + (t.enableNetworkBackground === false ? ' selected' : '') + '>مقفولة</option></select>',
+    'الجسيمات المتحركة خلف الصفحة'));
+
+  card.appendChild(grid);
+  $('#content').appendChild(card);
+
+  // live swatch sync
+  const sync = () => {
+    $('#t-primary-swatch').style.background = $('#t-primary').value;
+    $('#t-bg-swatch').style.background = $('#t-bg').value;
+  };
+  $('#t-primary').addEventListener('input', sync);
+  $('#t-bg').addEventListener('input', sync);
+  sync();
+  return card;
+}
+
+// ---------------------------------------------------------------------------
+// Features
+// ---------------------------------------------------------------------------
+function formFeatures(c) {
+  const f = c.features || {};
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>وظائف البوابة</h3>';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  grid.appendChild(field('طريقة الدخول',
+    '<select id="f-login">' +
+    ['voucher_only', 'normal_only', 'both'].map(m =>
+      '<option value="' + m + '"' + (f.loginMode === m ? ' selected' : '') + '>' +
+      ({ voucher_only: 'كوبونات فقط', normal_only: 'حسابات فقط', both: 'الاتنين' }[m]) + '</option>').join('') +
+    '</select>'));
+
+  grid.appendChild(field('مسح QR',
+    '<select id="f-qr"><option value="true"' + (f.enableQRScanner !== false ? ' selected' : '') + '>مفعل</option>' +
+    '<option value="false"' + (f.enableQRScanner === false ? ' selected' : '') + '>مقفول</option></select>'));
+
+  grid.appendChild(field('أدنى طول لكود الشحن',
+    '<input id="f-min" type="number" min="1" value="' + (f.voucherMinLength || '') + '">',
+    'فارغ = بدون تحقق'));
+
+  grid.appendChild(field('زر تغيير اللغة',
+    '<select id="f-lang"><option value="true"' + (f.enableLanguageToggle !== false ? ' selected' : '') + '>ظاهر</option>' +
+    '<option value="false"' + (f.enableLanguageToggle === false ? ' selected' : '') + '>مخفي</option></select>'));
+
+  grid.appendChild(field('حماية الكروت من المشاركة',
+    '<select id="f-clone"><option value="true"' + (f.enableClonePrevention !== false ? ' selected' : '') + '>مفعلة</option>' +
+    '<option value="false"' + (f.enableClonePrevention === false ? ' selected' : '') + '>مقفولة</option></select>'));
+
+  grid.appendChild(field('المساعد الذكي (صفحة الحالة)',
+    '<select id="f-smart"><option value="true"' + (f.enableSmartAssistant !== false ? ' selected' : '') + '>مفعل</option>' +
+    '<option value="false"' + (f.enableSmartAssistant === false ? ' selected' : '') + '>مقفول</option></select>'));
+
+  grid.appendChild(field('صيغة الرصيد',
+    '<select id="f-quota"><option value="GB"' + (f.quotaDisplayFormat === 'GB' ? ' selected' : '') + '>جيجا بايت</option>' +
+    '<option value="MB"' + (f.quotaDisplayFormat === 'MB' ? ' selected' : '') + '>ميجا بايت</option></select>'));
+
+  grid.appendChild(field('القاعدة السابقة للكيلوبايت',
+    '<select id="f-kb"><option value="1000"' + (f.kbBase === 1000 ? ' selected' : '') + '>1000 (تجاري)</option>' +
+    '<option value="1024"' + (f.kbBase === 1024 ? ' selected' : '') + '>1024 (هندسي)</option></select>'));
+
+  grid.appendChild(field('التفاصيل التقنية (IP/MAC)',
+    '<select id="f-tech"><option value="true"' + (f.enableTechDetails !== false ? ' selected' : '') + '>ظاهرة</option>' +
+    '<option value="false"' + (f.enableTechDetails === false ? ' selected' : '') + '>مخفية</option></select>'));
+
+  card.appendChild(grid);
+  return card;
+}
+
+// ---------------------------------------------------------------------------
+// Plans
+// ---------------------------------------------------------------------------
+function formPlans(c) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>باقات الاشتراك</h3><div class="planshint">الحصة هي القيمة المعروضة (مثال: "10 GB"). السعر رقم فقط.</div>';
+  const table = document.createElement('table');
+  const head = document.createElement('tr');
+  head.innerHTML = '<th>الاسم (EN)</th><th>الاسم (AR)</th><th>الحصة</th><th>الحصة (AR)</th><th>السعر</th><th>الأيقونة</th><th></th>';
+  table.appendChild(head);
+
+  (c.plans || []).forEach((plan, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input data-i="' + i + '" data-k="name" value="' + esc(plan.name) + '"></td>' +
+      '<td><input data-i="' + i + '" data-k="name_ar" value="' + esc(plan.name_ar || '') + '"></td>' +
+      '<td><input data-i="' + i + '" data-k="quota" value="' + esc(plan.quota) + '"></td>' +
+      '<td><input data-i="' + i + '" data-k="quota_ar" value="' + esc(plan.quota_ar || '') + '"></td>' +
+      '<td><input data-i="' + i + '" data-k="price" value="' + esc(plan.price) + '"></td>' +
+      '<td><select data-i="' + i + '" data-k="icon">' +
+      state.meta.planIcons.map(ic => '<option value="' + ic + '"' + (plan.icon === ic ? ' selected' : '') + '>' + ic + '</option>').join('') +
+      '</select></td>' +
+      '<td><button class="rowbtn" onclick="removePlan(' + i + ')">حذف</button></td>';
+    table.appendChild(tr);
+  });
+
+  card.appendChild(table);
+  const add = document.createElement('button');
+  add.className = 'btn ghost addbtn';
+  add.textContent = '＋ إضافة باقة';
+  add.onclick = addPlan;
+  card.appendChild(add);
+  return card;
+}
+
+function addPlan() {
+  state.current.config.plans = state.current.config.plans || [];
+  state.current.config.plans.push({ name: 'New Plan', name_ar: 'باقة جديدة', quota: '10 GB', quota_ar: '10 جيجا', price: '60', icon: 'globe' });
+  renderTab();
+}
+
+function removePlan(i) {
+  state.current.config.plans.splice(i, 1);
+  renderTab();
+}
+
+// ---------------------------------------------------------------------------
+// Support
+// ---------------------------------------------------------------------------
+function formSupport(c) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>فريق الدعم</h3>';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  const agents = c.support && c.support.agents ? c.support.agents : [];
+  agents.forEach((agent, i) => {
+    const box = document.createElement('div');
+    box.className = 'card';
+    box.style.marginBottom = '10px';
+    box.innerHTML =
+      '<div class="grid">' +
+      field('الاسم', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">') +
+      field('الدور', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">') +
+      field('التليفون', '<input id="s-phone-' + i + '" value="' + esc(agent.phone || '') + '">') +
+      field('واتساب (بكود الدولة)', '<input id="s-wa-' + i + '" value="' + esc(agent.whatsapp || '') + '">') +
+      field('صورة (اسم الملف في تبويب الملفات)', '<input id="s-img-' + i + '" value="' + esc(agent.image || '') + '">') +
+      '</div>' +
+      '<button class="rowbtn" style="margin-top:10px" onclick="removeAgent(' + i + ')">إزالة</button>';
+    grid.appendChild(box);
+  });
+
+  card.appendChild(grid);
+  const add = document.createElement('button');
+  add.className = 'btn ghost addbtn';
+  add.textContent = '＋ إضافة وكيل دعم';
+  add.onclick = () => {
+    state.current.config.support = state.current.config.support || { agents: [] };
+    state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '', whatsapp: '' });
+    renderTab();
+  };
+  card.appendChild(add);
+  return card;
+}
+
+function removeAgent(i) {
+  state.current.config.support.agents.splice(i, 1);
+  renderTab();
+}
+
+// ---------------------------------------------------------------------------
+// Announcements
+// ---------------------------------------------------------------------------
+function formAnnouncements() {
+  const a = state.current.announcements || { active: false, type: 'promo', message_en: [], message_ar: [] };
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>بانر الإعلان</h3>';
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.appendChild(field('مفعل',
+    '<select id="a-active"><option value="true"' + (a.active ? ' selected' : '') + '>نعم</option>' +
+    '<option value="false"' + (!a.active ? ' selected' : '') + '>لا</option></select>'));
+  grid.appendChild(field('النوع',
+    '<select id="a-type"><option value="promo"' + (a.type === 'promo' ? ' selected' : '') + '>ترويجي</option>' +
+    '<option value="warning"' + (a.type === 'warning' ? ' selected' : '') + '>تحذير</option></select>'));
+  card.appendChild(grid);
+
+  const msgCard = document.createElement('div');
+  msgCard.className = 'card';
+  msgCard.innerHTML = '<h3>الرسائل (سطر لكل رسالة)</h3>' +
+    '<div class="grid"><div class="field"><label>إنجليزية</label><textarea id="a-en">' + esc((a.message_en || []).join('\n')) + '</textarea></div>' +
+    '<div class="field"><label>عربية</label><textarea id="a-ar">' + esc((a.message_ar || []).join('\n')) + '</textarea></div></div>';
+  card.appendChild(msgCard);
+  return card;
+}
+
+// ---------------------------------------------------------------------------
+// Words (i18n overrides)
+// ---------------------------------------------------------------------------
+function formWords() {
+  const ov = state.current.config.i18nOverrides || {};
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة</h3>' +
+    '<div class="planshint">اختر مفتاحاً من القائمة الرسمية، واترك النصوص فارغة لحذف التخصيص.</div>';
+  const output = document.createElement('div');
+  output.id = 'words-list';
+
+  const renderWords = () => {
+    output.innerHTML = '';
+    const entries = Object.entries(ov).filter(([k]) => !k.startsWith('_'));
+    for (const [key, val] of entries) {
+      const en = typeof val === 'object' ? (val.en || '') : val;
+      const ar = typeof val === 'object' ? (val.ar || '') : '';
+      const row = document.createElement('div');
+      row.className = 'card';
+      row.style.marginBottom = '10px';
+      row.innerHTML =
+        '<div class="grid">' +
+        '<div class="field"><label>المفتاح</label><select class="w-key">' +
+        state.meta.knownKeys.map(k => '<option value="' + esc(k) + '"' + (k === key ? ' selected' : '') + '>' + esc(k) + '</option>').join('') +
+        '</select></div>' +
+        '<div class="field"><label>إنجليزية</label><input class="w-en" value="' + esc(en) + '"></div>' +
+        '<div class="field"><label>عربية</label><input class="w-ar" value="' + esc(ar) + '"></div>' +
+        '</div><button class="rowbtn" style="margin-top:8px">إزالة</button>';
+      const del = row.querySelector('.rowbtn');
+      del.onclick = () => { delete ov[key]; renderWords(); };
+      row.querySelector('.w-key').onchange = (e) => {
+        const nk = e.target.value;
+        ov[nk] = ov[key]; delete ov[key]; renderWords();
+      };
+      output.appendChild(row);
+    }
+  };
+  renderWords();
+  card.appendChild(output);
+
+  const add = document.createElement('button');
+  add.className = 'btn ghost addbtn';
+  add.textContent = '＋ إضافة كلمة مخصصة';
+  add.onclick = () => {
+    const firstFree = state.meta.knownKeys.find(k => !(k in ov));
+    ov[firstFree || 'login_button'] = { en: '', ar: '' };
+    renderWords();
+  };
+  card.appendChild(add);
+  return card;
+}
+
+// ---------------------------------------------------------------------------
+// Assets
+// ---------------------------------------------------------------------------
+function formAssets() {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h3>ملفات الهوية</h3>' +
+    '<div class="planshint">ارفع لوجو الشبكة (logo.svg)، الشعار النصي (prand-title.svg)، الأيقونة (icon.png) وصور وكلاء الدعم. نفس أسماء الملفات الأساسية تُستبدل عند البناء.</div>';
+
+  const list = document.createElement('div');
+  list.id = 'assets-list';
+  const render = () => {
+    list.innerHTML = '';
+    for (const a of state.current.assets) {
+      const row = document.createElement('div');
+      row.className = 'card';
+      row.style.marginBottom = '8px';
+      row.style.padding = '12px';
+      row.innerHTML = '<span>' + esc(a.name) + ' <span class="badge">' + Math.round(a.size / 1024) + ' KB</span></span> ' +
+        '<button class="rowbtn" onclick="deleteAsset(\'' + esc(a.name) + '\')">حذف</button>';
+      list.appendChild(row);
+    }
+  };
+  render();
+
+  const up = document.createElement('div');
+  up.className = 'field';
+  up.innerHTML = '<label>رفع ملف</label><input type="file" id="asset-file" accept=".svg,.png,.jpg,.jpeg,.webp">' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="uploadAsset(event)">رفع</button>';
+  card.appendChild(list);
+  card.appendChild(up);
+  return card;
+}
+
+async function uploadAsset() {
+  const file = $('#asset-file').files[0];
+  if (!file) return toast('اختر ملفاً أولاً', true);
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const dataBase64 = btoa(binary);
+  try {
+    await api('/profiles/' + encodeURIComponent(state.current.id) + '/assets', {
+      method: 'POST',
+      body: JSON.stringify({ filename: file.name, dataBase64 })
+    });
+    toast('تم رفع الملف');
+    await selectProfile(state.current.id);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function deleteAsset(name) {
+  try {
+    await api('/profiles/' + encodeURIComponent(state.current.id) + '/assets/' + encodeURIComponent(name), { method: 'DELETE' });
+    await selectProfile(state.current.id);
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// Save
+// ---------------------------------------------------------------------------
+function collectConfig() {
+  const c = state.current.config;
+  if (state.tab === 'general') {
+    c.general.networkName = $('#g-network').value.trim() || c.general.networkName;
+    c.general.poweredByText = $('#g-powered-text').value;
+    c.general.poweredByName = $('#g-powered-name').value;
+    c.general.poweredByUrl = $('#g-powered-url').value;
+  } else if (state.tab === 'theme') {
+    const preset = $('#t-preset').value;
+    if (preset) c.theme.preset = preset; else delete c.theme.preset;
+    c.theme.defaultTheme = $('#t-default').value;
+    c.theme.primaryColor = $('#t-primary').value;
+    c.theme.backgroundColor = $('#t-bg').value;
+    c.theme.cardRadius = $('#t-radius').value.trim();
+    c.theme.enableNetworkBackground = $('#t-canvas').value === 'true';
+  } else if (state.tab === 'features') {
+    c.features.loginMode = $('#f-login').value;
+    c.features.enableQRScanner = $('#f-qr').value === 'true';
+    const min = $('#f-min').value;
+    if (min === '') delete c.features.voucherMinLength; else c.features.voucherMinLength = parseInt(min, 10);
+    c.features.enableLanguageToggle = $('#f-lang').value === 'true';
+    c.features.enableClonePrevention = $('#f-clone').value === 'true';
+    c.features.enableSmartAssistant = $('#f-smart').value === 'true';
+    c.features.quotaDisplayFormat = $('#f-quota').value;
+    c.features.kbBase = parseInt($('#f-kb').value, 10);
+    c.features.enableTechDetails = $('#f-tech').value === 'true';
+  } else if (state.tab === 'plans') {
+    $$('tr', $('#content')).forEach(tr => {
+      const idx = tr.querySelector('input[data-i]');
+      if (!idx) return;
+      const i = parseInt(idx.dataset.i, 10);
+      const plan = c.plans[i];
+      for (const input of $$('input[data-i]', tr)) plan[input.dataset.k] = input.value.trim();
+      const icon = tr.querySelector('select[data-k="icon"]');
+      if (icon) plan.icon = icon.value;
+    });
+  } else if (state.tab === 'support') {
+    c.support = c.support || { agents: [] };
+    c.support.agents.forEach((agent, i) => {
+      agent.name = $('#s-name-' + i).value.trim();
+      agent.role = $('#s-role-' + i).value.trim();
+      agent.phone = $('#s-phone-' + i).value.trim();
+      agent.whatsapp = $('#s-wa-' + i).value.trim();
+      agent.image = $('#s-img-' + i).value.trim() || undefined;
+      if (!agent.image) delete agent.image;
+    });
+  }
+  return c;
+}
+
+async function saveConfig() {
+  if (!state.current) return toast('اختر بريفايل أولاً', true);
+  try {
+    const config = collectConfig();
+    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/config', {
+      method: 'PUT',
+      body: JSON.stringify({ config })
+    });
+    state.current = data.profile;
+    toast('تم الحفظ — الإعدادات سليمة');
+    $('#profileMeta').textContent = state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
+  } catch (e) {
+    toast(e.message, true);
+    if (e.validationErrors) {
+      const box = document.createElement('div');
+      box.className = 'errorbox';
+      box.textContent = 'أخطاء التحقق:\n' + e.validationErrors.join('\n');
+      $('#content').prepend(box);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Build
+// ---------------------------------------------------------------------------
+async function buildAndDownload() {
+  if (!state.current) return toast('اختر بريفايل أولاً', true);
+  if (state.buildBusy) return;
+  state.buildBusy = true;
+  const btn = $('.btn.primary');
+  btn.disabled = true; btn.textContent = 'جاري البناء…';
+  try {
+    await saveConfig();
+    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/build', { method: 'POST' });
+    const a = document.createElement('a');
+    a.href = data.downloadUrl;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast('تم البناء والتحميل (' + data.distFiles + ' ملف)');
+  } catch (e) {
+    toast('فشل البناء: ' + e.message, true);
+  } finally {
+    state.buildBusy = false;
+    btn.disabled = false; btn.textContent = 'بناء وتحميل zip';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------------
+let previewUrl = null;
+async function togglePreview() {
+  try {
+    if (previewUrl) {
+      await api('/preview/stop', { method: 'POST' });
+      previewUrl = null;
+      $('#previewBtn').textContent = 'معاينة';
+      return;
+    }
+    const data = await api('/preview', { method: 'POST', body: '{}' });
+    previewUrl = data.url;
+    $('#previewBtn').textContent = 'إيقاف المعاينة';
+    window.open(previewUrl, '_blank');
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// Profile CRUD
+// ---------------------------------------------------------------------------
+async function createProfile() {
+  const slug = prompt('معرّف البريفايل (إنجليزي، بدون مسافات):', 'client-' + Date.now().toString(36));
+  if (!slug) return;
+  const name = prompt('الاسم الظاهر (مثال: كافيه التراس):', slug) || slug;
+  try {
+    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name }) });
+    await loadProfiles(data.profile.id);
+    toast('تم إنشاء البريفايل');
+  } catch (e) { toast(e.message, true); }
+}
+
+async function duplicateProfile(id) {
+  const newSlug = prompt('معرّف النسخة الجديدة:', id + '-copy');
+  if (!newSlug) return;
+  try {
+    const data = await api('/profiles/' + encodeURIComponent(id) + '/duplicate', {
+      method: 'POST',
+      body: JSON.stringify({ newSlug, newName: newSlug })
+    });
+    await loadProfiles(data.profile.id);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function renameProfile(id) {
+  const name = prompt('الاسم الجديد:', state.profiles.find(p => p.id === id)?.name || id);
+  if (!name) return;
+  try {
+    await api('/profiles/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ name }) });
+    await loadProfiles(id);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function deleteProfile(id) {
+  if (!confirm('حذف البريفايل نهائياً؟')) return;
+  try {
+    await api('/profiles/' + encodeURIComponent(id), { method: 'DELETE' });
+    state.current = null;
+    $('#profileTitle').textContent = 'اختر بريفايل';
+    $('#content').innerHTML = '';
+    await loadProfiles();
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+boot();
+</script>
+</body>
+</html>

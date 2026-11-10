@@ -43,6 +43,16 @@ const { deriveThemeTokens } = require(path.join(REPO_ROOT, 'scripts', 'color-uti
 const store = createProfileStore(ADMIN_DIR);
 const workspace = createWorkspace({ repoRoot: REPO_ROOT });
 
+// Crash-safe recovery: if a previous build was killed mid-apply (power loss,
+// kill -9), restore the factory workspace from the backup before serving.
+try {
+  if (workspace.recoverIfInterrupted()) {
+    console.log('♻ Recovery: restored the factory workspace from an interrupted build backup');
+  }
+} catch (err) {
+  console.error('⚠ Recovery warning:', err.message);
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -312,9 +322,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+function startServer(port = 0) {
+  return new Promise((resolve) => {
+    server.listen(port, '127.0.0.1', () => resolve(server.address().port));
+  });
+}
+
 if (require.main === module) {
   const PORT = Number(process.env.ADMIN_PORT) || 8899;
-  server.listen(PORT, '127.0.0.1', () => {
+  startServer(PORT).then(() => {
     console.log('┌──────────────────────────────────────────────────────────┐');
     console.log('│  Meganet Portal Generator (admin) — local only          │');
     console.log('└──────────────────────────────────────────────────────────┘');
@@ -323,4 +339,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, store, workspace, startPreview, stopPreview, TEMPLATE_CONFIG, isLoopback };
+module.exports = { server, store, workspace, startPreview, stopPreview, TEMPLATE_CONFIG, isLoopback, startServer };

@@ -99,7 +99,7 @@
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-const state = { profiles: [], current: null, meta: null, tab: 'general', buildBusy: false };
+const state = { profiles: [], current: null, meta: null, tab: 'general', buildBusy: false, drafts: {} };
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -190,7 +190,133 @@ function renderTabs() {
   ).join('');
 }
 
-function setTab(id) { state.tab = id; renderTabs(); renderTab(); }
+function setTab(id) {
+  // capture the tab we are leaving into drafts BEFORE re-rendering (the DOM
+  // of the outgoing tab is about to be destroyed)
+  if (state.tab !== id) captureDraft(state.tab);
+  state.tab = id;
+  renderTabs();
+  renderTab();
+}
+
+// Snapshot the current tab's field values (its DOM is still present). Used so
+// Save always applies EVERY tab's edits, not just the visible one.
+function captureDraft(tab) {
+  try {
+    if (tab === 'general') {
+      state.drafts.general = {
+        networkName: $('#g-network').value.trim(),
+        poweredByText: $('#g-powered-text').value,
+        poweredByName: $('#g-powered-name').value,
+        poweredByUrl: $('#g-powered-url').value
+      };
+    } else if (tab === 'theme') {
+      state.drafts.theme = {
+        preset: $('#t-preset').value,
+        defaultTheme: $('#t-default').value,
+        primaryColor: $('#t-primary').value,
+        backgroundColor: $('#t-bg').value,
+        cardRadius: $('#t-radius').value.trim(),
+        enableNetworkBackground: $('#t-canvas').value === 'true'
+      };
+    } else if (tab === 'features') {
+      state.drafts.features = {
+        loginMode: $('#f-login').value,
+        enableQRScanner: $('#f-qr').value === 'true',
+        voucherMinLength: $('#f-min').value,
+        enableLanguageToggle: $('#f-lang').value === 'true',
+        enableClonePrevention: $('#f-clone').value === 'true',
+        enableSmartAssistant: $('#f-smart').value === 'true',
+        quotaDisplayFormat: $('#f-quota').value,
+        kbBase: parseInt($('#f-kb').value, 10),
+        enableTechDetails: $('#f-tech').value === 'true'
+      };
+    } else if (tab === 'plans') {
+      const rows = [];
+      $$('tr', $('#content')).forEach(tr => {
+        const idx = tr.querySelector('input[data-i]');
+        if (!idx) return;
+        const i = parseInt(idx.dataset.i, 10);
+        const row = { i };
+        for (const input of $$('input[data-i]', tr)) row[input.dataset.k] = input.value.trim();
+        const icon = tr.querySelector('select[data-k="icon"]');
+        if (icon) row.icon = icon.value;
+        rows.push(row);
+      });
+      state.drafts.plans = rows;
+    } else if (tab === 'support') {
+      const agents = [];
+      state.current.config.support = state.current.config.support || { agents: [] };
+      state.current.config.support.agents.forEach((agent, i) => {
+        agents.push({
+          i,
+          name: $('#s-name-' + i).value.trim(),
+          role: $('#s-role-' + i).value.trim(),
+          phone: $('#s-phone-' + i).value.trim(),
+          whatsapp: $('#s-wa-' + i).value.trim(),
+          image: $('#s-img-' + i).value.trim()
+        });
+      });
+      state.drafts.support = agents;
+    }
+  } catch (err) { /* element not present — skip draft for this tab */ }
+}
+
+function applyDrafts(c) {
+  const d = state.drafts;
+
+  if (d.general) {
+    if (d.general.networkName) c.general.networkName = d.general.networkName;
+    c.general.poweredByText = d.general.poweredByText;
+    c.general.poweredByName = d.general.poweredByName;
+    c.general.poweredByUrl = d.general.poweredByUrl;
+  }
+
+  if (d.theme) {
+    if (d.theme.preset) c.theme.preset = d.theme.preset; else delete c.theme.preset;
+    c.theme.defaultTheme = d.theme.defaultTheme;
+    c.theme.primaryColor = d.theme.primaryColor;
+    c.theme.backgroundColor = d.theme.backgroundColor;
+    c.theme.cardRadius = d.theme.cardRadius;
+    c.theme.enableNetworkBackground = d.theme.enableNetworkBackground;
+  }
+
+  if (d.features) {
+    c.features.loginMode = d.features.loginMode;
+    c.features.enableQRScanner = d.features.enableQRScanner;
+    const min = d.features.voucherMinLength;
+    if (min === '') delete c.features.voucherMinLength; else c.features.voucherMinLength = parseInt(min, 10);
+    c.features.enableLanguageToggle = d.features.enableLanguageToggle;
+    c.features.enableClonePrevention = d.features.enableClonePrevention;
+    c.features.enableSmartAssistant = d.features.enableSmartAssistant;
+    c.features.quotaDisplayFormat = d.features.quotaDisplayFormat;
+    c.features.kbBase = d.features.kbBase;
+    c.features.enableTechDetails = d.features.enableTechDetails;
+  }
+
+  if (d.plans) {
+    for (const row of d.plans) {
+      const plan = c.plans[row.i];
+      if (!plan) continue;
+      for (const k of ['name', 'name_ar', 'quota', 'quota_ar', 'price']) {
+        if (row[k] !== undefined) plan[k] = row[k];
+      }
+      if (row.icon) plan.icon = row.icon; else delete plan.icon;
+    }
+  }
+
+  if (d.support && c.support && c.support.agents) {
+    for (const a of d.support) {
+      const agent = c.support.agents[a.i];
+      if (!agent) continue;
+      agent.name = a.name;
+      agent.role = a.role;
+      agent.phone = a.phone;
+      agent.whatsapp = a.whatsapp;
+      if (a.image) agent.image = a.image; else delete agent.image;
+    }
+  }
+}
 
 function renderTab() {
   const c = state.current.config;
@@ -573,52 +699,11 @@ async function deleteAsset(name) {
 // Save
 // ---------------------------------------------------------------------------
 function collectConfig() {
+  // capture the visible tab now, then apply EVERY captured tab draft — this
+  // way editing several tabs and saving from any one of them loses nothing
+  captureDraft(state.tab);
   const c = state.current.config;
-  if (state.tab === 'general') {
-    c.general.networkName = $('#g-network').value.trim() || c.general.networkName;
-    c.general.poweredByText = $('#g-powered-text').value;
-    c.general.poweredByName = $('#g-powered-name').value;
-    c.general.poweredByUrl = $('#g-powered-url').value;
-  } else if (state.tab === 'theme') {
-    const preset = $('#t-preset').value;
-    if (preset) c.theme.preset = preset; else delete c.theme.preset;
-    c.theme.defaultTheme = $('#t-default').value;
-    c.theme.primaryColor = $('#t-primary').value;
-    c.theme.backgroundColor = $('#t-bg').value;
-    c.theme.cardRadius = $('#t-radius').value.trim();
-    c.theme.enableNetworkBackground = $('#t-canvas').value === 'true';
-  } else if (state.tab === 'features') {
-    c.features.loginMode = $('#f-login').value;
-    c.features.enableQRScanner = $('#f-qr').value === 'true';
-    const min = $('#f-min').value;
-    if (min === '') delete c.features.voucherMinLength; else c.features.voucherMinLength = parseInt(min, 10);
-    c.features.enableLanguageToggle = $('#f-lang').value === 'true';
-    c.features.enableClonePrevention = $('#f-clone').value === 'true';
-    c.features.enableSmartAssistant = $('#f-smart').value === 'true';
-    c.features.quotaDisplayFormat = $('#f-quota').value;
-    c.features.kbBase = parseInt($('#f-kb').value, 10);
-    c.features.enableTechDetails = $('#f-tech').value === 'true';
-  } else if (state.tab === 'plans') {
-    $$('tr', $('#content')).forEach(tr => {
-      const idx = tr.querySelector('input[data-i]');
-      if (!idx) return;
-      const i = parseInt(idx.dataset.i, 10);
-      const plan = c.plans[i];
-      for (const input of $$('input[data-i]', tr)) plan[input.dataset.k] = input.value.trim();
-      const icon = tr.querySelector('select[data-k="icon"]');
-      if (icon) plan.icon = icon.value;
-    });
-  } else if (state.tab === 'support') {
-    c.support = c.support || { agents: [] };
-    c.support.agents.forEach((agent, i) => {
-      agent.name = $('#s-name-' + i).value.trim();
-      agent.role = $('#s-role-' + i).value.trim();
-      agent.phone = $('#s-phone-' + i).value.trim();
-      agent.whatsapp = $('#s-wa-' + i).value.trim();
-      agent.image = $('#s-img-' + i).value.trim() || undefined;
-      if (!agent.image) delete agent.image;
-    });
-  }
+  applyDrafts(c);
   return c;
 }
 

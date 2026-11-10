@@ -7,7 +7,7 @@
     "build": "node build.js",
     "build:dev": "node build.js --dev",
     "watch": "node build.js --watch",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:unit": "jest --testPathPattern=tests/modules",
     "test:e2e": "playwright test",
     "test:a11y": "jest --testPathPattern=tests/a11y",

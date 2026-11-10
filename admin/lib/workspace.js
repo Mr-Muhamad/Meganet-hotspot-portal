@@ -140,22 +140,70 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
 
   // Serialize build runs — only one profile build at a time.
   let chain = Promise.resolve();
+
+  // ---- crash-safe cycle --------------------------------------------------
+  // Before touching the workspace we persist an "in-progress" marker plus a
+  // full backup of the factory state. If the process dies between applyProfile
+  // and restore (power loss, kill -9), the next server boot restores the
+  // factory automatically. Without this, a crash mid-build would leave the
+  // shipped Meganet workspace swapped for a client profile.
+  const SAFE_DIR = path.join(repoRoot, '.admin', 'tmp');
+  const MARKER = path.join(SAFE_DIR, 'build-in-progress.marker');
+  const GOOD_STATE = path.join(SAFE_DIR, 'last-good-state.json');
+
+  function persistGoodState(snap) {
+    fs.mkdirSync(SAFE_DIR, { recursive: true });
+    fs.writeFileSync(GOOD_STATE, JSON.stringify({
+      config: snap.config ? snap.config.toString('base64') : null,
+      announcements: snap.announcements ? snap.announcements.toString('base64') : null,
+      assets: snap.assets.map(a => ({ rel: a.rel, b64: a.buffer.toString('base64') }))
+    }), 'utf8');
+    fs.writeFileSync(MARKER, String(Date.now()));
+  }
+
+  function clearMarker() {
+    try { fs.rmSync(MARKER, { force: true }); } catch { /* best-effort */ }
+  }
+
+  function recoverIfInterrupted() {
+    if (!fs.existsSync(MARKER)) return false;
+    let snap;
+    try {
+      const saved = JSON.parse(fs.readFileSync(GOOD_STATE, 'utf8'));
+      snap = {
+        config: saved.config ? Buffer.from(saved.config, 'base64') : null,
+        announcements: saved.announcements ? Buffer.from(saved.announcements, 'base64') : null,
+        assets: (saved.assets || []).map(a => ({ rel: a.rel, buffer: Buffer.from(a.b64, 'base64') }))
+      };
+    } catch (err) {
+      // backup unreadable: cannot auto-restore, but still clear the marker,
+      // so future builds are not blocked forever.
+      clearMarker();
+      throw new Error('interrupted build found but its backup is unreadable — check config.json / src/assets manually');
+    }
+    restore(snap, []);
+    clearMarker();
+    return true;
+  }
+
   function runBuildCycle(profile, zipPath) {
     const job = chain.then(async () => {
       const snap = snapshot();
+      persistGoodState(snap); // crash-safe marker + factory backup
       const applied = applyProfile(profile);
       try {
         const built = await buildAndZip({ outputZip: zipPath });
         return { zipPath: built, distFiles: fs.readdirSync(distDir).length };
       } finally {
         restore(snap, applied);
+        clearMarker();
       }
     });
     chain = job.catch(() => {});
     return job;
   }
 
-  return { snapshot, applyProfile, buildAndZip, restore, runBuildCycle, repoRoot };
+  return { snapshot, applyProfile, buildAndZip, restore, runBuildCycle, recoverIfInterrupted, repoRoot };
 }
 
 module.exports = { createWorkspace, REPO_ROOT };

@@ -85,7 +85,13 @@ var ui = {
         redirectPath = ui.getRedirectPath('en');
       }
 
-      if (redirectPath) {
+      // If RouterOS just rendered an error message on this page (e.g. after a failed
+      // login attempt), DO NOT redirect via GET, as redirecting would lose $(error-esc).
+      // Instead, keep the user on the current page and translate the error in-place.
+      var errorEl = document.getElementById('errorMessage');
+      var hasError = errorEl && errorEl.textContent.trim().length > 0;
+
+      if (redirectPath && !hasError) {
         window.location.replace(redirectPath + window.location.search);
         return;
       }
@@ -146,7 +152,7 @@ var ui = {
    */
   translateRouterError: function() {
     try {
-      var errorEl = document.getElementById('errorMessage');
+      var errorEl = document.getElementById('errorMessage') || document.getElementById('error-message');
       if (!errorEl) return;
 
       var rawError = errorEl.getAttribute('data-raw-error') || errorEl.textContent.trim();

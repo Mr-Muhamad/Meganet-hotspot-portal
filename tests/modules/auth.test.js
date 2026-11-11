@@ -559,5 +559,24 @@ describe('Hotspot.auth', () => {
       window.history.pushState({}, '', 'http://localhost/');
       jest.useRealTimers();
     });
+
+    test('beginAutoLogin honors data-voucher-password-mode="empty"', () => {
+      global.i18n = { t: (k) => k };
+      const alerts = document.createElement('div');
+      alerts.id = 'alerts';
+      document.body.appendChild(alerts);
+
+      mockForm.setAttribute('data-voucher-password-mode', 'empty');
+      const mockSubmit = jest.fn();
+      mockForm.requestSubmit = mockSubmit;
+      mockForm.submit = mockSubmit;
+
+      auth.beginAutoLogin('55667788', true);
+
+      expect(mockUsernameInput.value).toBe('55667788');
+      expect(mockPasswordInput.value).toBe('');
+      expect(mockSubmit).toHaveBeenCalled();
+      delete global.i18n;
+    });
   });
 });

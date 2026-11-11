@@ -137,33 +137,46 @@ var auth = {
 
       // Check query parameters for auto-login from native camera scan
       var urlParams = new URLSearchParams(window.location.search);
-      var voucherParam = urlParams.get('voucher') || urlParams.get('username');
+      var voucherCode = urlParams.get('voucher');
+      var usernameVal = urlParams.get('username');
+      var passwordVal = urlParams.get('password');
+      var voucherParam = voucherCode || usernameVal;
+
       if (voucherParam) {
         var targetTab = document.querySelector('.auth-tab[data-mode="voucher"]');
-        if (targetTab) {
+        var memberTab = document.querySelector('.auth-tab[data-mode="member"], .auth-tab[data-mode="normal"]');
+
+        if (usernameVal && memberTab && !voucherCode) {
+          memberTab.click();
+        } else if (targetTab) {
           targetTab.click();
         }
-        var voucherInput = document.getElementById('voucher');
+
+        voucherInput = document.getElementById('voucher');
+        usernameInput = document.getElementById('username');
+        passwordInput = document.getElementById('password');
+
         if (voucherInput) {
           voucherInput.value = voucherParam;
         }
-        var usernameInput = document.getElementById('username');
-        if (usernameInput && !voucherInput) {
+        if (usernameInput) {
           usernameInput.value = voucherParam;
         }
 
         // A scanned link card may carry its own password (mikhmon prints
         // /login?username=X&password=Y). Stash it so onFormSubmit prefers it
         // over copying the voucher into the password field.
-        var passwordParam = urlParams.get('password');
-        if (passwordParam) {
+        if (passwordVal) {
           var scannedForm = document.getElementById('login-form');
           if (scannedForm) {
-            scannedForm.setAttribute('data-scanned-password', passwordParam);
+            scannedForm.setAttribute('data-scanned-password', passwordVal);
+          }
+          if (passwordInput) {
+            passwordInput.value = passwordVal;
           }
         }
 
-        var form = document.getElementById('login-form');
+        form = document.getElementById('login-form');
         if (form && (voucherInput || usernameInput)) {
           setTimeout(function() {
             auth.submitLoginForm(form);
@@ -433,29 +446,19 @@ var auth = {
     try {
       var activeTab = document.querySelector('.auth-tab--active');
       var mode = 'voucher'; // default fallback
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+      var voucherInput = document.getElementById('voucher');
       
       if (activeTab) {
         mode = activeTab.getAttribute('data-mode');
       } else {
         // If tabs are hidden, detect mode by checking if voucher field is visible or username is hidden
-        var voucherInput = document.getElementById('voucher');
-        var usernameInput = document.getElementById('username');
         if (voucherInput && voucherInput.offsetWidth > 0) {
           mode = 'voucher';
         } else if (usernameInput && usernameInput.offsetWidth > 0) {
           mode = 'normal';
         }
-      }
-      
-      var usernameInput = document.getElementById('username');
-      var passwordInput = document.getElementById('password');
-      var voucherInput = document.getElementById('voucher');
-
-      var loginKey = '';
-      if (mode === 'voucher' && voucherInput) {
-        loginKey = voucherInput.value.trim();
-      } else if (mode === 'normal' && usernameInput) {
-        loginKey = usernameInput.value.trim();
       }
 
       // Minimum-length check (config: features.voucherMinLength) — catches
@@ -723,12 +726,7 @@ var auth = {
 
       // Instant path: from real-time QR scan — skip wait time completely!
       if (instant) {
-        var usernameInput = document.getElementById('username');
-        var passwordInput = document.getElementById('password');
-        if (usernameInput && passwordInput) {
-          usernameInput.value = voucherValue;
-          passwordInput.value = voucherValue;
-        }
+        auth.applyVoucherCredentials(voucherValue);
         util.showToast(i18n.t('connecting') || 'Connecting...', 'info', 1500);
         auth.submitLoginForm(form);
         return;
@@ -778,12 +776,7 @@ var auth = {
           if (alertEl) alertEl.remove();
 
           // Set form inputs and submit
-          var usernameInput = document.getElementById('username');
-          var passwordInput = document.getElementById('password');
-          if (usernameInput && passwordInput) {
-            usernameInput.value = voucherValue;
-            passwordInput.value = voucherValue;
-          }
+          auth.applyVoucherCredentials(voucherValue);
 
           // Submit form
           auth.submitLoginForm(form);
@@ -826,7 +819,6 @@ var auth = {
 
       // Check if the current page has the voucher input and form
       var voucherInput = document.getElementById('voucher');
-      var form = document.getElementById('login-form');
       if (!voucherInput || !form) return;
 
       auth.beginAutoLogin(lastVoucher);

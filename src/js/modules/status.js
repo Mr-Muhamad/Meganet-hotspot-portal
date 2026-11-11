@@ -91,16 +91,16 @@ var statusModule = {
         }
 
         // Update remaining quota header value
+        var currentLang = document.documentElement.getAttribute('lang') || 'en';
+        var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
+        var remaining = limit > 0 ? Math.max(0, limit - totalUsed) : 0;
+        var percentRemaining = limit > 0 ? Math.min(100, Math.max(0, (remaining / limit) * 100)) : 0;
+
         if (quotaValueEl) {
           if (limit > 0) {
-            var remaining = limit - totalUsed;
-            if (remaining < 0) remaining = 0;
             var format = quotaSection.getAttribute('data-quota-format') || 'MB';
             // kbBase fallback matches the shipped config default (1000,
             // the commercial convention for voucher cards)
-            var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
-            var currentLang = document.documentElement.getAttribute('lang') || 'en';
-            
             if (format.toUpperCase() === 'GB') {
               var remainingGB = (remaining / (kbBase * kbBase * kbBase)).toFixed(2);
               var gbText = currentLang === 'ar' ? 'جيجا' : 'GB';
@@ -111,18 +111,12 @@ var statusModule = {
               quotaValueEl.textContent = remainingMB + ' ' + mbText;
             }
           } else {
-            var currentLang = document.documentElement.getAttribute('lang') || 'en';
             quotaValueEl.textContent = currentLang === 'ar' ? 'غير محدود' : 'Unlimited';
           }
         }
 
         // Update remaining progress bar and percentage
         if (limit > 0) {
-          var remaining = limit - totalUsed;
-          if (remaining < 0) remaining = 0;
-          var percentRemaining = (remaining / limit) * 100;
-          percentRemaining = Math.min(100, Math.max(0, percentRemaining));
-
           if (quotaRemainingProgressFill) {
             quotaRemainingProgressFill.style.width = percentRemaining + '%';
             quotaRemainingProgressFill.setAttribute('data-progress', percentRemaining);
@@ -153,13 +147,9 @@ var statusModule = {
         }
 
                 // Update smart usage assistant card
-        var isAr = (document.documentElement.getAttribute('lang') || 'en') === 'ar';
+        var isAr = currentLang === 'ar';
         if (smartUsageTip) {
           if (limit > 0) {
-            var remaining = limit - totalUsed;
-            if (remaining < 0) remaining = 0;
-            var percentRemaining = (remaining / limit) * 100;
-            
             var tipText = '';
             if (remaining > 2147483648) {
               tipText = isAr 
@@ -181,7 +171,6 @@ var statusModule = {
 
             if (smartUsageActivities && browsingHoursEl && videoSdEl && videoHdEl) {
               smartUsageActivities.style.display = 'block';
-              var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
               var socialBytesPerHour = 100 * kbBase * kbBase;
               var videoSdBytesPerHour = 250 * kbBase * kbBase;
               var videoHdBytesPerHour = 900 * kbBase * kbBase;
@@ -627,7 +616,7 @@ var statusModule = {
 
   refreshStatus: function() {
     try {
-      window.location.href = window.location.href;
+      window.location.reload();
     } catch (err) {
       console.error('Refresh status error:', err);
     }

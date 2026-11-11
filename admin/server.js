@@ -38,11 +38,10 @@ const ADMIN_DIR = process.env.ADMIN_DATA_DIR
   ? path.resolve(process.env.ADMIN_DATA_DIR)
   : path.join(REPO_ROOT, '.admin');
 
-const { createProfileStore } = require('./lib/profile-store.js');
+const { createProfileStore, SLUG_RE } = require('./lib/profile-store.js');
 const { createWorkspace } = require('./lib/workspace.js');
 const { validate } = require(path.join(REPO_ROOT, 'scripts', 'validate-config.js'));
 const { PRESETS, resolveEffectiveConfig, CUSTOM_PRESET_RE } = require(path.join(REPO_ROOT, 'scripts', 'presets.js'));
-const { deriveThemeTokens } = require(path.join(REPO_ROOT, 'scripts', 'color-utils.js'));
 
 const store = createProfileStore(ADMIN_DIR);
 const workspace = createWorkspace({ repoRoot: REPO_ROOT });
@@ -200,144 +199,149 @@ function stopPreview() {
 // ---------------------------------------------------------------------------
 
 async function handleApi(req, res, url, method) {
-  const parts = url.pathname.split('/').filter(Boolean); // e.g. ['api','profiles','slug','config']
-
-  // GET /api/profiles
-  if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts.length === 2) {
-    return sendJson(res, 200, { profiles: store.list() });
-  }
-
-  // GET /api/meta
-  if (method === 'GET' && parts[0] === 'api' && parts[1] === 'meta') {
-    let knownKeys = [];
-    try {
-      const en = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'src', 'i18n', 'en.json'), 'utf8'));
-      knownKeys = Object.keys(en.en || {});
-    } catch { /* empty */ }
-    const presets = Object.entries(allPresets()).map(([id, p]) => ({
-      id,
-      label: p.label,
-      theme: p.theme,
-      preview: p.preview || null,
-      custom: id.startsWith('custom:')
-    }));
-    return sendJson(res, 200, {
-      knownKeys,
-      presets,
-      planIcons: ['globe', 'briefcase', 'graduation-cap', 'ghost', 'star', 'shield', 'crown', 'package'],
-      template: TEMPLATE_CONFIG
-    });
-  }
-
-  // POST /api/presets — save the CURRENT profile's effective personality as a
-  // custom preset { slug (source profile), id }
-  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 2) {
-    const body = await readJsonBody(req);
-    const customId = 'custom:' + String(body.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40);
-    if (!CUSTOM_PRESET_RE.test(customId)) {
-      return sendJson(res, 400, { error: 'invalid preset id' });
-    }
-    const source = store.get(body.slug);
-    const effective = resolveEffectiveConfig(source.config, loadCustomPresets());
-    const map = loadCustomPresets();
-    map[customId] = {
-      label: body.label || customId,
-      theme: {
-        defaultTheme: effective.theme.defaultTheme || 'dark',
-        cardRadius: effective.theme.cardRadius || '16px',
-        enableNetworkBackground: effective.theme.enableNetworkBackground !== false
-      },
-      i18nOverrides: effective.i18nOverrides || {},
-      announcement: source.announcements || null,
-      preview: {
-        colors: [effective.theme.primaryColor || '#22c55e', effective.theme.backgroundColor || '#020617'],
-        radius: effective.theme.cardRadius || '16px'
-      }
-    };
-    saveCustomPresets(map);
-    return sendJson(res, 201, { id: customId, presets: Object.keys(map) });
-  }
-
-  // DELETE /api/presets/:id — remove a custom preset
-  if (method === 'DELETE' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 3) {
-    const id = decodeURIComponent(parts[2]);
-    const map = loadCustomPresets();
-    if (!map[id]) return sendJson(res, 404, { error: 'custom preset not found' });
-    delete map[id];
-    saveCustomPresets(map);
-    return sendJson(res, 200, { ok: true });
-  }
-
-  // GET /api/profiles/:id/export — full bundle (config + announcements + assets b64)
-  if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts[3] === 'export' && parts.length === 4) {
-    const profile = store.get(parts[2]);
-    const assets = profile.assets.map(a => ({
-      name: a.name,
-      dataBase64: fs.readFileSync(path.join(store.profilesDir, profile.id, 'assets', a.name)).toString('base64')
-    }));
-    const bundle = { name: profile.name, config: profile.config, announcements: profile.announcements, assets };
-    const payload = JSON.stringify(bundle, null, 2);
-    res.writeHead(200, {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${profile.id}-profile.json"`,
-      'Content-Length': Buffer.byteLength(payload)
-    });
-    return res.end(payload);
-  }
-
-  // POST /api/profiles/import — restore a bundle { slug, bundle }
-  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'profiles' && parts[2] === 'import' && parts.length === 3) {
-    const body = await readJsonBody(req, 20);
-    const bundle = body.bundle || {};
-    if (!bundle.config) return sendJson(res, 400, { error: 'bundle has no config' });
-    const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
-    if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
-    for (const asset of bundle.assets || []) {
-      store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
-    }
-    return sendJson(res, 201, { profile: store.get(profile.id) });
-  }
-
-  // GET /api/download/:id
-  if (method === 'GET' && parts[0] === 'api' && parts[1] === 'download' && parts.length === 3) {
-    const id = parts[2];
-    const zip = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
-    if (!fs.existsSync(zip)) return sendJson(res, 404, { error: 'build not found — run build first' });
-    const data = fs.readFileSync(zip);
-    res.writeHead(200, {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${id}-portal-dist.zip"`,
-      'Content-Length': data.length
-    });
-    return res.end(data);
-  }
-
-  // POST /api/preview
-  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'preview' && parts.length === 2) {
-    const body = await readJsonBody(req);
-    // strict port validation: positive integer in the private/ephemeral range
-    const requested = Number(body.port);
-    const port = Number.isInteger(requested) && requested >= 1024 && requested <= 65535
-      ? requested
-      : 8000 + Math.floor(Math.random() * 2000);
-    startPreview(port);
-    return sendJson(res, 200, { url: `http://127.0.0.1:${port}/login.html` });
-  }
-
-  // POST /api/preview/stop
-  if (method === 'POST' && parts[0] === 'api' && parts[1] === 'preview' && parts[2] === 'stop') {
-    stopPreview();
-    return sendJson(res, 200, { ok: true });
-  }
-
-  if (parts[0] !== 'api' || parts[1] !== 'profiles' || parts.length < 2) {
-    return sendJson(res, 404, { error: 'not found' });
-  }
-
-  const id = parts[2];
-  const action = parts[3]; // config | announcements | assets | duplicate | build | undefined
-
   try {
+    const parts = url.pathname.split('/').filter(Boolean); // e.g. ['api','profiles','slug','config']
+
+    // GET /api/profiles
+    if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts.length === 2) {
+      return sendJson(res, 200, { profiles: store.list() });
+    }
+
+    // GET /api/meta
+    if (method === 'GET' && parts[0] === 'api' && parts[1] === 'meta') {
+      let knownKeys = [];
+      try {
+        const en = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'src', 'i18n', 'en.json'), 'utf8'));
+        knownKeys = Object.keys(en.en || {});
+      } catch { /* empty */ }
+      const presets = Object.entries(allPresets()).map(([id, p]) => ({
+        id,
+        label: p.label,
+        theme: p.theme,
+        preview: p.preview || null,
+        custom: id.startsWith('custom:')
+      }));
+      return sendJson(res, 200, {
+        knownKeys,
+        presets,
+        planIcons: ['globe', 'briefcase', 'graduation-cap', 'ghost', 'star', 'shield', 'crown', 'package'],
+        template: TEMPLATE_CONFIG
+      });
+    }
+
+    // POST /api/presets — save the CURRENT profile's effective personality as a
+    // custom preset { slug (source profile), id }
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 2) {
+      const body = await readJsonBody(req);
+      const customId = 'custom:' + String(body.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 40);
+      if (!CUSTOM_PRESET_RE.test(customId)) {
+        return sendJson(res, 400, { error: 'invalid preset id' });
+      }
+      const source = store.get(body.slug);
+      const effective = resolveEffectiveConfig(source.config, loadCustomPresets());
+      const map = loadCustomPresets();
+      map[customId] = {
+        label: body.label || customId,
+        theme: {
+          defaultTheme: effective.theme.defaultTheme || 'dark',
+          cardRadius: effective.theme.cardRadius || '16px',
+          enableNetworkBackground: effective.theme.enableNetworkBackground !== false
+        },
+        i18nOverrides: effective.i18nOverrides || {},
+        announcement: source.announcements || null,
+        preview: {
+          colors: [effective.theme.primaryColor || '#22c55e', effective.theme.backgroundColor || '#020617'],
+          radius: effective.theme.cardRadius || '16px'
+        }
+      };
+      saveCustomPresets(map);
+      return sendJson(res, 201, { id: customId, presets: Object.keys(map) });
+    }
+
+    // DELETE /api/presets/:id — remove a custom preset
+    if (method === 'DELETE' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 3) {
+      const id = decodeURIComponent(parts[2]);
+      const map = loadCustomPresets();
+      if (!map[id]) return sendJson(res, 404, { error: 'custom preset not found' });
+      delete map[id];
+      saveCustomPresets(map);
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // GET /api/profiles/:id/export — full bundle (config + announcements + assets b64)
+    if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts[3] === 'export' && parts.length === 4) {
+      const profile = store.get(parts[2]);
+      const assets = profile.assets.map(a => ({
+        name: a.name,
+        dataBase64: fs.readFileSync(path.join(store.profilesDir, profile.id, 'assets', a.name)).toString('base64')
+      }));
+      const bundle = { name: profile.name, config: profile.config, announcements: profile.announcements, assets };
+      const payload = JSON.stringify(bundle, null, 2);
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${profile.id}-profile.json"`,
+        'Content-Length': Buffer.byteLength(payload)
+      });
+      return res.end(payload);
+    }
+
+    // POST /api/profiles/import — restore a bundle { slug, bundle }
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'profiles' && parts[2] === 'import' && parts.length === 3) {
+      const body = await readJsonBody(req, 20);
+      const bundle = body.bundle || {};
+      if (!bundle.config) return sendJson(res, 400, { error: 'bundle has no config' });
+      const validation = validate(bundle.config);
+      if (validation.errors && validation.errors.length) {
+        return sendJson(res, 422, { error: 'bundle config validation failed', validationErrors: validation.errors });
+      }
+      const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
+      if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
+      for (const asset of bundle.assets || []) {
+        store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
+      }
+      return sendJson(res, 201, { profile: store.get(profile.id) });
+    }
+
+    // GET /api/download/:id
+    if (method === 'GET' && parts[0] === 'api' && parts[1] === 'download' && parts.length === 3) {
+      const id = parts[2];
+      if (!SLUG_RE.test(id)) return sendJson(res, 400, { error: 'invalid profile slug' });
+      const zip = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
+      if (!fs.existsSync(zip)) return sendJson(res, 404, { error: 'build not found — run build first' });
+      const data = fs.readFileSync(zip);
+      res.writeHead(200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${id}-portal-dist.zip"`,
+        'Content-Length': data.length
+      });
+      return res.end(data);
+    }
+
+    // POST /api/preview
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'preview' && parts.length === 2) {
+      const body = await readJsonBody(req);
+      // strict port validation: positive integer in the private/ephemeral range
+      const requested = Number(body.port);
+      const port = Number.isInteger(requested) && requested >= 1024 && requested <= 65535
+        ? requested
+        : 8000 + Math.floor(Math.random() * 2000);
+      startPreview(port);
+      return sendJson(res, 200, { url: `http://127.0.0.1:${port}/login.html` });
+    }
+
+    // POST /api/preview/stop
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'preview' && parts[2] === 'stop') {
+      stopPreview();
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (parts[0] !== 'api' || parts[1] !== 'profiles' || parts.length < 2) {
+      return sendJson(res, 404, { error: 'not found' });
+    }
+
+    const id = parts[2];
+    const action = parts[3]; // config | announcements | assets | duplicate | build | undefined
+
     // POST /api/profiles  (create)
     if (method === 'POST' && parts.length === 2) {
       const body = await readJsonBody(req);
@@ -428,8 +432,8 @@ async function handleApi(req, res, url, method) {
     return sendJson(res, 404, { error: 'not found' });
   } catch (err) {
     if (err.validationErrors) return sendJson(res, 422, { error: err.message, validationErrors: err.validationErrors });
-    // store.get/rename/remove/... throw "profile not found" → 404 (not 400)
-    if (err.message === 'profile not found') return sendJson(res, 404, { error: err.message });
+    // store.get/rename/remove/... throw "profile not found: <slug>" → 404 (not 400)
+    if (err.message && err.message.startsWith('profile not found')) return sendJson(res, 404, { error: err.message });
     return sendJson(res, err.statusCode || 400, { error: err.message });
   }
 }

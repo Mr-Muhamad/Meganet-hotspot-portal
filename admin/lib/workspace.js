@@ -77,7 +77,6 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     const applied = [];
     if (profile.assets && profile.assets.length) {
       fs.mkdirSync(assetsDir, { recursive: true });
-      const profileAssetsDir = path.join(profile.dir, 'assets');
       for (const asset of profile.assets) {
         // basename whitelist: only a plain filename (no separators, no dot
         // prefix) may land in src/assets

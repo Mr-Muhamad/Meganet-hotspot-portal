@@ -20,13 +20,13 @@
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span class="alert__text" id="error-message">$(error-esc)</span>
+            <span class="alert__text" id="errorMessage">$(error-esc)</span>
           </div>
 
           <!-- Error Details -->
           <div class="text-center mt-lg">
             <p class="text-muted text-sm">
-              Error Code: <strong>$(error-esc)</strong>
+              <span data-i18n="error_code">Error Code</span>: <strong>$(error-esc)</strong>
             </p>
           </div>
         </div>
@@ -35,12 +35,17 @@
 
 {% block scripts %}
   <script>
+    // RADIUS/User Manager error translation map (from config.json).
+    // Consumed by ui.translateRouterError() during initLang()/toggleLang().
+    window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | dump | safe }}{% else %}{}{% endif %};
+
     // Initialize modules
     (function() {
       try {
         i18n.init();
         ui.initTheme();
         ui.initLang();
+        ui.translateRouterError();
       } catch (err) {
         console.error('Error page init error:', err);
       }

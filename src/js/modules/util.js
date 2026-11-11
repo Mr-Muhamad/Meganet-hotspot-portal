@@ -30,12 +30,12 @@ var util = {
     if (bytes === 0) return '0 ' + sizes[0];
     if (!bytes || bytes < 0 || isNaN(bytes)) return 'NaN';
     
-    // Read dynamic kbBase from active sessionCountdownSection if available
+    // Read dynamic kbBase from active sessionCountdownSection or any element with data-kb-base
     var k = 1024;
     if (typeof document !== 'undefined') {
-      var quotaEl = document.getElementById('sessionCountdownSection');
+      var quotaEl = document.getElementById('sessionCountdownSection') || document.querySelector('[data-kb-base]');
       if (quotaEl) {
-        var customBase = parseInt(quotaEl.getAttribute('data-kb-base'));
+        var customBase = parseInt(quotaEl.getAttribute('data-kb-base'), 10);
         if (customBase === 1000 || customBase === 1024) {
           k = customBase;
         }
@@ -203,8 +203,8 @@ var util = {
                        .replace(/%20/g, ' ')
                        .replace(/%[a-zA-Z0-9]{2,}/g, '');
     }
-    cleaned = cleaned.replace(/(?:\s*[\/%]*[fF]{3,}[%]*)+/g, '')
-                     .replace(/\s*\/[\s\/]*/g, ' ')
+    cleaned = cleaned.replace(/(?:\s*[/%]*[fF]{3,}[%]*)+/g, '')
+                     .replace(/\s*\/[\s/]*/g, ' ')
                      .replace(/\s+/g, ' ')
                      .trim();
 

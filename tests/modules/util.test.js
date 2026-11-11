@@ -65,6 +65,13 @@ describe('Hotspot.util', () => {
     test('handles negative values', () => {
       expect(util.formatBytes(-1024)).toContain('NaN');
     });
+
+    test('reads data-kb-base from any [data-kb-base] element (e.g. logout.html)', () => {
+      document.documentElement.setAttribute('lang', 'en');
+      document.body.innerHTML = '<div class="status-grid" data-kb-base="1000"></div>';
+      expect(util.formatBytes(1000000)).toBe('1 MB');
+      document.body.innerHTML = '';
+    });
   });
 
   describe('formatTime', () => {

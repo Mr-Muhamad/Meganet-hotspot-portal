@@ -80,5 +80,33 @@ describe('Hotspot.ui', () => {
       expect(document.getElementById('errorMessage').textContent)
         .toBe('some unknown error message');
     });
+
+    test('also translates #error-message element fallback', () => {
+      window.HotspotErrorMap = map;
+      document.documentElement.setAttribute('lang', 'ar');
+      document.body.innerHTML = '<span id="error-message">no more sessions are allowed for user testuser</span>';
+
+      ui.translateRouterError();
+      expect(document.getElementById('error-message').textContent)
+        .toBe('لا يُسمح بجلسات إضافية للمستخدم testuser');
+    });
+
+    test('initLang translates RouterOS error in-place instead of redirecting and losing $(error-esc)', () => {
+      window.HotspotErrorMap = map;
+      global.i18n = {
+        detectLang: () => 'ar',
+        setLang: (lang) => document.documentElement.setAttribute('lang', lang)
+      };
+      util.setCookie('hotspot_lang', 'ar', 365);
+      window.history.pushState({}, '', '/login.html');
+      document.body.innerHTML = '<span id="errorMessage">no more sessions are allowed for user ahmed</span>';
+
+      ui.initLang();
+
+      expect(document.documentElement.getAttribute('lang')).toBe('ar');
+      expect(document.getElementById('errorMessage').textContent)
+        .toBe('لا يُسمح بجلسات إضافية للمستخدم ahmed');
+      delete global.i18n;
+    });
   });
 });

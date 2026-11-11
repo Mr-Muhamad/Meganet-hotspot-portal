@@ -167,6 +167,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ 
 
 async function selectProfile(id) {
   try {
+    state.drafts = {};
     const data = await api('/profiles/' + encodeURIComponent(id));
     state.current = data.profile;
     $('#profileTitle').textContent = state.current.name;
@@ -272,6 +273,30 @@ function captureDraft(tab) {
         });
       });
       state.drafts.support = agents;
+    } else if (tab === 'announcements') {
+      const activeEl = $('#a-active');
+      const typeEl = $('#a-type');
+      const enEl = $('#a-en');
+      const arEl = $('#a-ar');
+      if (activeEl && typeEl && enEl && arEl) {
+        state.drafts.announcements = {
+          active: activeEl.value === 'true',
+          type: typeEl.value,
+          message_en: enEl.value.split('\n').map(s => s.trim()).filter(Boolean),
+          message_ar: arEl.value.split('\n').map(s => s.trim()).filter(Boolean)
+        };
+      }
+    } else if (tab === 'words') {
+      const overrides = {};
+      $$('#words-list .card').forEach(row => {
+        const key = row.querySelector('.w-key')?.value;
+        const en = row.querySelector('.w-en')?.value?.trim() || '';
+        const ar = row.querySelector('.w-ar')?.value?.trim() || '';
+        if (key && (en || ar)) {
+          overrides[key] = { en, ar };
+        }
+      });
+      state.drafts.words = overrides;
     }
   } catch (err) { /* element not present — skip draft for this tab */ }
 }
@@ -339,6 +364,14 @@ function applyDrafts(c) {
       agent.phone = a.phone;
       agent.whatsapp = a.whatsapp;
       if (a.image) agent.image = a.image; else delete agent.image;
+    }
+  }
+
+  if (d.words !== undefined) {
+    if (Object.keys(d.words).length > 0) {
+      c.i18nOverrides = d.words;
+    } else {
+      delete c.i18nOverrides;
     }
   }
 }
@@ -585,12 +618,16 @@ function formPlans(c) {
 }
 
 function addPlan() {
+  captureDraft(state.tab);
+  applyDrafts(state.current.config);
   state.current.config.plans = state.current.config.plans || [];
   state.current.config.plans.push({ name: 'New Plan', name_ar: 'باقة جديدة', quota: '10 GB', quota_ar: '10 جيجا', price: '60', icon: 'globe' });
   renderTab();
 }
 
 function removePlan(i) {
+  captureDraft(state.tab);
+  applyDrafts(state.current.config);
   state.current.config.plans.splice(i, 1);
   renderTab();
 }
@@ -642,6 +679,8 @@ function formSupport(c) {
   add.className = 'btn ghost addbtn';
   add.textContent = '＋ إضافة وكيل دعم';
   add.onclick = () => {
+    captureDraft(state.tab);
+    applyDrafts(state.current.config);
     state.current.config.support = state.current.config.support || { agents: [] };
     state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '', whatsapp: '' });
     renderTab();
@@ -651,6 +690,8 @@ function formSupport(c) {
 }
 
 function removeAgent(i) {
+  captureDraft(state.tab);
+  applyDrafts(state.current.config);
   state.current.config.support.agents.splice(i, 1);
   renderTab();
 }
@@ -687,7 +728,8 @@ function formAnnouncements() {
 // Words (i18n overrides)
 // ---------------------------------------------------------------------------
 function formWords() {
-  const ov = state.current.config.i18nOverrides || {};
+  state.current.config.i18nOverrides = state.current.config.i18nOverrides || {};
+  const ov = state.current.config.i18nOverrides;
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة</h3>' +
@@ -717,6 +759,16 @@ function formWords() {
       row.querySelector('.w-key').onchange = (e) => {
         const nk = e.target.value;
         ov[nk] = ov[key]; delete ov[key]; renderWords();
+      };
+      row.querySelector('.w-en').oninput = (e) => {
+        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: '' };
+        currentPair.en = e.target.value;
+        ov[key] = currentPair;
+      };
+      row.querySelector('.w-ar').oninput = (e) => {
+        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: '' };
+        currentPair.ar = e.target.value;
+        ov[key] = currentPair;
       };
       output.appendChild(row);
     }
@@ -825,7 +877,7 @@ function collectConfig() {
 }
 
 async function saveConfig() {
-  if (!state.current) return toast('اختر بريفايل أولاً', true);
+  if (!state.current) { toast('اختر بريفايل أولاً', true); return false; }
   try {
     const config = collectConfig();
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/config', {
@@ -833,8 +885,18 @@ async function saveConfig() {
       body: JSON.stringify({ config })
     });
     state.current = data.profile;
+
+    if (state.drafts.announcements) {
+      await api('/profiles/' + encodeURIComponent(state.current.id) + '/announcements', {
+        method: 'PUT',
+        body: JSON.stringify({ announcements: state.drafts.announcements })
+      });
+      state.current.announcements = state.drafts.announcements;
+    }
+
     toast('تم الحفظ — الإعدادات سليمة');
     $('#profileMeta').textContent = state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
+    return true;
   } catch (e) {
     toast(e.message, true);
     if (e.validationErrors) {
@@ -843,6 +905,7 @@ async function saveConfig() {
       box.textContent = 'أخطاء التحقق:\n' + e.validationErrors.join('\n');
       $('#content').prepend(box);
     }
+    return false;
   }
 }
 
@@ -856,7 +919,8 @@ async function buildAndDownload() {
   const btn = $('.btn.primary');
   btn.disabled = true; btn.textContent = 'جاري البناء…';
   try {
-    await saveConfig();
+    const saved = await saveConfig();
+    if (!saved) return;
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/build', { method: 'POST' });
     const a = document.createElement('a');
     a.href = data.downloadUrl;
@@ -899,8 +963,10 @@ async function createProfile() {
   const slug = prompt('معرّف البريفايل (إنجليزي، بدون مسافات):', 'client-' + Date.now().toString(36));
   if (!slug) return;
   const name = prompt('الاسم الظاهر (مثال: كافيه التراس):', slug) || slug;
+  const presetList = (state.meta && state.meta.presets) ? state.meta.presets.map(p => p.id).join(', ') : '';
+  const preset = prompt('اختر شخصية القالب (اختياري):\n' + presetList, 'cafe');
   try {
-    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name }) });
+    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name, preset: preset ? preset.trim() : undefined }) });
     await loadProfiles(data.profile.id);
     toast('تم إنشاء البريفايل');
   } catch (e) { toast(e.message, true); }
@@ -952,9 +1018,6 @@ function exportProfile() {
 }
 
 async function importProfile() {
-  const file = prompt('مسار ملف البروفايل المصدَّر على جهازك (لصق المسار الكامل):');
-  if (!file) return;
-  // The browser cannot read arbitrary paths — use a file input instead.
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json';

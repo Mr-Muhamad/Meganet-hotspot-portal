@@ -220,4 +220,19 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
     const meta = await api('GET', '/meta');
     expect(meta.json.presets.find(p => p.id === 'custom:teststyle')).toBeUndefined();
   });
+
+  test('returns 404 for non-existent profile and validates import/download inputs', async () => {
+    const missing = await api('GET', '/profiles/does-not-exist-xyz');
+    expect(missing.status).toBe(404);
+
+    const badImport = await api('POST', '/profiles/import', {
+      slug: 'bad-import-' + Date.now().toString(36),
+      name: 'تالف',
+      bundle: { config: { general: {} } }
+    });
+    expect(badImport.status).toBe(422);
+
+    const badDownload = await request('GET', base + '/api/download/INVALID_SLUG!');
+    expect(badDownload.status).toBe(400);
+  });
 });

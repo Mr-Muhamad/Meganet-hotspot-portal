@@ -18,7 +18,9 @@
     "preview:open": "node scripts/preview.mjs --open",
     "preview:error": "node scripts/preview.mjs --scenario error",
     "validate:config": "node scripts/validate-config.js",
-    "admin": "node admin/server.js"
+    "admin": "node admin/server.js",
+    "app:dev": "electron desktop/main.js",
+    "app:build": "electron-builder --win"
   },
   "keywords": [
     "mikrotik",
@@ -39,6 +41,8 @@
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "axe-core": "^4.8.2",
+    "electron": "^45.3.0",
+    "electron-builder": "^26.18.0",
     "eslint": "^8.55.0",
     "html-minifier": "^4.0.0",
     "jest": "^29.7.0",

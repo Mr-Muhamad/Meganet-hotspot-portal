@@ -1,0 +1,27 @@
+appId: com.meganet.hotspot.studio
+productName: Meganet Hotspot Studio
+directories:
+  output: dist-app
+files:
+  - "**/*"
+  - "!dist-app/**"
+  - "!tests/**"
+  - "!test-results/**"
+  - "!playwright-report/**"
+  - "!.admin/tmp/**"
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+    - target: nsis
+      arch:
+        - x64
+portable:
+  artifactName: "${productName}-Portable-${version}.${ext}"
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  artifactName: "${productName}-Setup-${version}.${ext}"

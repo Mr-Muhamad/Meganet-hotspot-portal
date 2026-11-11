@@ -1,5 +1,6 @@
 appId: com.meganet.hotspot.studio
 productName: Meganet Hotspot Studio
+asar: false
 directories:
   output: dist-app
 files:

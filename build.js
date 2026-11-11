@@ -310,6 +310,7 @@ function build(options = {}) {
   }
 
   console.log('📄 Building English pages...');
+  const buildErrors = [];
   ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
       const html = generatePage(page, 'en', options);
@@ -318,6 +319,7 @@ function build(options = {}) {
       console.log(`  ✓ ${page}.html`);
     } catch (error) {
       console.error(`  ✗ Error building ${page}.html:`, error);
+      buildErrors.push(`${page}.html (en)`);
     }
   });
 
@@ -333,8 +335,17 @@ function build(options = {}) {
       console.log(`  ✓ ar/${page}.html`);
     } catch (error) {
       console.error(`  ✗ Error building ar/${page}.html:`, error);
+      buildErrors.push(`${page}.html (ar)`);
     }
   });
+
+  // Fail the build loudly so callers (admin build cycle) never zip a
+  // partial/stale dist/ as if it were a success.
+  if (buildErrors.length) {
+    const msg = 'build failed for pages: ' + buildErrors.join(', ');
+    console.error('✖ ' + msg);
+    throw new Error(msg);
+  }
 
   const apiSource = path.join(__dirname, 'api.json');
   const apiDest = path.join(distDir, 'api.json');

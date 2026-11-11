@@ -192,6 +192,9 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
       persistGoodState(snap); // crash-safe marker + factory backup
       const applied = applyProfile(profile);
       try {
+        // delete any previous zip first — a failed build must never serve a
+        // STALE artifact as a success
+        try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }
         const built = await buildAndZip({ outputZip: zipPath });
         return { zipPath: built, distFiles: fs.readdirSync(distDir).length };
       } finally {

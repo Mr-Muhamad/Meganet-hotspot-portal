@@ -99,6 +99,12 @@ function sendJson(res, status, body) {
   res.end(payload);
 }
 
+function httpError(status, message) {
+  const err = new Error(message);
+  err.statusCode = status;
+  return err;
+}
+
 function readBody(req, limitMb = 10) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -106,21 +112,28 @@ function readBody(req, limitMb = 10) {
     req.on('data', (c) => {
       size += c.length;
       if (size > limitMb * 1024 * 1024) {
-        reject(new Error('payload too large'));
+        // destroy() makes any later write throw — reject FIRST, then reset
+        const err = httpError(413, 'payload too large');
+        req.removeAllListeners('data');
         req.destroy();
+        reject(err);
         return;
       }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
+    req.on('error', (err) => reject(httpError(400, 'request aborted')));
   });
 }
 
 function readJsonBody(req) {
   return readBody(req).then((buf) => {
     if (!buf.length) return {};
-    return JSON.parse(buf.toString('utf8'));
+    try {
+      return JSON.parse(buf.toString('utf8'));
+    } catch (err) {
+      throw httpError(400, 'invalid JSON body: ' + err.message);
+    }
   });
 }
 
@@ -439,6 +452,27 @@ const server = http.createServer(async (req, res) => {
     if (!isLoopback(req.socket.remoteAddress)) {
       return sendJson(res, 403, { error: 'local only' });
     }
+
+    // CSRF guard for mutating requests: any browser page on the operator's
+    // machine (malicious website) can POST to 127.0.0.1 — require the Origin
+    // (if present) to be the loopback admin origin. `no-cors` fetches still
+    // send Origin, so this closes the cross-site local-API tampering.
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const origin = req.headers.origin;
+      if (origin) {
+        try {
+          const o = new URL(origin);
+          const host = o.hostname;
+          const isLocalOrigin = host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1';
+          if (!isLocalOrigin) {
+            return sendJson(res, 403, { error: 'cross-origin request rejected' });
+          }
+        } catch {
+          return sendJson(res, 403, { error: 'cross-origin request rejected' });
+        }
+      }
+    }
+
     const url = new URL(req.url, 'http://127.0.0.1');
     if (url.pathname.startsWith('/api/')) {
       await handleApi(req, res, url, req.method);
@@ -446,7 +480,8 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, url);
     }
   } catch (err) {
-    try { sendJson(res, 500, { error: err.message }); } catch { res.end(); }
+    const status = err.statusCode || 500;
+    try { sendJson(res, status, { error: err.message }); } catch { res.end(); }
   }
 });
 

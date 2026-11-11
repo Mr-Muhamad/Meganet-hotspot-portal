@@ -16,11 +16,13 @@ const rules = {
     'link-login-only'
   ],
 
-  // Check for XSS-safe escaping
+  // Check for XSS-safe escaping — NOTE: no `g` flag. A global regex keeps
+  // lastIndex across .test() calls, silently skipping matches in later
+  // files (stateful regex bug).
   unsafePatterns: [
-    { pattern: /\$\(error\)(?!-esc)/g, message: 'Use $(error-esc) instead of $(error)' },
-    { pattern: /\$\(username\)(?!-esc)/g, message: 'Use $(username-esc) instead of $(username)' },
-    { pattern: /\$\(mac\)(?!-esc)/g, message: 'Use $(mac-esc) instead of $(mac)' }
+    { pattern: /\$\(error\)(?!-esc)/, message: 'Use $(error-esc) instead of $(error)' },
+    { pattern: /\$\(username\)(?!-esc)/, message: 'Use $(username-esc) instead of $(username)' },
+    { pattern: /\$\(mac\)(?!-esc)/, message: 'Use $(mac-esc) instead of $(mac)' }
   ],
 
   // Required HTML structure

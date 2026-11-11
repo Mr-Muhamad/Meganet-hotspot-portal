@@ -414,8 +414,8 @@ var auth = {
 
       if (mode === 'voucher') {
         var lastVoucher = null;
-        if (typeof localStorage !== 'undefined') {
-          lastVoucher = localStorage.getItem('hotspot_last_voucher');
+        if (typeof sessionStorage !== 'undefined') {
+          lastVoucher = sessionStorage.getItem('hotspot_last_voucher');
         }
         if (lastVoucher) {
           var voucherInput = document.getElementById('voucher');
@@ -532,10 +532,10 @@ var auth = {
       }
 
       var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
-      if (preventClone && typeof localStorage !== 'undefined') {
-        localStorage.setItem('hotspot_last_voucher', voucherValue);
-      } else if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('hotspot_last_voucher');
+      if (preventClone && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('hotspot_last_voucher', voucherValue);
+      } else if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('hotspot_last_voucher');
       }
     } catch (err) {
       console.error('Voucher credential copy error:', err);
@@ -812,12 +812,13 @@ var auth = {
       // Check if clone prevention is disabled via data-clone-prevention
       var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
 
-      // Check if we have a saved voucher
+      // Check if we have a saved voucher (sessionStorage: never survives a
+      // tab close, so a shared device cannot replay the previous code)
       var lastVoucher = null;
-      if (preventClone && typeof localStorage !== 'undefined') {
-        lastVoucher = localStorage.getItem('hotspot_last_voucher');
-      } else if (!preventClone && typeof localStorage !== 'undefined') {
-        localStorage.removeItem('hotspot_last_voucher');
+      if (preventClone && typeof sessionStorage !== 'undefined') {
+        lastVoucher = sessionStorage.getItem('hotspot_last_voucher');
+      } else if (!preventClone && typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('hotspot_last_voucher');
       }
 
       if (!lastVoucher) return;

@@ -43,6 +43,9 @@ describe('config schema validation', () => {
 
   mistake('a loginMode typo', 'features.loginMode', c => { c.features.loginMode = 'vucher_only'; });
   mistake('an invalid theme color', 'theme.primaryColor', c => { c.theme.primaryColor = '22c55e'; });
+  mistake('a 3-digit theme color', 'theme.primaryColor', c => { c.theme.primaryColor = '#0f0'; });
+  mistake('an unknown top-level section', 'config', c => { c.securty = {}; });
+  mistake('an unknown field key', 'theme', c => { c.theme.maxAttempts = 9; });
   mistake('a non-numeric plan price', 'plans[2].price', c => { c.plans[2].price = 'sixty'; });
   mistake('a whatsapp number containing "+"', 'support.agents[0].whatsapp', c => { c.support.agents[0].whatsapp = '+201212208788'; });
   mistake('an unsupported kbBase', 'features.kbBase', c => { c.features.kbBase = 512; });

@@ -46,8 +46,8 @@ const SCHEMA = {
   theme: {
     type: 'object',
     fields: {
-      primaryColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, hint: 'CSS hex color like #22c55e' },
-      backgroundColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, hint: 'CSS hex color like #020617' },
+      primaryColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{6}$/, hint: 'CSS hex color, 6 digits, like #22c55e' },
+      backgroundColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{6}$/, hint: 'CSS hex color, 6 digits, like #020617' },
       cardRadius: { type: 'string', pattern: /^\d+(\.\d+)?(px|rem|em|%)$/, hint: 'CSS length like 16px' }, // required unless theme.preset is set (see cross-field rules)
       enableNetworkBackground: { type: 'boolean' },
       preset: { type: 'string', hint: 'built-in preset id (meganet/cafe/hotel/clinic/...) or custom:<id> saved in the admin tool' },
@@ -222,6 +222,37 @@ function validate(config) {
         } else if (typeof v !== 'string') {
           errors.push(`${section}.${k}: ${describe(v)} is ${typeof v}, expected a string or { en, ar } object`);
         }
+      }
+    }
+  }
+
+  // --- unknown-key checks --------------------------------------------------
+  // A typo at section level ("securty") or field level ("maxAtempts") would
+  // otherwise pass silently and the portal would run with defaults. Hints
+  // and comments (`_*` / `*_hints`) are allowed everywhere.
+
+  const KNOWN_SECTIONS = new Set(Object.keys(SCHEMA));
+  for (const key of Object.keys(config)) {
+    if (key.startsWith('_')) continue;
+    if (!KNOWN_SECTIONS.has(key)) {
+      errors.push(`config: unknown top-level key "${key}" — did you mean a section from the schema?`);
+    }
+  }
+
+  for (const [section, sectionRule] of Object.entries(SCHEMA)) {
+    const value = config[section];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    if (sectionRule.freeValues || sectionRule.i18nKeys) {
+      // free-form sections (radiusErrorTranslations, i18nOverrides) — their
+      // keys are dynamic, not schema fields; skip field-level key checks
+      continue;
+    }
+    const knownFields = new Set(Object.keys(sectionRule.fields || {}));
+    for (const key of Object.keys(value)) {
+      if (key.startsWith('_')) continue;
+      if (key.endsWith('_hints')) continue;
+      if (!knownFields.has(key)) {
+        errors.push(`${section}: unknown key "${key}" — did you mean a field from the schema?`);
       }
     }
   }

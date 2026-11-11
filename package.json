@@ -2,7 +2,7 @@
   "name": "mikrotik-hotspot-portal",
   "version": "2.7.0",
   "description": "Modern MikroTik RouterOS hotspot portal templates with iOS CNA compatibility",
-  "main": "build.js",
+  "main": "desktop/main.js",
   "scripts": {
     "build": "node build.js",
     "build:dev": "node build.js --dev",

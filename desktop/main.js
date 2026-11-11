@@ -1,6 +1,10 @@
 // @ts-check
 'use strict';
 
+// Ensure the process runs as a full GUI Electron application even if
+// ELECTRON_RUN_AS_NODE is inherited from the parent environment / IDE.
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 const { app, BrowserWindow, shell, dialog } = require('electron');
 const path = require('path');
 const { startServer, server, stopPreview } = require('../admin/server.js');

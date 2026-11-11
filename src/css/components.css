@@ -244,6 +244,13 @@
   margin-bottom: var(--space-md);
 }
 
+/* Same class of bug as the alert banner: the `hidden` attribute must beat
+   .checkbox-group's display:flex (it leaks the "Remember me" row in the
+   tabbed `both` login mode otherwise). */
+.checkbox-group[hidden] {
+  display: none;
+}
+
 .checkbox-group input[type="checkbox"] {
   width: 18px;
   height: 18px;

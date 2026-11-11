@@ -458,21 +458,13 @@ var auth = {
         loginKey = usernameInput.value.trim();
       }
 
-      if (typeof rateLimiter !== 'undefined') {
-        var limitStatus = rateLimiter.check('device');
-        if (limitStatus.blocked) {
-          e.preventDefault();
-          auth.handleRateLimit(limitStatus);
-          return;
-        }
-        rateLimiter.recordAttempt('device');
-      }
-
       // Minimum-length check (config: features.voucherMinLength) — catches
       // obviously-truncated codes before a slow round trip to the router.
       // Codes are variable length, so only a floor is enforced: anything at
       // or above it is passed through for the router to judge.
-      // Empty/unset attribute disables the check.
+      // Empty/unset attribute disables the check. Runs BEFORE the rate-limit
+      // attempt is recorded, so typing short fragments cannot burn the
+      // legit full code's attempt slots.
       if (mode === 'voucher' && voucherInput) {
         var lenForm = document.getElementById('login-form');
         var voucherMinLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
@@ -481,6 +473,16 @@ var auth = {
           auth.showVoucherMinLengthError(voucherMinLength);
           return;
         }
+      }
+
+      if (typeof rateLimiter !== 'undefined') {
+        var limitStatus = rateLimiter.check('device');
+        if (limitStatus.blocked) {
+          e.preventDefault();
+          auth.handleRateLimit(limitStatus);
+          return;
+        }
+        rateLimiter.recordAttempt('device');
       }
 
       if (mode === 'voucher' && voucherInput && usernameInput && passwordInput) {

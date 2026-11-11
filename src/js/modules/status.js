@@ -540,10 +540,13 @@ var statusModule = {
 
   // Session hit zero: end it properly through the RouterOS logout servlet
   // ($(link-logout) captured on the warning banner), falling back to a
-  // self-reload if the attribute is ever missing.
+  // self-reload if the attribute is ever missing OR the token was not
+  // substituted (unsubstituted tokens would navigate to a literal
+  // '$(link-logout)' → 404 in preview/cached contexts).
   logoutOnExpiry: function() {
     var banner = document.getElementById('session-warning');
     var logoutUrl = banner ? banner.getAttribute('data-logout-url') : null;
+    if (logoutUrl && logoutUrl.indexOf('$(') === 0) logoutUrl = null;
     window.location.href = logoutUrl || window.location.href;
   },
 

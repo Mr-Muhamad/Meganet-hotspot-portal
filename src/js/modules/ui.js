@@ -486,6 +486,12 @@ var ui = {
               }
               if (messages.length === 0) return;
 
+              // The operator dismissed THIS announcement (7-day cookie) — do
+              // not re-show it until the message set changes (a different
+              // first message means new content).
+              var dismissedMsg = util.getCookie('hotspot_dismissed_msg');
+              if (dismissedMsg && dismissedMsg === messages[0]) return;
+
               var banner = document.getElementById('announcement-banner');
               var textEl = document.getElementById('announcement-text');
               var iconEl = document.getElementById('announcement-icon');

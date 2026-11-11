@@ -83,8 +83,12 @@
         ui.initTheme();
         ui.initLang();
 
-        // Auto-redirect countdown
-        util.safeRedirect('$(link-login)', 5, 'redirect-countdown');
+        // Auto-redirect countdown. Guard against an un-substituted token
+        // (local preview / cached page): navigating to the literal
+        // '$(link-login)' would 404.
+        var loginUrl = '$(link-login)';
+        if (!loginUrl || loginUrl.indexOf('$(') === 0) loginUrl = './login.html';
+        util.safeRedirect(loginUrl, 5, 'redirect-countdown');
 
         // Dynamically format and localize bytes using util.formatBytes
         var dlEl = document.getElementById('stat-download');

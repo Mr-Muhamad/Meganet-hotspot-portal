@@ -137,12 +137,20 @@ function buildJS(page) {
   return js;
 }
 
-// Read SVG and make it inline-safe (strip xml tag, keep inner content)
+// Read SVG and make it inline-safe (strip xml tag, keep inner content).
+// Also strip <script> blocks and event-handler attributes: brand assets are
+// operator-uploaded (admin profiles) so a malicious/accidental embedded
+// script must never execute inside the portal page.
 function inlineSVG(filePath) {
   try {
     let svg = fs.readFileSync(filePath, 'utf8');
     svg = svg.replace(/<\?xml[^?]*\?>/g, '');
     svg = svg.replace(/<!--[\s\S]*?-->/g, '');
+    svg = svg.replace(/<script[\s\S]*?<\/script>/gi, '');
+    svg = svg.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+    svg = svg.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+    svg = svg.replace(/(href|xlink:href)\s*=\s*"javascript:[^"]*"/gi, '$1="#"');
+    svg = svg.replace(/(href|xlink:href)\s*=\s*'javascript:[^']*'/gi, "$1='#'");
     svg = svg.trim();
     return svg;
   } catch {
@@ -170,6 +178,11 @@ function generatePage(page, lang, options = {}) {
     const allTranslations = applyI18nOverrides(loadTranslations(lang) || {}, config.i18nOverrides);
     const i18n = allTranslations[lang] || allTranslations.en || {};
 
+    // The full dictionary is embedded in a <script type="application/json">.
+    // Escape every "</" as "<\/" so an operator-supplied override value can
+    // never terminate the script block (JSON unescapes \/ back to /).
+    const allTranslationsJson = JSON.stringify(allTranslations).replace(/<\//g, '<\\/');
+
     // White-label brand tokens: derive every tint/glow/glass from the
     // client's primaryColor/backgroundColor at BUILD time (see
     // scripts/color-utils.js) — base.html injects them after the static CSS.
@@ -185,6 +198,7 @@ function generatePage(page, lang, options = {}) {
       js: js,
       i18n: i18n,
       allTranslations: allTranslations,
+      allTranslationsJson: allTranslationsJson,
       lang: lang,
       dir: lang === 'ar' ? 'rtl' : 'ltr',
       minify: options.minify !== false,

@@ -754,8 +754,25 @@ function formAssets() {
       row.className = 'card';
       row.style.marginBottom = '8px';
       row.style.padding = '12px';
-      row.innerHTML = '<span>' + esc(a.name) + ' <span class="badge">' + Math.round(a.size / 1024) + ' KB</span></span> ' +
-        '<button class="rowbtn" onclick="deleteAsset(\'' + esc(a.name) + '\')">حذف</button>';
+
+      const meta = document.createElement('span');
+      meta.appendChild(document.createTextNode(a.name + ' '));
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = Math.round(a.size / 1024) + ' KB';
+      meta.appendChild(badge);
+
+      const del = document.createElement('button');
+      del.className = 'rowbtn';
+      del.textContent = 'حذف';
+      // never build inline handlers with filenames (that was an XSS vector:
+      // esc() inside onclick is double-decoded → arbitrary code)
+      del.dataset.asset = a.name;
+      del.addEventListener('click', () => deleteAsset(del.dataset.asset));
+
+      row.appendChild(meta);
+      row.appendChild(document.createTextNode(' '));
+      row.appendChild(del);
       list.appendChild(row);
     }
   };

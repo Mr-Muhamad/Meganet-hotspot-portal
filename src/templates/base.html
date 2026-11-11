@@ -97,7 +97,7 @@
     <header class="header">
       <div class="header__brand">
         <span class="header__logo">{{ logoInline | safe }}</span>
-        <span class="header__name">{% if config.general.networkName %}{{ config.general.networkName }}{% else %}$(identity){% endif %}</span>
+        <span class="header__name">{% if config.general.networkName %}{{ config.general.networkName | e }}{% else %}$(identity){% endif %}</span>
         {% if page == 'status' or page == 'alogin' %}
         <!-- Mini Status Dot Indicator — shown only where the connection is
              genuinely active (status: authenticated session, alogin: right
@@ -143,10 +143,10 @@
     <footer class="footer">
       <p class="footer__text">
         {% if config.general.poweredByText %}
-          {{ config.general.poweredByText }}
+          {{ config.general.poweredByText | e }}
           {% if config.general.poweredByUrl %}
             <a href="{{ config.general.poweredByUrl }}" class="footer__link" target="_blank" rel="noopener noreferrer">
-              {% if config.general.poweredByName %}{{ config.general.poweredByName }}{% else %}{{ config.general.poweredByUrl }}{% endif %}
+              {% if config.general.poweredByName %}{{ config.general.poweredByName | e }}{% else %}{{ config.general.poweredByUrl }}{% endif %}
             </a>
           {% endif %}
         {% else %}
@@ -156,9 +156,10 @@
     </footer>
   </div>
 
-  <!-- i18n Data -->
+  <!-- i18n Data — escaped by the build (allTranslationsJson) so operator
+       override values can never break out of this script block -->
   <script type="application/json" id="i18n-data">
-{{ allTranslations | dump }}
+{{ allTranslationsJson }}
   </script>
 
   <!-- Global Handler Stubs -->
@@ -195,7 +196,11 @@
       return true;
     }
     function copyToClipboard(text, type) {
-      if (!text || text === '$' + '(ip)' || text === '$' + '(mac-esc)') return;
+      // Skip un-substituted RouterOS tokens ($(ip) / $(mac-esc)) at RUNTIME.
+      // A constant string like '$'+'(ip)' would be folded into the literal
+      // "$(ip)" by the minifier, silently breaking copy on real routers
+      // (the guard would compare against the substituted IP).
+      if (!text || String(text).indexOf('$(') === 0) return;
       var lang = document.documentElement.getAttribute('lang') || 'en';
       var successMsg = lang === 'ar' ? 'تم نسخ ' + type + ' بنجاح!' : type + ' copied successfully!';
       var errMsg = lang === 'ar' ? 'فشل النسخ تلقائياً.' : 'Failed to copy automatically.';
@@ -283,15 +288,15 @@
           <div class="support-person-card">
             <div class="support-person-card__avatar">
               {% if agent.image %}
-              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image }}" alt="{{ agent.name }}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image | e }}" alt="{{ agent.name | e }}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
               {% endif %}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="support-person-card__avatar-fallback" style="{% if agent.image %}display: none;{% endif %}">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
             </div>
             <div class="support-person-card__info">
-              <span class="support-person-card__name">{{ agent.name }}</span>
-              <span class="support-person-card__role">{{ agent.role }}</span>
+              <span class="support-person-card__name">{{ agent.name | e }}</span>
+              <span class="support-person-card__role">{{ agent.role | e }}</span>
             </div>
             <div class="support-person-card__actions">
               {% if agent.phone %}

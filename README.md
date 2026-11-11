@@ -23,7 +23,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
   <strong>Login modes: voucher &middot; normal &middot; both — Light</strong>
 </p>
 
-**Latest release: [v2.7.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system + place presets + client wording overrides, and a local portal generator (`npm run admin`).
+**Latest release: [v2.7.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system + place presets + client wording overrides, a standalone desktop studio application (**Meganet Hotspot Studio `.exe`**), and a local web portal generator (`npm run admin`).
 
 ---
 
@@ -118,6 +118,24 @@ Meganet-New-hotspot/
 │   ├── errors.txt          # RouterOS localized error messages
 │   └── redirect.html       # MikroTik intercept page
 └── docs/                   # SVG sources (logo.txt, favicon.txt)
+```
+
+---
+
+## Desktop App & Local Admin Generator
+
+### Standalone Executable (No Node.js Required)
+For network operators and technicians who want to customize and export portals without setting up developer tools:
+- Grab the standalone executable from [`dist-app/`](dist-app/) or the [Releases](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases) page:
+  - **Portable (`Meganet Hotspot Studio-Portable-2.7.0.exe`)**: Single-file executable, zero installation required, runs directly from USB.
+  - **Installer (`Meganet Hotspot Studio-Setup-2.7.0.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
+- Features: visual preset selection (restaurant, gym, cafe, hotel, clinic...), real-time branding/dictionary overrides, brand asset upload, and one-click **Build & Download** of the ready-to-upload router ZIP.
+
+### Developer Commands
+```bash
+npm run app:dev       # Launch the Electron desktop app in development mode
+npm run app:build     # Build Windows portable and installer executables (.exe)
+npm run admin         # Run the loopback admin server and open in browser
 ```
 
 ---

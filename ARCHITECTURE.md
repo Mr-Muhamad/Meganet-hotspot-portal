@@ -126,6 +126,23 @@ scripts/
 - i18n file generation
 - Asset copying
 
+### 6. Desktop & Generator Layer
+
+```
+desktop/
+└── main.js            # Electron desktop entry point (single instance, loopback binding)
+admin/
+├── server.js          # Local REST API server (profile CRUD, temporary workspace orchestration)
+├── lib/
+│   ├── profile-store.js  # Profile storage and persistence
+│   └── workspace.js      # Isolated build workspace apply/restore pipeline
+└── public/
+    └── index.html     # Studio client web UI
+electron-builder.yml   # Windows packaging configuration (portable & installer)
+```
+
+**Purpose**: Provide an interactive studio to customize, manage, and build multiple client profiles into router-ready ZIP files either via desktop GUI (.exe) or local web server.
+
 ## Data Flow
 
 ### Build Process

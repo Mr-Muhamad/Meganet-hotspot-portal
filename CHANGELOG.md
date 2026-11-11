@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.7.0] - 2026-11-10
 
 ### Added
+- **Standalone Desktop Executable (`Meganet Hotspot Studio`)**:
+  - Full Electron-based Windows application packaging the admin generator and build engine into a single executable (`.exe`).
+  - Available as both a **Portable** executable (`Meganet Hotspot Studio-Portable-2.7.0.exe`) and an **NSIS Installer** (`Meganet Hotspot Studio-Setup-2.7.0.exe`).
+  - Eliminates Node.js runtime prerequisites for network operators in the field.
+  - Added `npm run app:dev` and `npm run app:build` scripts.
 - **Eight new place presets** (`restaurant`, `gym`, `netcafe`, `mall`, `school`, `coworking`, `bakery`, `mobile-shop`) — the preset library is now 12 personalities
 - **Preset v2 — three-dimensional personalities**: each preset now carries a base client DICTIONARY (its own wording: café says "كود القعدة" from the first second, hotel "رقم الغرفة", clinic "كود الزيارة", …) plus a suggested welcome ANNOUNCEMENT seeded into new profiles created with that preset — operator keys and edits always win
 - **Missing config fields exposed in the admin UI**: `voucherPasswordMode` (same/empty — wrong value blocks login), the whole `security` section (max attempts + block minutes), optional external `qrScannerUrl`

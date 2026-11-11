@@ -32,6 +32,7 @@
     "logout": "Logout",
     "logout_success": "Logged out successfully",
     "logout_title": "Logged Out",
+    "alogin_title": "Connected",
     "redirecting": "Redirecting in",
     "seconds": "seconds",
     "second_one": "second",

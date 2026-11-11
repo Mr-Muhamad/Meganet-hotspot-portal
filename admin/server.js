@@ -428,7 +428,9 @@ async function handleApi(req, res, url, method) {
     return sendJson(res, 404, { error: 'not found' });
   } catch (err) {
     if (err.validationErrors) return sendJson(res, 422, { error: err.message, validationErrors: err.validationErrors });
-    return sendJson(res, 400, { error: err.message });
+    // store.get/rename/remove/... throw "profile not found" → 404 (not 400)
+    if (err.message === 'profile not found') return sendJson(res, 404, { error: err.message });
+    return sendJson(res, err.statusCode || 400, { error: err.message });
   }
 }
 

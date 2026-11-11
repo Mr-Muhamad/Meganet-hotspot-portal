@@ -5,6 +5,19 @@ const nunjucks = require('nunjucks');
 const { deriveThemeTokens } = require('./scripts/color-utils.js');
 const { resolveEffectiveConfig } = require('./scripts/presets.js');
 
+// Custom (admin-saved) presets live in .admin/custom-presets.json — load
+// them so a plain `npm run build` (CLI/CI) resolves `custom:` preset ids the
+// same way the admin server does.
+function loadCustomPresetsForBuild() {
+  try {
+    const p = path.join(__dirname, '.admin', 'custom-presets.json');
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (err) {
+    console.warn('⚠ Could not read .admin/custom-presets.json:', err.message);
+  }
+  return null;
+}
+
 // Configure Nunjucks
 const templatesDir = path.join(__dirname, 'src', 'templates');
 nunjucks.configure(templatesDir, {
@@ -171,7 +184,7 @@ function generatePage(page, lang, options = {}) {
     } else if (fs.existsSync(configExamplePath)) {
       config = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
     }
-    config = resolveEffectiveConfig(config);
+    config = resolveEffectiveConfig(config, loadCustomPresetsForBuild());
 
     const css = buildCSS();
     const js = buildJS(page);

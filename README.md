@@ -29,7 +29,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 
 ## Features
 
-- **Modern minimalist UI** with dark/light themes — follows the device's `prefers-color-scheme` on first visit; a manual toggle is remembered
+- **Modern minimalist UI** with dark/light themes — first visit shows the portal's configured default theme (`theme.defaultTheme`), applied pre-paint; a manual toggle is remembered
 - **Instant QR Code Login** — one tap opens the phone's native camera; the photo is decoded by the vendored **jsQR** (reads real camera photos of real cards) with the native `BarcodeDetector` fast path where available
 - **Both card types supported** — bare-code cards (`=CODE` / `CODE`) auto-log-in in place; mikhmon credential links (`?username=X&password=Y`) extract the credentials and submit them to the portal itself (immune to stale printed hostnames), with the carried password honored for `up`-mode cards
 - **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
@@ -351,7 +351,7 @@ All visual branding is driven by **`config.json`** — edit it, run `npm run bui
 
 Base design tokens live in `src/css/variables.css` and `src/css/theme.css`.
 
-**Theme behavior**: the first visit follows the device's `prefers-color-scheme` (applied pre-paint by a head script — no dark flash); a manual toggle is remembered for a year via the `hotspot_theme` cookie, and until then OS changes keep propagating. The toggle also updates `<meta name="theme-color">` so the mobile browser chrome follows along.
+**Theme behavior**: the first visit shows the portal's configured default theme (`config.theme.defaultTheme`, default `dark`), applied pre-paint by a head script — no flash. A manual toggle is remembered for a year via the `hotspot_theme` cookie; the OS `prefers-color-scheme` is not used for the first visit (each client controls how the portal opens). The toggle also updates `<meta name="theme-color">` so the mobile browser chrome follows along.
 
 ### Language Configuration
 

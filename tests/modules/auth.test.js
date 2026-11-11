@@ -483,6 +483,48 @@ describe('Hotspot.auth', () => {
       expect(global.hexMD5).toHaveBeenCalledWith('a'.repeat(32) + '1234567890' + 'b'.repeat(32));
       expect(passwordInput.value).toBe('HASH');
     });
+
+    test('hashes on a real short RouterOS chap-id (2 hex digits)', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = '1234567890';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = 'a0'; // RFC 1994 Identifier is one octet → 2 hex chars
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'b'.repeat(32);
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = jest.fn(() => 'HASH');
+      auth.chapHashOnSubmit();
+
+      expect(global.hexMD5).toHaveBeenCalledWith('a0' + '1234567890' + 'b'.repeat(32));
+      expect(passwordInput.value).toBe('HASH');
+    });
+
+    test('does NOT hash on a non-hex chap-id (un-substituted token)', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = '1234567890';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = '$(chap-id)';
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'b'.repeat(32);
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = jest.fn(() => 'HASH');
+      auth.chapHashOnSubmit();
+
+      expect(global.hexMD5).not.toHaveBeenCalled();
+      expect(passwordInput.value).toBe('1234567890');
+    });
   });
 
   describe('QR Scanner & URL Params Auto-login', () => {

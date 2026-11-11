@@ -20,6 +20,7 @@ const ar = require('../../src/i18n/ar.json').ar;
 
 function collectTemplateKeys() {
   const keys = new Set();
+  const titlePages = new Set();
   fs.readdirSync(TEMPLATES_DIR).forEach(file => {
     const source = fs.readFileSync(path.join(TEMPLATES_DIR, file), 'utf8');
     // data-i18n, data-i18n-placeholder, data-i18n-aria, ...
@@ -29,8 +30,13 @@ function collectTemplateKeys() {
     // Nunjucks interpolation {{ i18n.key }}
     const interpRe = /\{\{\s*i18n\.([a-zA-Z0-9_]+)\s*\}\}/g;
     while ((match = interpRe.exec(source)) !== null) keys.add(match[1]);
+    // The title interpolation {{ i18n[page + '_title'] }} lives in base.html;
+    // every template that EXTENDS base (i.e. every real page) therefore implies
+    // a <page>_title key. index.html is standalone (no base), so it is exempt.
+    const name = path.basename(file, '.html');
+    if (name !== 'base' && name !== 'index') titlePages.add(name);
   });
-  return keys;
+  return { keys, titlePages };
 }
 
 // Programmatic lookups: i18n.t('key') called from the JS modules bundled by build.js
@@ -62,7 +68,11 @@ function collectProgrammaticKeys() {
 }
 
 describe('i18n dictionary health', () => {
-  const usedKeys = new Set([...collectTemplateKeys(), ...collectProgrammaticKeys()]);
+  const templateScan = collectTemplateKeys();
+  const titlePages = templateScan.titlePages;
+  const usedKeys = new Set([...templateScan.keys, ...collectProgrammaticKeys()]);
+  // pages using {{ i18n[page + '_title'] }} imply real <page>_title keys
+  for (const page of titlePages) usedKeys.add(`${page}_title`);
 
   test('all template-referenced keys exist in en.json', () => {
     const missing = [...usedKeys].filter(k => !(k in en));
@@ -83,5 +93,14 @@ describe('i18n dictionary health', () => {
   test('no dead keys: every dictionary key is referenced by a template', () => {
     const dead = Object.keys(en).filter(k => !usedKeys.has(k));
     expect(dead).toEqual([]);
+  });
+
+  test('every base page has a <page>_title key (catches bracket interpolation gaps)', () => {
+    expect(titlePages.size).toBeGreaterThan(0);
+    for (const page of titlePages) {
+      const key = `${page}_title`;
+      if (en[key] === undefined) throw new Error(`${page} (en): missing "${key}"`);
+      if (ar[key] === undefined) throw new Error(`${page} (ar): missing "${key}"`);
+    }
   });
 });

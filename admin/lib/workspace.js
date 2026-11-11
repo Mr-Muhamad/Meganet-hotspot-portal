@@ -151,12 +151,16 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
   const MARKER = path.join(SAFE_DIR, 'build-in-progress.marker');
   const GOOD_STATE = path.join(SAFE_DIR, 'last-good-state.json');
 
-  function persistGoodState(snap) {
+  // The profile's applied-assets list is saved with the factory backup so a
+  // crash recovery can remove exactly what the interrupted build introduced
+  // (previously restore(snap, []) could leave foreign assets in src/assets).
+  function persistGoodState(snap, appliedAssets) {
     fs.mkdirSync(SAFE_DIR, { recursive: true });
     fs.writeFileSync(GOOD_STATE, JSON.stringify({
       config: snap.config ? snap.config.toString('base64') : null,
       announcements: snap.announcements ? snap.announcements.toString('base64') : null,
-      assets: snap.assets.map(a => ({ rel: a.rel, b64: a.buffer.toString('base64') }))
+      assets: snap.assets.map(a => ({ rel: a.rel, b64: a.buffer.toString('base64') })),
+      appliedAssets: appliedAssets || []
     }), 'utf8');
     fs.writeFileSync(MARKER, String(Date.now()));
   }
@@ -173,7 +177,8 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
       snap = {
         config: saved.config ? Buffer.from(saved.config, 'base64') : null,
         announcements: saved.announcements ? Buffer.from(saved.announcements, 'base64') : null,
-        assets: (saved.assets || []).map(a => ({ rel: a.rel, buffer: Buffer.from(a.b64, 'base64') }))
+        assets: (saved.assets || []).map(a => ({ rel: a.rel, buffer: Buffer.from(a.b64, 'base64') })),
+        appliedAssets: saved.appliedAssets || []
       };
     } catch (err) {
       // backup unreadable: cannot auto-restore, but still clear the marker,
@@ -181,7 +186,7 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
       clearMarker();
       throw new Error('interrupted build found but its backup is unreadable — check config.json / src/assets manually');
     }
-    restore(snap, []);
+    restore(snap, snap.appliedAssets);
     clearMarker();
     return true;
   }
@@ -189,9 +194,12 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
   function runBuildCycle(profile, zipPath) {
     const job = chain.then(async () => {
       const snap = snapshot();
-      persistGoodState(snap); // crash-safe marker + factory backup
-      const applied = applyProfile(profile);
+      let applied = [];
       try {
+        // apply INSIDE the guarded cycle: if it throws, we can already restore
+        // the factory + clear the marker (no dirty workspace till restart)
+        applied = applyProfile(profile);
+        persistGoodState(snap, applied); // crash-safe marker + factory backup
         // delete any previous zip first — a failed build must never serve a
         // STALE artifact as a success
         try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }

@@ -546,8 +546,9 @@ var auth = {
    * CHAP hashing as a regular submit listener, replacing the template's inline
    * onsubmit="return doLogin()" (stripped in init) so it runs AFTER the voucher
    * copy and hashes the final password. Fires only on a genuine RouterOS
-   * challenge — $(chap-id) is 32 hex chars; un-substituted template text (test
-   * environments, cached pages) must leave the password untouched.
+   * challenge — $(chap-id) is a hex octet (typically 2 chars, up to 32 for
+   * some builds); un-substituted template text (test environments, cached
+   * pages) must leave the password untouched.
    */
   chapHashOnSubmit: function() {
     try {
@@ -557,7 +558,7 @@ var auth = {
       var plainPasswordHidden = document.getElementById('plain-password');
 
       if (chapId && chapChallenge && passwordInput &&
-          /^[0-9a-f]{32}$/i.test(String(chapId.value || '')) &&
+          /^[0-9a-f]{2,32}$/i.test(String(chapId.value || '')) &&
           String(chapChallenge.value || '') !== '' &&
           typeof hexMD5 !== 'undefined') {
         passwordInput.value = hexMD5(chapId.value + passwordInput.value + chapChallenge.value);

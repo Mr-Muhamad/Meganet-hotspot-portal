@@ -66,10 +66,10 @@
           {% endif %}
         </div>
         <div class="plan-card__info">
-          <div class="plan-card__quota">{% if lang == 'ar' and plan.quota_ar %}{{ plan.quota_ar }}{% else %}{{ plan.quota }}{% endif %}</div>
-          <div class="plan-card__name">{% if lang == 'ar' and plan.name_ar %}{{ plan.name_ar }}{% else %}{{ plan.name }}{% endif %}</div>
+          <div class="plan-card__quota">{% if lang == 'ar' and plan.quota_ar %}{{ plan.quota_ar | e }}{% else %}{{ plan.quota | e }}{% endif %}</div>
+          <div class="plan-card__name">{% if lang == 'ar' and plan.name_ar %}{{ plan.name_ar | e }}{% else %}{{ plan.name | e }}{% endif %}</div>
         </div>
-        <div class="plan-card__price">{% if lang == 'ar' %}{{ plan.price }} ج.م{% else %}{{ plan.price }} EGP{% endif %}</div>
+        <div class="plan-card__price">{% if lang == 'ar' %}{{ plan.price | e }} ج.م{% else %}{{ plan.price | e }} EGP{% endif %}</div>
       </div>
       {% endfor %}
     {% else %}

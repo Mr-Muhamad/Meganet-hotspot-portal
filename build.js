@@ -20,7 +20,7 @@ function loadCustomPresetsForBuild() {
 
 // Configure Nunjucks
 const templatesDir = path.join(__dirname, 'src', 'templates');
-nunjucks.configure(templatesDir, {
+const nunjucksEnv = nunjucks.configure(templatesDir, {
   autoescape: false,
   trimBlocks: true,
   lstripBlocks: true,
@@ -30,6 +30,13 @@ nunjucks.configure(templatesDir, {
   // re-parse cost across 16 renders is negligible.
   noCache: true
 });
+
+// JSON embedded inside a <script> block (window.HotspotErrorMap): JSON.stringify
+// does NOT escape "<", so a config string value like "x</script><script>…" could
+// close the enclosing script tag. Escape every "<" as \u003c — a valid JSON
+// escape that parses back to "<" — so the object round-trips unchanged while the
+// tag can never be broken. (Same defense the i18n dictionary embed uses.)
+nunjucksEnv.addFilter('scriptjson', value => JSON.stringify(value).replace(/</g, '\\u003c'));
 
 // Read translations
 function loadTranslations(lang) {

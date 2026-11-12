@@ -40,7 +40,7 @@ const SCHEMA = {
       networkName: { type: 'string', required: true },
       poweredByText: { type: 'string', required: true },
       poweredByName: { type: 'string', required: true },
-      poweredByUrl: { type: 'string', required: true, pattern: /^https?:\/\/.+/ , hint: 'absolute http(s) URL' }
+      poweredByUrl: { type: 'string', required: true, pattern: /^https?:\/\/[^\s"'<>]+$/ , hint: 'absolute http(s) URL' }
     }
   },
   theme: {
@@ -62,7 +62,7 @@ const SCHEMA = {
       quotaDisplayFormat: { type: 'string', enum: ['MB', 'GB'], hint: 'unit shown for remaining quota on the status page' },
       kbBase: { type: 'number', enum: [1000, 1024], hint: 'decimal (1000) or binary (1024) kilobyte base' },
       enableQRScanner: { type: 'boolean' },
-      qrScannerUrl: { type: 'string', pattern: /^https?:\/\/.+/, hint: 'absolute URL of the QR scanner page' },
+      qrScannerUrl: { type: 'string', pattern: /^https?:\/\/[^\s"'<>]+$/, hint: 'absolute URL of the QR scanner page' },
       enableSmartAssistant: { type: 'boolean' },
       enableTechDetails: { type: 'boolean' },
       enableClonePrevention: { type: 'boolean' },

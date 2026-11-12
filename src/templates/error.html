@@ -37,7 +37,7 @@
   <script>
     // RADIUS/User Manager error translation map (from config.json).
     // Consumed by ui.translateRouterError() during initLang()/toggleLang().
-    window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | dump | safe }}{% else %}{}{% endif %};
+    window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | scriptjson }}{% else %}{}{% endif %};
 
     // Initialize modules
     (function() {

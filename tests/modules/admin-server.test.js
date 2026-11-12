@@ -24,7 +24,8 @@ const CONFIG_FILE = path.join(REPO, 'config.json');
 jest.setTimeout(120000);
 
 // Jest's jsdom env has no global fetch — use a small http.request wrapper.
-function request(method, url, body) {
+// extraHeaders lets a test forge headers (e.g. a rebinding Host header).
+function request(method, url, body, extraHeaders) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
@@ -33,9 +34,10 @@ function request(method, url, body) {
       port: u.port,
       path: u.pathname + u.search,
       method,
-      headers: payload
-        ? { 'Content-Type': 'application/json', 'Content-Length': payload.length }
-        : {}
+      headers: Object.assign(
+        payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {},
+        extraHeaders || {}
+      )
     }, (res) => {
       const chunks = [];
       res.on('data', c => chunks.push(c));
@@ -143,6 +145,17 @@ describe('admin HTTP API', () => {
 
   test('non-loopback remote address is rejected', () => {
     expect(require('../../admin/server.js').isLoopback('10.0.0.8')).toBe(false);
+  });
+
+  // DNS rebinding: a page whose hostname resolves to 127.0.0.1 passes the
+  // loopback remoteAddress check, so the server must additionally require a
+  // loopback Host header (browsers cannot forge Host).
+  test('forged Host header (DNS rebinding) is rejected', async () => {
+    const rebinding = await request('GET', base + '/api/profiles', undefined, { Host: 'attacker-rebind.example' });
+    expect(rebinding.status).toBe(403);
+
+    const loopback = await request('GET', base + '/api/profiles', undefined, { Host: '127.0.0.1' });
+    expect(loopback.status).toBe(200);
   });
 });
 

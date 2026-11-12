@@ -459,6 +459,19 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 403, { error: 'local only' });
     }
 
+    // DNS-rebinding guard: a rebinding page (attacker.com resolving to
+    // 127.0.0.1) PASSES the loopback check above — remoteAddress IS 127.0.0.1 —
+    // and could then read the GET endpoints cross-origin (the Origin CSRF guard
+    // only covers mutating requests). The Host header cannot be forged by a
+    // browser, so require a loopback host explicitly.
+    const hostHeader = String(req.headers.host || '').toLowerCase();
+    const hostName = hostHeader.startsWith('[')
+      ? hostHeader.slice(0, hostHeader.indexOf(']') + 1)
+      : hostHeader.split(':')[0];
+    if (hostName !== '127.0.0.1' && hostName !== 'localhost' && hostName !== '[::1]') {
+      return sendJson(res, 403, { error: 'invalid host header' });
+    }
+
     // CSRF guard for mutating requests: any browser page on the operator's
     // machine (malicious website) can POST to 127.0.0.1 — require the Origin
     // (if present) to be the loopback admin origin. `no-cors` fetches still

@@ -21,7 +21,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join, extname, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
@@ -191,7 +191,15 @@ const server = createServer(async (req, res) => {
   try {
     let urlPath = decodeURIComponent(req.url.split('?')[0]);
     if (urlPath.includes('$(')) urlPath = '/alogin.html'; // unsubstituted MikroTik path
-    let filePath = join(ROOT, urlPath);
+
+    // Containment guard: normalize the requested path against dist/ and refuse
+    // anything that escapes it (`../`, encoded dots). The preview server is
+    // loopback-only, but it must never expose repo files outside dist/.
+    let filePath = resolve(ROOT, '.' + urlPath);
+    if (filePath !== ROOT && !filePath.startsWith(ROOT + sep)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Preview 403: path escapes dist/');
+    }
     if (urlPath.endsWith('/')) filePath = join(filePath, 'index.html');
 
     // Pin the language cookie to the URL so pages don't auto-redirect while

@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`npm run watch` works again** — `chokidar` was referenced by `build.js` but never declared; added as a devDependency
 - **Docs corrected** — page-weight claims (~40KB) updated to the actual ~90–140KB; the CNA "all inline" rule now documents the two same-host vendored scripts (`md5.js`, lazy-loaded `jsQR.js`)
 
+### Accepted
+- **13 `npm audit` advisories, accepted (build-time tooling only)** — all flagged packages are dev/build-only (`electron-builder` chain, `jest`, `html-minifier@4`, transitive `minimatch`), never shipped into `dist/` or the portal runtime. Installed `minimatch` copies (3.1.5 / 5.1.9 / 9.0.9 / 10.2.6) are all above the patched floors; npm's range-level report is noisy. `npm audit fix --force` would downgrade `electron-builder` 26→25 (a breaking change) with no actual security gain — intentionally not applied. Revisit if the toolchain is upgraded
+
 ## [2.7.0] - 2026-11-10
 
 ### Added

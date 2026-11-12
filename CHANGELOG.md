@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-11-12
+
+### Fixed
+- **DNS rebinding on the local admin server** — the loopback remote-address check alone was bypassable by a page whose hostname resolves to `127.0.0.1`, letting a malicious website read client data (profile configs, WhatsApp numbers) cross-origin via GET. The server now also requires a loopback `Host` header (browsers cannot forge it); regression test added
+- **Inline config JSON could close its `<script>` tag** — the translated RADIUS error map (`window.HotspotErrorMap`) was embedded with `dump | safe`, so a config string containing `</script>` could break out of the script block. A new `scriptjson` Nunjucks filter escapes every `<` as `\u003c` — the same defense the i18n dictionary embed already used
+- **Template attribute injection points** — `poweredByUrl`, `qrScannerUrl` and the plans fields (`name` / `quota` / `price` + Arabic variants) were interpolated without HTML escaping; they are now escaped, and the URL validators reject quotes/spaces/angle brackets
+
+### Changed
+- **Desktop build no longer ships client data** — `electron-builder.yml` excludes `.admin/**`, `config.json`, `dist/**`, etc.; `config.example.json` stays (the admin server reads it when creating new-profile templates)
+- **`npm run watch` works again** — `chokidar` was referenced by `build.js` but never declared; added as a devDependency
+- **Docs corrected** — page-weight claims (~40KB) updated to the actual ~90–140KB; the CNA "all inline" rule now documents the two same-host vendored scripts (`md5.js`, lazy-loaded `jsQR.js`)
+
 ## [2.7.0] - 2026-11-10
 
 ### Added

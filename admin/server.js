@@ -43,7 +43,7 @@ const PREVIEW_DIST_DIR = path.join(ADMIN_DIR, 'preview-dist');
 const { createProfileStore, SLUG_RE } = require('./lib/profile-store.js');
 const { createWorkspace } = require('./lib/workspace.js');
 const { previewRscPlan, inspectRouter, deployToRouter } = require('./lib/mikrotik.js');
-const { generateQrSvg, parseVoucherCsv, generatePrintSheetHtml } = require('./lib/qr-generator.js');
+const { generateQrSvg } = require('./lib/qr-generator.js');
 const { ICON_PATHS, generateBrandAssets } = require('./lib/logo-maker.js');
 const { validate } = require(path.join(REPO_ROOT, 'scripts', 'validate-config.js'));
 const { PRESETS, resolveEffectiveConfig, CUSTOM_PRESET_RE } = require(path.join(REPO_ROOT, 'scripts', 'presets.js'));
@@ -730,29 +730,6 @@ async function handleApi(req, res, url, method) {
         logoSvg: generated.logoSvg,
         titleSvg: generated.titleSvg
       });
-    }
-
-    // POST /api/profiles/:id/vouchers — parse CSV and build A4 print sheet
-    if (method === 'POST' && action === 'vouchers' && parts.length === 4) {
-      const body = await readJsonBody(req);
-      const profile = store.get(id);
-      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
-      const vouchers = parseVoucherCsv(body.csv || '', {
-        plan: body.plan,
-        quota: body.quota,
-        price: body.price,
-        dnsName: body.dnsName || 'http://login.meganet.local/login',
-        qrMode: body.qrMode || 'url',
-        voucherPasswordMode: effective.features && effective.features.voucherPasswordMode
-      });
-      if (!vouchers.length) {
-        return sendJson(res, 400, { error: 'لا توجد كروت صالحة للطباعة' });
-      }
-      const html = generatePrintSheetHtml(vouchers, effective, {
-        footerNote: body.footerNote,
-        format: body.format || 'a4'
-      });
-      return sendJson(res, 200, { ok: true, count: vouchers.length, vouchers, html });
     }
 
     return sendJson(res, 404, { error: 'not found' });

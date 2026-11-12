@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.7.1] - 2026-11-12
 
 ### Added
-- **Admin Studio 5-Package Upgrade**:
-  - **ISO/IEC 18004 QR Engine** (`admin/lib/qr-generator.js`): standalone Versions `1..10` ECC-L generator with 8-mask penalty evaluation, plus `80mm` & `58mm` thermal POS voucher print layouts alongside `A4`.
+- **Admin Studio Upgrades**:
+  - **ISO/IEC 18004 QR Login Tester** (`admin/lib/qr-generator.js`, `مختبر QR الدخول`): standalone Versions `1..10` ECC-L QR generator for testing portal `jsQR` auto-login codes.
+  - **Resizable & Zoomable Live Simulator (`50%–150%`)**: drag handle resizer, zoom in/out/reset (`1:1`), wide expand toggle (`⛶`), full scrollable phone bezel, and synchronized `hotspot_lang` cookie switching.
   - **Brand Logo & Asset Studio** (`admin/lib/logo-maker.js`, `scripts/svg-utils.js`): generates `logo.svg`, `prand-title.svg`, and `icon.png`, with SVGO + XSS sanitization on uploaded `.svg` assets.
   - **RouterOS v7 `.rsc` & One-Click Upload** (`admin/lib/mikrotik.js`, `/api/mikrotik/test`, `/api/profiles/:id/rsc`, `/api/profiles/:id/deploy`): RFC 8910 CAPPORT Option 114 (`https` | `http` | `off`), Walled Garden rules, dry-run preview, flash storage preflight, optional pre-deploy backup, lossless binary/large asset upload via `/tool/fetch`, and TOFU `tlsFingerprint` pinning.
   - **Per-profile MikroTik settings persistence** (`mikrotik.json`, `PUT /api/profiles/:id/mikrotik`): remembers non-secret router host, port, protocol, profile name, DHCP server, CAPPORT mode, and TLS fingerprint across sessions without ever writing passwords to disk.

@@ -14,18 +14,18 @@
   html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
   body { font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
   /* Sidebar */
-  aside { width: 270px; height: 100vh; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  aside { width: 280px; height: 100vh; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
   .brand { padding: 16px 18px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 8px var(--acc); }
   .searchbox { padding: 8px 8px 4px; flex-shrink: 0; }
   .searchbox input { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
   .searchbox input:focus { outline: none; border-color: var(--acc); }
   #profileList { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
-  .profile-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 2px; border: 1px solid transparent; }
+  .profile-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 10px; border-radius: var(--radius); cursor: pointer; margin-bottom: 2px; border: 1px solid transparent; }
   .profile-item:hover { background: var(--panel2); }
   .profile-item.active { background: var(--panel2); border-color: var(--acc); }
-  .profile-item .pname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .profile-item .pact { opacity: .35; display: flex; gap: 6px; }
+  .profile-item .pname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .profile-item .pact { opacity: .75; display: flex; gap: 2px; flex-shrink: 0; }
   .profile-item:hover .pact { opacity: 1; }
   .iconbtn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 6px; }
   .iconbtn:hover { background: rgba(255,255,255,.06); color: var(--text); }
@@ -60,20 +60,29 @@
   .workspace-body { flex: 1; display: flex; min-height: 0; height: 100%; overflow: hidden; }
   .content { flex: 1; height: 100%; overflow-y: auto; padding: 20px; min-width: 0; }
   /* Split-Screen Live Simulator */
-  #simulatorPanel { width: 380px; height: 100%; background: var(--panel); border-right: 1px solid var(--line); display: none; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  #simulatorPanel { position: relative; width: 400px; min-width: 280px; max-width: 820px; height: 100%; background: var(--panel); border-right: 1px solid var(--line); display: none; flex-direction: column; flex-shrink: 0; overflow: hidden; }
   #simulatorPanel.open { display: flex; }
-  .sim-head { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  #simulatorPanel.expanded { width: 640px !important; }
+  #simResizer { position: absolute; top: 0; right: 0; bottom: 0; width: 7px; cursor: ew-resize; z-index: 20; transition: background .15s; }
+  #simResizer:hover, #simResizer.dragging { background: rgba(34,197,94,.45); }
+  .sim-head { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 700; font-size: 13px; flex-shrink: 0; flex-wrap: wrap; }
+  .sim-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .sim-zoom-badge { font-size: 11px; min-width: 40px; text-align: center; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .sim-controls { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; background: var(--panel2); flex-shrink: 0; }
   .sim-pages { display: flex; flex-wrap: wrap; gap: 4px; }
   .sim-page-btn { background: var(--panel); border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
   .sim-page-btn.active { border-color: var(--acc); color: var(--acc); font-weight: 700; }
   .sim-row { display: flex; gap: 6px; align-items: center; }
   .sim-row select { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
-  .sim-viewport { flex: 1; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; background: #070a12; min-height: 0; }
-  .phone-bezel { width: 320px; max-width: 100%; height: 100%; max-height: 580px; background: #000; border: 7px solid #26324a; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+  .sim-viewport { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 14px; overflow: auto; background: #070a12; min-height: 0; }
+  #simStageWrap { position: relative; flex-shrink: 0; margin: 0 auto; }
+  #simStage { transform-origin: top center; }
+  .phone-bezel { width: 340px; height: 640px; background: #000; border: 7px solid #26324a; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
   .phone-notch { height: 18px; background: #111827; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .phone-notch::after { content: ""; width: 64px; height: 5px; border-radius: 99px; background: #26324a; }
   #simFrame { flex: 1; width: 100%; height: 100%; border: none; background: #020617; }
+  .file-picker-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .file-picker-name { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
   /* Cards & Forms */
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
   .card h3 { font-size: 14px; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
@@ -157,11 +166,17 @@
     <div class="content" id="content"></div>
 
     <section id="simulatorPanel" aria-label="محاكي البوابة المباشر">
+      <div id="simResizer" title="اسحب لتكبير أو تصغير عرض المعاينة"></div>
       <div class="sim-head">
-        <span>📱 محاكي الهاتف المباشر</span>
-        <div style="display:flex;gap:6px">
-          <button class="rowbtn" onclick="refreshSimulator(true)" title="إعادة البناء وتحديث المعاينة">🔄 تحديث</button>
-          <button class="rowbtn" onclick="toggleSimulator()">✕</button>
+        <span>📱 المعاينة المباشرة</span>
+        <div class="sim-actions">
+          <button class="rowbtn" id="simZoomOut" onclick="stepSimZoom(-10)" title="تصغير المعاينة">−</button>
+          <span id="simZoomLabel" class="sim-zoom-badge">100%</span>
+          <button class="rowbtn" id="simZoomIn" onclick="stepSimZoom(10)" title="تكبير المعاينة">+</button>
+          <button class="rowbtn" id="simZoomReset" onclick="setSimZoom(100)" title="الحجم الطبيعي (100%)">1:1</button>
+          <button class="rowbtn" id="simExpandBtn" onclick="toggleSimExpand()" title="توسيع / تضييق نافذة المعاينة">⛶</button>
+          <button class="rowbtn" onclick="refreshSimulator(true)" title="إعادة البناء وتحديث المعاينة">🔄</button>
+          <button class="rowbtn" onclick="toggleSimulator()" title="إغلاق">✕</button>
         </div>
       </div>
       <div class="sim-controls">
@@ -180,9 +195,13 @@
         </div>
       </div>
       <div class="sim-viewport">
-        <div class="phone-bezel">
-          <div class="phone-notch"></div>
-          <iframe id="simFrame" title="معاينة البوابة"></iframe>
+        <div id="simStageWrap">
+          <div id="simStage">
+            <div class="phone-bezel">
+              <div class="phone-notch"></div>
+              <iframe id="simFrame" title="معاينة البوابة"></iframe>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -209,7 +228,9 @@ const state = {
     baseUrl: null,
     page: 'login',
     scenario: 'normal',
-    lang: 'ar'
+    lang: 'ar',
+    zoom: 100,
+    expanded: false
   }
 };
 
@@ -351,7 +372,7 @@ const TABS = [
   { id: 'support', label: 'الدعم' },
   { id: 'announcements', label: 'الإعلانات' },
   { id: 'words', label: 'الكلمات والأخطاء' },
-  { id: 'vouchers', label: 'الكروت والـ QR' },
+  { id: 'qrtest', label: 'مختبر QR الدخول' },
   { id: 'assets', label: 'الملفات والشعارات' },
   { id: 'mikrotik', label: 'مايكروتك (.rsc والرفع)' }
 ];
@@ -565,7 +586,7 @@ function renderTab() {
     case 'support': el.appendChild(formSupport(c)); break;
     case 'announcements': el.appendChild(formAnnouncements()); break;
     case 'words': el.appendChild(formWords()); break;
-    case 'vouchers': el.appendChild(formVouchers(c)); break;
+    case 'qrtest': el.appendChild(formQrTester(c)); break;
     case 'assets': el.appendChild(formAssets()); break;
     case 'mikrotik': el.appendChild(formMikrotik(c)); break;
   }
@@ -1191,28 +1212,25 @@ function formWords() {
 }
 
 // ---------------------------------------------------------------------------
-// Vouchers & QR Tester + A4 Print Sheet (Package 3)
+// Portal QR Login Tester (dedicated to testing hotspot login QR scanning)
 // ---------------------------------------------------------------------------
-function formVouchers(c) {
+function formQrTester(c) {
   const wrap = document.createElement('div');
-  const plans = c.plans || [];
-  const firstPlan = plans[0] || { name_ar: 'باقة البوب', quota_ar: '10 جيجا', price: '60' };
 
-  // Card 1: Instant QR Voucher Tester
   const testerCard = document.createElement('div');
   testerCard.className = 'card';
   testerCard.innerHTML =
-    '<h3>🔍 مختبر كروت الـ QR الفوري (QR Voucher Tester)</h3>' +
-    '<div class="planshint">ولّد كرت QR تجريبي على الشاشة لاختبار كاميرا الهاتف أو الماسح المدمج قبل الطباعة للعملاء.</div>';
+    '<h3>🔍 مختبر رمز QR لتسجيل الدخول (Portal QR Login Tester)</h3>' +
+    '<div class="planshint">اختبر مسح رمز الـ QR بكاميرا الهاتف للتأكد من توافق رابط الدخول أو كود الكرت مع ماسح القالب (<code>jsQR</code>) وإعدادات كلمة المرور الحالية.</div>';
 
   const testerGrid = document.createElement('div');
   testerGrid.className = 'grid';
   testerGrid.appendChild(field('كود الكرت التجريبي', '<input id="v-test-code" data-ignore-dirty="1" value="88442299">'));
   testerGrid.appendChild(field('رابط صفحة الدخول بالراوتر', '<input id="v-test-dns" data-ignore-dirty="1" dir="ltr" value="http://login.meganet.local/login">'));
-  testerGrid.appendChild(field('محتوى رمز الـ QR',
+  testerGrid.appendChild(field('صيغة رمز الـ QR',
     '<select id="v-test-mode" data-ignore-dirty="1">' +
-    '<option value="url">رابط دخول مباشر (Username + Password)</option>' +
-    '<option value="code">رقم الكود فقط (Plain Code)</option>' +
+    '<option value="url">رابط دخول تلقائي (كود + كلمة مرور)</option>' +
+    '<option value="code">كود الكرت فقط</option>' +
     '</select>'));
   testerCard.appendChild(testerGrid);
 
@@ -1220,46 +1238,13 @@ function formVouchers(c) {
   previewBox.className = 'qr-preview-box';
   previewBox.innerHTML =
     '<div class="qr-svg-wrap" id="v-qr-svg"></div>' +
-    '<div>' +
+    '<div style="flex:1;min-width:200px">' +
     '<div style="font-weight:700;font-size:15px;margin-bottom:4px" id="v-card-title">' + esc(c.general.networkName) + '</div>' +
-    '<div style="font-family:monospace;font-size:18px;color:var(--acc);margin-bottom:4px" id="v-card-code">88442299</div>' +
-    '<div class="hint" id="v-card-payload" style="direction:ltr;text-align:left"></div>' +
+    '<div style="font-family:monospace;font-size:20px;font-weight:700;color:var(--acc);margin-bottom:6px" id="v-card-code">88442299</div>' +
+    '<div style="font-family:monospace;font-size:13px;color:var(--text);opacity:.88;word-break:break-all;direction:ltr;text-align:left" id="v-card-payload"></div>' +
     '</div>';
   testerCard.appendChild(previewBox);
   wrap.appendChild(testerCard);
-
-  // Card 2: CSV Voucher Importer & A4 Print Sheet Generator
-  const printCard = document.createElement('div');
-  printCard.className = 'card';
-  printCard.innerHTML =
-    '<h3>🖨 مولّد صفحة طباعة الكروت (A4 Voucher Print Sheet)</h3>' +
-    '<div class="planshint">أدخل الكروت (سطر لكل كرت بصيغة <code>code,plan,quota,price</code> أو الكود فقط) أو استورد ملف CSV من المايكروتك / User Manager لطباعة صفحة A4 جاهزة بألوان وهوية البروفايل.</div>';
-
-  const printGrid = document.createElement('div');
-  printGrid.className = 'grid';
-  printGrid.appendChild(field('اسم الباقة الافتراضي', '<input id="v-def-plan" data-ignore-dirty="1" value="' + esc(firstPlan.name_ar || firstPlan.name || 'باقة إنترنت') + '">'));
-  printGrid.appendChild(field('الحصة الافتراضية', '<input id="v-def-quota" data-ignore-dirty="1" value="' + esc(firstPlan.quota_ar || firstPlan.quota || '10 GB') + '">'));
-  printGrid.appendChild(field('السعر الافتراضي', '<input id="v-def-price" data-ignore-dirty="1" value="' + esc(firstPlan.price || '60') + ' جنيه">'));
-  printGrid.appendChild(field('مقاس ورق الطباعة', '<select id="v-print-format" data-ignore-dirty="1"><option value="a4">ورق A4 (شبكة 3 أعمدة)</option><option value="80mm">رول كاشير حراري 80mm</option><option value="58mm">رول كاشير حراري 58mm</option></select>'));
-  printGrid.appendChild(field('استيراد ملف CSV / TXT', '<input type="file" id="v-csv-file" data-ignore-dirty="1" accept=".csv,.txt">'));
-  printCard.appendChild(printGrid);
-
-  const csvField = field(
-    'قائمة الكروت (كود في كل سطر أو code,plan,quota,price)',
-    '<textarea id="v-csv-text" class="codearea" data-ignore-dirty="1">77492011\n88301922\n99201833\n44501944\n55602955\n66703966</textarea>'
-  );
-  csvField.style.marginTop = '12px';
-  printCard.appendChild(csvField);
-
-  const btnBar = document.createElement('div');
-  btnBar.style.display = 'flex';
-  btnBar.style.gap = '8px';
-  btnBar.style.marginTop = '12px';
-  btnBar.innerHTML =
-    '<button class="btn ghost" onclick="generateSampleVouchers()">🎲 توليد 12 كرت عشوائي</button>' +
-    '<button class="btn primary" onclick="generateAndPrintVouchers()">🖨 معاينة وطباعة الكروت</button>';
-  printCard.appendChild(btnBar);
-  wrap.appendChild(printCard);
 
   setTimeout(() => {
     const updateLiveQr = async () => {
@@ -1280,50 +1265,10 @@ function formVouchers(c) {
     $('#v-test-code')?.addEventListener('input', updateLiveQr);
     $('#v-test-dns')?.addEventListener('input', updateLiveQr);
     $('#v-test-mode')?.addEventListener('change', updateLiveQr);
-    $('#v-csv-file')?.addEventListener('change', async (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      $('#v-csv-text').value = await f.text();
-      toast('تم استيراد ملف الكروت');
-    });
     updateLiveQr();
   }, 0);
 
   return wrap;
-}
-
-function generateSampleVouchers() {
-  const lines = [];
-  for (let i = 0; i < 12; i++) {
-    lines.push(String(Math.floor(10000000 + Math.random() * 90000000)));
-  }
-  const box = $('#v-csv-text');
-  if (box) box.value = lines.join('\n');
-}
-
-async function generateAndPrintVouchers() {
-  if (!state.current) return;
-  try {
-    const csv = $('#v-csv-text')?.value || '';
-    const plan = $('#v-def-plan')?.value || '';
-    const quota = $('#v-def-quota')?.value || '';
-    const price = $('#v-def-price')?.value || '';
-    const dnsName = $('#v-test-dns')?.value || 'http://login.meganet.local/login';
-    const qrMode = $('#v-test-mode')?.value || 'url';
-    const format = $('#v-print-format')?.value || 'a4';
-    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/vouchers', {
-      method: 'POST',
-      body: JSON.stringify({ csv, plan, quota, price, dnsName, qrMode, format })
-    });
-    const win = window.open('about:blank', '_blank');
-    if (win) {
-      win.document.open();
-      win.document.write(data.html);
-      win.document.close();
-    } else {
-      toast('تم تجهيز ' + data.count + ' كرت — اسمح بالنوافذ المنبثقة للطباعة', true);
-    }
-  } catch (e) { toast(e.message, true); }
 }
 
 // ---------------------------------------------------------------------------
@@ -1406,7 +1351,11 @@ function formAssets() {
   up.className = 'field';
   up.innerHTML =
     '<label>رفع ملف</label>' +
-    '<input type="file" id="asset-file" data-ignore-dirty="1" accept=".svg,.png,.jpg,.jpeg,.webp">' +
+    '<div class="file-picker-row">' +
+    '<input type="file" id="asset-file" data-ignore-dirty="1" accept=".svg,.png,.jpg,.jpeg,.webp" style="display:none">' +
+    '<label for="asset-file" class="btn ghost" style="margin:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px">📁 اختيار صورة أو شعار</label>' +
+    '<span id="asset-file-name" class="file-picker-name">لم يتم اختيار ملف بعد</span>' +
+    '</div>' +
     '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">' +
     '<label style="display:inline-flex;align-items:center;gap:6px;margin:0;cursor:pointer">' +
     '<input type="checkbox" id="asset-autocrop" data-ignore-dirty="1" checked style="width:auto"> ' +
@@ -1421,6 +1370,15 @@ function formAssets() {
   card.appendChild(list);
   card.appendChild(up);
   wrap.appendChild(card);
+  setTimeout(() => {
+    const fileInput = $('#asset-file');
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        const f = fileInput.files && fileInput.files[0];
+        if ($('#asset-file-name')) $('#asset-file-name').textContent = f ? f.name : 'لم يتم اختيار ملف بعد';
+      });
+    }
+  }, 0);
   return wrap;
 }
 
@@ -2028,11 +1986,75 @@ function setSimPage(pageId) {
 async function toggleSimulator() {
   const panel = $('#simulatorPanel');
   state.sim.open = !state.sim.open;
-  panel.className = state.sim.open ? 'open' : '';
+  panel.classList.toggle('open', state.sim.open);
   if (state.sim.open) {
+    applySimZoom();
     await refreshSimulator(true);
   }
 }
+
+function applySimZoom() {
+  const z = (state.sim.zoom || 100) / 100;
+  const stage = $('#simStage');
+  const wrap = $('#simStageWrap');
+  const label = $('#simZoomLabel');
+  if (stage) stage.style.transform = `scale(${z})`;
+  if (wrap) {
+    wrap.style.width = Math.round(340 * z) + 'px';
+    wrap.style.height = Math.round(640 * z) + 'px';
+  }
+  if (label) label.textContent = (state.sim.zoom || 100) + '%';
+}
+
+function setSimZoom(pct) {
+  state.sim.zoom = Math.max(50, Math.min(150, Number(pct) || 100));
+  applySimZoom();
+}
+
+function stepSimZoom(delta) {
+  setSimZoom((state.sim.zoom || 100) + delta);
+}
+
+function toggleSimExpand() {
+  const panel = $('#simulatorPanel');
+  if (!panel) return;
+  state.sim.expanded = !state.sim.expanded;
+  panel.classList.toggle('expanded', state.sim.expanded);
+  const btn = $('#simExpandBtn');
+  if (btn) btn.title = state.sim.expanded ? 'إرجاع العرض القياسي' : 'توسيع نافذة المعاينة';
+}
+
+(function initSimResizer() {
+  const handle = $('#simResizer');
+  const panel = $('#simulatorPanel');
+  if (!handle || !panel) return;
+  let dragging = false;
+  let startX = 0;
+  let startW = 400;
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    startX = e.clientX;
+    startW = panel.getBoundingClientRect().width;
+    panel.classList.remove('expanded');
+    state.sim.expanded = false;
+    handle.classList.add('dragging');
+    const frame = $('#simFrame');
+    if (frame) frame.style.pointerEvents = 'none';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const nextW = Math.max(280, Math.min(820, Math.round(startW + (e.clientX - startX))));
+    panel.style.width = nextW + 'px';
+  });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    const frame = $('#simFrame');
+    if (frame) frame.style.pointerEvents = '';
+  });
+})();
 
 async function refreshSimulator(rebuild) {
   try {
@@ -2052,6 +2074,7 @@ function updateSimulatorFrame() {
   const scenario = $('#sim-scenario')?.value || state.sim.scenario || 'normal';
   state.sim.lang = lang;
   state.sim.scenario = scenario;
+  document.cookie = 'hotspot_lang=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
   const prefix = (lang === 'ar') ? '/ar/' : '/';
   const url = `${state.sim.baseUrl}${prefix}${state.sim.page}.html?scenario=${encodeURIComponent(scenario)}&_t=${Date.now()}`;
   const frame = $('#simFrame');

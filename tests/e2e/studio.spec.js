@@ -43,11 +43,23 @@ test('Admin Studio persists per-profile MikroTik router settings across reload w
   await expect(page.locator('#profileList .profile-item')).toHaveCount(1);
   await expect(page.locator('#profileTitle')).not.toHaveText('اختر بريفايل');
 
-  // Switch to Vouchers & QR tab and confirm live SVG QR + thermal paper formats render
-  await page.getByRole('button', { name: 'الكروت والـ QR' }).click();
+  // Switch to QR Login Tester tab and confirm live SVG QR renders (print sheet removed)
+  await page.getByRole('button', { name: 'مختبر QR الدخول' }).click();
   await expect(page.locator('#v-qr-svg svg')).toBeVisible();
-  await expect(page.locator('#v-print-format option[value="80mm"]')).toHaveCount(1);
-  await expect(page.locator('#v-print-format option[value="58mm"]')).toHaveCount(1);
+  await expect(page.locator('#v-print-format')).toHaveCount(0);
+
+  // Open simulator and verify zoom + expand controls
+  await page.click('#simToggleBtn');
+  await expect(page.locator('#simulatorPanel')).toHaveClass(/open/);
+  await expect(page.locator('#simZoomLabel')).toHaveText('100%');
+  await page.click('#simZoomIn');
+  await expect(page.locator('#simZoomLabel')).toHaveText('110%');
+  await page.click('#simZoomOut');
+  await page.click('#simZoomOut');
+  await expect(page.locator('#simZoomLabel')).toHaveText('90%');
+  await page.click('#simExpandBtn');
+  await expect(page.locator('#simulatorPanel')).toHaveClass(/expanded/);
+  await page.click('#simToggleBtn');
 
   // Switch to MikroTik tab, edit non-secret router settings + secret password, and save
   await page.getByRole('button', { name: 'مايكروتك (.rsc والرفع)' }).click();

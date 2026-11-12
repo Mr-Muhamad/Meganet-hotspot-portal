@@ -18,7 +18,7 @@ const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-studio-extras-'
 process.env.ADMIN_DATA_DIR = ADMIN_TMP;
 
 const { generateRscScript, previewRscPlan, inspectRouter, deployToRouter, COMMENT_TAG } = require('../../admin/lib/mikrotik.js');
-const { encodeQrMatrix, generateQrSvg, parseVoucherCsv, generatePrintSheetHtml } = require('../../admin/lib/qr-generator.js');
+const { encodeQrMatrix, generateQrSvg } = require('../../admin/lib/qr-generator.js');
 const { generateLogoSvg, generateBrandTitleSvg, generateIconPngBuffer, generateBrandAssets } = require('../../admin/lib/logo-maker.js');
 const { sanitizeSvg } = require('../../scripts/svg-utils.js');
 const { startServer, server } = require('../../admin/server.js');
@@ -317,35 +317,6 @@ describe('Package 3 & 4 — QR Generator, Print Sheet & Smart Logo Maker', () =>
     expect(clean).not.toContain('foreignObject');
   });
 
-  test('parseVoucherCsv and generatePrintSheetHtml produce branded A4 voucher cards', () => {
-    const csv = '# comment\ncode,plan,quota,price\n112233,VIP,50 GB,200\n445566';
-    const list = parseVoucherCsv(csv, {
-      plan: 'الباقة الأساسية',
-      quota: '10 GB',
-      price: '60',
-      dnsName: 'http://10.5.50.1/login',
-      voucherPasswordMode: 'empty'
-    });
-    expect(list).toHaveLength(2);
-    expect(list[0]).toMatchObject({ code: '112233', plan: 'VIP', quota: '50 GB', price: '200' });
-    expect(list[0].qrPayload).toBe('http://10.5.50.1/login?username=112233');
-    expect(list[1]).toMatchObject({ code: '445566', plan: 'الباقة الأساسية', quota: '10 GB', price: '60' });
-
-    const html = generatePrintSheetHtml(list, {
-      general: { networkName: 'كافيه النيل' },
-      theme: { primaryColor: '#f97316', backgroundColor: '#0f172a' }
-    });
-    expect(html).toContain('كافيه النيل');
-    expect(html).toContain('112233');
-    expect(html).toContain('445566');
-    expect(html).toContain('@page { size: A4;');
-
-    const roll80 = generatePrintSheetHtml(list, { general: { networkName: 'كافيه النيل' } }, { format: '80mm' });
-    expect(roll80).toContain('@page { size: 80mm auto;');
-    const roll58 = generatePrintSheetHtml(list, { general: { networkName: 'كافيه النيل' } }, { format: '58mm' });
-    expect(roll58).toContain('@page { size: 58mm auto;');
-  });
-
   test('generateBrandAssets produces safe SVG files and a valid binary PNG', () => {
     const brand = generateBrandAssets({
       networkName: 'Mega <Net>',
@@ -419,21 +390,6 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(assetNames).toEqual(['icon.png', 'logo.svg', 'prand-title.svg']);
   });
 
-  test('POST /api/profiles/:id/vouchers generates printable A4 HTML and rejects empty CSV', async () => {
-    const empty = await request('POST', `${base}/api/profiles/${SLUG}/vouchers`, { csv: '   ' });
-    expect(empty.status).toBe(400);
-
-    const ok = await request('POST', `${base}/api/profiles/${SLUG}/vouchers`, {
-      csv: '99887766\n55443322',
-      plan: 'باقة كافيه',
-      quota: '5 GB',
-      price: '30'
-    });
-    expect(ok.status).toBe(200);
-    expect(ok.json.count).toBe(2);
-    expect(ok.json.html).toContain('99887766');
-  });
-
   test('POST /api/profiles/:id/build and POST /api/profiles/build-all return bundle size and flash memory breakdown', async () => {
     const single = await request('POST', `${base}/api/profiles/${SLUG}/build`);
     expect(single.status).toBe(200);
@@ -461,9 +417,12 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(htmlRes.status).toBe(200);
     const html = htmlRes.text;
 
-    // Package 1: Simulator & WCAG Contrast Badge
+    // Package 1: Simulator, Zoom/Resize & WCAG Contrast Badge
     expect(html).toContain('id="simulatorPanel"');
     expect(html).toContain('id="simFrame"');
+    expect(html).toContain('id="simZoomIn"');
+    expect(html).toContain('id="simZoomOut"');
+    expect(html).toContain('id="simResizer"');
     expect(html).toContain('id="wcag-badge"');
     expect(html).toContain('computeWcag');
 
@@ -473,10 +432,10 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(html).toContain('testMikrotikConnection');
     expect(html).toContain('deployToMikrotik');
 
-    // Package 3: RADIUS Error Translations & Voucher QR / Print
+    // Package 3: RADIUS Error Translations & Portal QR Login Tester
     expect(html).toContain('radius-errors-list');
-    expect(html).toContain('id="v-print-format"');
-    expect(html).toContain('generateAndPrintVouchers');
+    expect(html).toContain('formQrTester');
+    expect(html).not.toContain('generateAndPrintVouchers');
 
     // Package 4: Smart SVG Logo Maker & Auto-Crop/Compress
     expect(html).toContain('generateBrandIdentity');
@@ -489,7 +448,7 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(html).toContain('id="bundleMeter"');
   });
 
-  test('POST /api/mikrotik/test, /deploy parameter forwarding, /vouchers thermal format, and /preview ephemeral port', async () => {
+  test('POST /api/mikrotik/test, /deploy parameter forwarding, and /preview ephemeral port', async () => {
     const mockRouter = http.createServer((req, res) => {
       const chunks = [];
       req.on('data', (c) => chunks.push(c));
@@ -589,13 +548,6 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
       expect(getProf.json.profile.mikrotik.dnsName).toBe('portal.cafe.local');
       expect(getProf.json.profile.mikrotik.password).toBeUndefined();
       expect(fs.readFileSync(path.join(ADMIN_TMP, 'profiles', SLUG, 'mikrotik.json'), 'utf8')).not.toContain('never-saved-password');
-
-      const thermalRes = await request('POST', `${base}/api/profiles/${SLUG}/vouchers`, {
-        csv: '11223344',
-        format: '58mm'
-      });
-      expect(thermalRes.status).toBe(200);
-      expect(thermalRes.json.html).toContain('@page { size: 58mm auto;');
 
       const prevRes = await request('POST', `${base}/api/preview`, { slug: SLUG });
       expect(prevRes.status).toBe(200);

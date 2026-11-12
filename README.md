@@ -88,7 +88,7 @@ redirect.html → login.html → alogin.html → $(link-redirect)
 | iOS CNA blocks `<script src>` | JS must be inline |
 | macOS CNA fixed viewport | Layout must adapt to 900×572 |
 | No caching in CNA | Each page must be self-sufficient |
-| LAN speed is fast | Inline bloat is negligible (~40KB) |
+| LAN speed is fast | Inline bloat is negligible (~90–140KB per page) |
 
 ---
 
@@ -475,9 +475,9 @@ The rate limiter is a UX guard only — real brute-force protection must be serv
 | Metric | Value |
 |---|---|
 | First Paint | < 1s on LAN |
-| Page Weight (login.html) | ~40KB worst case |
-| Page Weight (status.html) | ~25KB |
-| External Dependencies | Zero |
+| Page Weight (login.html) | ~131KB worst case (includes the full i18n dictionary) |
+| Page Weight (status.html) | ~110KB |
+| External Dependencies | Zero runtime; 2 same-host vendored scripts (`md5.js` CHAP, `jsQR.js` lazy-loaded scan) |
 | Font Downloads | Zero (system font stack) |
 | Icon Requests | Zero (inline SVG) |
 | CSS Requests | Zero (inline `<style>`) |

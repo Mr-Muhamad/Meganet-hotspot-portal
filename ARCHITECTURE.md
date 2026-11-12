@@ -8,7 +8,7 @@ The MikroTik Hotspot Portal is a captive portal system designed for MikroTik Rou
 
 ## Design Principles
 
-1. **CNA Compatibility**: All resources must be inline (no external CSS/JS)
+1. **CNA Compatibility**: All rendering-critical resources are inline (no external CSS/JS). The only exceptions are two same-host vendored scripts served from the hotspot directory itself: `md5.js` (CHAP hashing, ~9KB, required by RouterOS login) and `jsQR.js` (QR decoding, ~130KB, lazy-loaded only when a scan starts)
 2. **Security First**: XSS-safe variable handling, input validation, rate limiting
 3. **Accessibility**: WCAG AA compliance with screen reader support
 4. **Performance**: Minimal page weight, fast rendering
@@ -281,7 +281,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 ### Page Weight
 
-- Average page size: ~40KB (inline CSS/JS)
+- Average page size: ~90–140KB (all CSS/JS inline; login/status carry the full i18n dictionary. `jsQR.js` ships separately, ~130KB, and loads lazily only when scanning)
 - No external requests
 - System fonts only
 - Inline SVG icons

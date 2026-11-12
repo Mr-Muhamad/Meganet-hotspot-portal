@@ -6,10 +6,25 @@ directories:
 files:
   - "**/*"
   - "!dist-app/**"
+  - "!dist/**"
   - "!tests/**"
   - "!test-results/**"
   - "!playwright-report/**"
-  - "!.admin/tmp/**"
+  # Client data must never ship inside the distributable (profiles carry the
+  # clients' configs, WhatsApp numbers and uploaded brand assets).
+  - "!.admin/**"
+  - "!config.json"
+  # config.example.json STAYS in the package: admin/server.js reads it at
+  # startup to build the new-profile template.
+  - "!.playwright-mcp/**"
+  - "!plans/**"
+  - "!.agents/**"
+  - "!.zcode/**"
+  - "!.mimosa/**"
+  - "!.superdesign/**"
+  - "!.vscode/**"
+  - "!*.log"
+  - "!.tmp-preview-server.mjs"
 win:
   target:
     - target: portable

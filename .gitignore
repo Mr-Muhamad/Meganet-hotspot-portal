@@ -46,9 +46,10 @@ config.json
 /icon1.png
 *.zip
 
-# Playwright run artifacts
+# Playwright run artifacts & Jest coverage
 test-results/
 playwright-report/
+coverage/
 
 # Mimosa scanner local state
 .mimosa/

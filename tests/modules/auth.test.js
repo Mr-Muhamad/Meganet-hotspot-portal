@@ -4,6 +4,7 @@
 
 const auth = require('../../src/js/modules/auth.js');
 const util = require('../../src/js/modules/util.js');
+const md5 = require('../../md5.js');
 
 describe('Hotspot.auth', () => {
   let mockPasswordInput;
@@ -455,15 +456,13 @@ describe('Hotspot.auth', () => {
       chapChallenge.value = '$(chap-challenge)';
       document.body.appendChild(chapChallenge);
 
-      global.hexMD5 = jest.fn(() => 'HASH');
+      global.hexMD5 = md5.hexMD5;
       auth.chapHashOnSubmit();
 
-      expect(global.hexMD5).not.toHaveBeenCalled();
       expect(passwordInput.value).toBe('1234567890');
     });
 
-    test('hashes the final password on a genuine 32-hex RouterOS challenge', () => {
-      // the outer beforeEach already provides the #password mock
+    test('hashes the final password on a genuine 32-hex RouterOS challenge using real MD5', () => {
       const passwordInput = document.getElementById('password');
       passwordInput.value = '1234567890';
 
@@ -477,14 +476,15 @@ describe('Hotspot.auth', () => {
       chapChallenge.value = 'b'.repeat(32);
       document.body.appendChild(chapChallenge);
 
-      global.hexMD5 = jest.fn(() => 'HASH');
+      global.hexMD5 = md5.hexMD5;
       auth.chapHashOnSubmit();
 
-      expect(global.hexMD5).toHaveBeenCalledWith('a'.repeat(32) + '1234567890' + 'b'.repeat(32));
-      expect(passwordInput.value).toBe('HASH');
+      const expected = md5.hexMD5('a'.repeat(32) + '1234567890' + 'b'.repeat(32));
+      expect(passwordInput.value).toBe(expected);
+      expect(passwordInput.value).toMatch(/^[0-9a-f]{32}$/);
     });
 
-    test('hashes on a real short RouterOS chap-id (2 hex digits)', () => {
+    test('hashes on a real short RouterOS chap-id (2 hex digits) using real MD5', () => {
       const passwordInput = document.getElementById('password');
       passwordInput.value = '1234567890';
 
@@ -498,11 +498,78 @@ describe('Hotspot.auth', () => {
       chapChallenge.value = 'b'.repeat(32);
       document.body.appendChild(chapChallenge);
 
-      global.hexMD5 = jest.fn(() => 'HASH');
+      global.hexMD5 = md5.hexMD5;
       auth.chapHashOnSubmit();
 
-      expect(global.hexMD5).toHaveBeenCalledWith('a0' + '1234567890' + 'b'.repeat(32));
-      expect(passwordInput.value).toBe('HASH');
+      const expected = md5.hexMD5('a0' + '1234567890' + 'b'.repeat(32));
+      expect(passwordInput.value).toBe(expected);
+    });
+
+    test('hashes RouterOS octal escape sequences (e.g. \\371 byte) properly', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = 'mysecret';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = '\\371'; // byte 0xF9
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = '\\001\\002'; // bytes 1, 2
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = md5.hexMD5;
+      auth.chapHashOnSubmit();
+
+      const expected = md5.hexMD5(String.fromCharCode(0xF9) + 'mysecret' + String.fromCharCode(1, 2));
+      expect(passwordInput.value).toBe(expected);
+    });
+
+    test('hashes on single hex digit RouterOS chap-id and escaped backslash in challenge', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = 'pass123';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = '1';
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'abc\\\\def\\040ghi';
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = md5.hexMD5;
+      auth.chapHashOnSubmit();
+
+      const expected = md5.hexMD5('1' + 'pass123' + 'abc\\def ghi');
+      expect(passwordInput.value).toBe(expected);
+    });
+
+    test('removes name attribute from #plain-password input upon successful hashing', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = 'secret';
+
+      const plainPassword = document.createElement('input');
+      plainPassword.id = 'plain-password';
+      plainPassword.setAttribute('name', 'plain-password');
+      document.body.appendChild(plainPassword);
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = 'a0';
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'b'.repeat(32);
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = md5.hexMD5;
+      auth.chapHashOnSubmit();
+
+      expect(plainPassword.hasAttribute('name')).toBe(false);
     });
 
     test('does NOT hash on a non-hex chap-id (un-substituted token)', () => {
@@ -519,10 +586,9 @@ describe('Hotspot.auth', () => {
       chapChallenge.value = 'b'.repeat(32);
       document.body.appendChild(chapChallenge);
 
-      global.hexMD5 = jest.fn(() => 'HASH');
+      global.hexMD5 = md5.hexMD5;
       auth.chapHashOnSubmit();
 
-      expect(global.hexMD5).not.toHaveBeenCalled();
       expect(passwordInput.value).toBe('1234567890');
     });
   });

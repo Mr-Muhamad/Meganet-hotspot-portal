@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Lint, Build, Validate, Jest & Playwright E2E
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Build hotspot portal
+        run: npm run build
+
+      - name: Validate config & templates
+        run: |
+          npm run validate:config
+          npm run validate
+
+      - name: Run Jest unit & API tests
+        run: npm test
+
+      - name: Run Playwright E2E tests (Edge)
+        run: npm run test:e2e

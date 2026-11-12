@@ -25,8 +25,6 @@ import { join, extname, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
-const ROOT = join(process.cwd(), 'dist');
-
 // ---------------------------------------------------------------------------
 // Demo scenarios — realistic values for every RouterOS variable the templates use
 // ---------------------------------------------------------------------------
@@ -73,11 +71,24 @@ const baseConds = {
 const scenarios = {
   // Connected user with a 10 GiB quota, mid-session.
   default: { vars: baseVars, conds: baseConds },
+  normal: { vars: baseVars, conds: baseConds },
 
   // Failed login (RADIUS Reply-Message arrives via $(error)).
   error: {
     vars: { ...baseVars, error: 'invalid username or password' },
     conds: { ...baseConds, error: true }
+  },
+
+  // Free trial session mode.
+  trial: {
+    vars: {
+      ...baseVars,
+      username: 'T-3C:5A:B4:0F:22:91',
+      'session-time-left': '00:29:59',
+      'session-time-left-secs': '1799',
+      'limit-bytes-total': '524288000'
+    },
+    conds: { ...baseConds, trial: true }
   },
 
   // CHAP login (challenge fields rendered, doLogin() path active).
@@ -163,15 +174,16 @@ const MIME = {
 };
 
 function parseArgs() {
-  const args = { port: 8765, scenario: 'default', open: false, pinLang: true };
+  const args = { port: 8765, scenario: 'default', open: false, pinLang: true, dist: process.env.PREVIEW_DIST_DIR || '' };
   for (let i = 2; i < process.argv.length; i++) {
     const a = process.argv[i];
     if (a === '--port') args.port = Number(process.argv[++i]);
     else if (a === '--scenario') args.scenario = process.argv[++i];
+    else if (a === '--dist') args.dist = process.argv[++i];
     else if (a === '--open') args.open = true;
     else if (a === '--no-pin-lang') args.pinLang = false;
     else if (a === '--help' || a === '-h') {
-      console.log(`Usage: node scripts/preview.mjs [--port N] [--scenario default|error|chap|unlimited|captive] [--no-pin-lang] [--open]`);
+      console.log(`Usage: node scripts/preview.mjs [--port N] [--dist DIR] [--scenario default|error|chap|unlimited|captive] [--no-pin-lang] [--open]`);
       process.exit(0);
     }
   }
@@ -179,6 +191,7 @@ function parseArgs() {
 }
 
 const args = parseArgs();
+const ROOT = args.dist ? resolve(args.dist) : join(process.cwd(), 'dist');
 const scenario = scenarios[args.scenario] || scenarios.default;
 
 if (!existsSync(ROOT)) {
@@ -189,8 +202,11 @@ if (!existsSync(ROOT)) {
 
 const server = createServer(async (req, res) => {
   try {
-    let urlPath = decodeURIComponent(req.url.split('?')[0]);
+    const reqUrl = new URL(req.url, 'http://127.0.0.1');
+    let urlPath = decodeURIComponent(reqUrl.pathname);
     if (urlPath.includes('$(')) urlPath = '/alogin.html'; // unsubstituted MikroTik path
+    const reqScenarioName = reqUrl.searchParams.get('scenario');
+    const activeScenario = (reqScenarioName && scenarios[reqScenarioName]) ? scenarios[reqScenarioName] : scenario;
 
     // Containment guard: normalize the requested path against dist/ and refuse
     // anything that escapes it (`../`, encoded dots). The preview server is
@@ -213,7 +229,7 @@ const server = createServer(async (req, res) => {
     let data = await readFile(filePath);
     const ext = extname(filePath).toLowerCase();
     if (ext === '.html' || ext === '.txt') {
-      data = Buffer.from(substitute(data.toString('utf8'), scenario));
+      data = Buffer.from(substitute(data.toString('utf8'), activeScenario));
     }
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     res.end(data);

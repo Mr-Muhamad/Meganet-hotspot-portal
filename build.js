@@ -1,21 +1,40 @@
 const fs = require('fs');
 const path = require('path');
 const { minify } = require('html-minifier');
+const CleanCSS = require('clean-css');
+const UglifyJS = require('uglify-js');
 const nunjucks = require('nunjucks');
 const { deriveThemeTokens } = require('./scripts/color-utils.js');
 const { resolveEffectiveConfig } = require('./scripts/presets.js');
+const { sanitizeSvg } = require('./scripts/svg-utils.js');
 
-// Custom (admin-saved) presets live in .admin/custom-presets.json — load
-// them so a plain `npm run build` (CLI/CI) resolves `custom:` preset ids the
-// same way the admin server does.
-function loadCustomPresetsForBuild() {
+// Custom (admin-saved) presets live in .admin/custom-presets.json (or ADMIN_DATA_DIR)
+function loadCustomPresetsForBuild(customPresetsPath) {
   try {
-    const p = path.join(__dirname, '.admin', 'custom-presets.json');
+    const p = customPresetsPath || path.join(__dirname, '.admin', 'custom-presets.json');
     if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch (err) {
-    console.warn('⚠ Could not read .admin/custom-presets.json:', err.message);
+    console.warn('⚠ Could not read custom-presets.json:', err.message);
   }
   return null;
+}
+
+// Unified configuration loader: reads config.json (or config.example.json) and
+// resolves effective theme and i18n settings via presets consistently.
+function loadConfig(options = {}) {
+  const configPath = options.configPath || path.join(__dirname, 'config.json');
+  const configExamplePath = path.join(__dirname, 'config.example.json');
+  let raw = {};
+  try {
+    if (fs.existsSync(configPath)) {
+      raw = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } else if (fs.existsSync(configExamplePath)) {
+      raw = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
+    }
+  } catch (err) {
+    console.error('Error loading config:', err.message);
+  }
+  return resolveEffectiveConfig(raw, loadCustomPresetsForBuild(options.customPresetsPath));
 }
 
 // Configure Nunjucks
@@ -24,55 +43,40 @@ const nunjucksEnv = nunjucks.configure(templatesDir, {
   autoescape: false,
   trimBlocks: true,
   lstripBlocks: true,
-  // Template caching OFF: the admin generator's long-lived server process
-  // rebuilds repeatedly, and a cached template served STALE pages after
-  // template edits (found by the browser visual-inspection round). The
-  // re-parse cost across 16 renders is negligible.
   noCache: true
 });
 
-// JSON embedded inside a <script> block (window.HotspotErrorMap): JSON.stringify
-// does NOT escape "<", so a config string value like "x</script><script>…" could
-// close the enclosing script tag. Escape every "<" as \u003c — a valid JSON
-// escape that parses back to "<" — so the object round-trips unchanged while the
-// tag can never be broken. (Same defense the i18n dictionary embed uses.)
 nunjucksEnv.addFilter('scriptjson', value => JSON.stringify(value).replace(/</g, '\\u003c'));
 
 // Read translations
 function loadTranslations(lang) {
   const enPath = path.join(__dirname, 'src', 'i18n', 'en.json');
   const langPath = path.join(__dirname, 'src', 'i18n', `${lang}.json`);
-  
+
   let result = {};
-  
+
   if (fs.existsSync(enPath)) {
     const enData = JSON.parse(fs.readFileSync(enPath, 'utf8'));
     result = { ...result, ...enData };
   }
-  
+
   if (fs.existsSync(langPath) && lang !== 'en') {
     const langData = JSON.parse(fs.readFileSync(langPath, 'utf8'));
     result = { ...result, ...langData };
   }
-  
+
   return result;
 }
 
-// Apply config.i18nOverrides on top of the runtime dictionary (the JSON
-// embedded in every page via #i18n-data). A value may be a plain string
-// (both languages) or { en, ar } for per-language wording. Client wording
-// never removes keys — it only replaces the displayed text.
 function applyI18nOverrides(allTranslations, overrides) {
   if (!overrides || typeof overrides !== 'object') return allTranslations;
   const merged = JSON.parse(JSON.stringify(allTranslations));
   for (const [key, value] of Object.entries(overrides)) {
-    if (key.startsWith('_')) continue; // comment/hint keys
+    if (key.startsWith('_')) continue;
     const pair = value && typeof value === 'object' && !Array.isArray(value)
       ? value
       : { en: value, ar: value };
     for (const lang of ['en', 'ar']) {
-      // Only keys that actually exist in the dictionary are replaced — an
-      // unknown override key (typo) must never inject a new key.
       if (merged[lang] && Object.prototype.hasOwnProperty.call(merged[lang], key) && pair[lang] !== undefined) {
         merged[lang][key] = pair[lang];
       }
@@ -82,9 +86,7 @@ function applyI18nOverrides(allTranslations, overrides) {
 }
 
 // Build CSS from separate files
-function buildCSS() {
-  // One literal read per module — the list is fixed and never user-controlled;
-  // fully literal path arguments keep path-traversal scanners quiet.
+function buildCSS(shouldMinify = false) {
   let combinedCSS = '';
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'variables.css'), 'utf8') + '\n';
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'theme.css'), 'utf8') + '\n';
@@ -94,85 +96,63 @@ function buildCSS() {
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'utilities.css'), 'utf8') + '\n';
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'media.css'), 'utf8') + '\n';
 
+  if (shouldMinify) {
+    const res = new CleanCSS({ level: 1 }).minify(combinedCSS);
+    if (res && res.styles && (!res.errors || res.errors.length === 0)) {
+      return res.styles;
+    }
+  }
   return combinedCSS;
 }
 
-// Build JavaScript from modules
-function buildJS(page) {
-  const jsDir = path.join(__dirname, 'src', 'js');
-  const modulesDir = path.join(jsDir, 'modules');
-
-  // Load config to inject security variables
-  let config = {};
-  try {
-    const configPath = path.join(__dirname, 'config.json');
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    }
-  } catch (err) {
-    console.error('Error loading config for JS:', err);
-  }
-
-  let js = '';
-
-  const utilPath = path.join(modulesDir, 'util.js');
-  if (fs.existsSync(utilPath)) {
-    js += fs.readFileSync(utilPath, 'utf8') + '\n';
-  }
-
-  const pageModules = {
-    'login': ['i18n', 'rate-limiter', 'auth', 'qr-scanner', 'ui'],
-    'status': ['i18n', 'rate-limiter', 'status', 'ui'],
-    'logout': ['i18n', 'ui'],
-    'error': ['i18n', 'ui'],
-    'expired': ['i18n', 'ui'],
-    'plans': ['i18n', 'ui'],
-    'alogin': ['i18n', 'ui']
-  };
-
-  if (pageModules[page]) {
-    pageModules[page].forEach(module => {
-      const modulePath = path.join(modulesDir, `${module}.js`);
-      if (fs.existsSync(modulePath)) {
-        js += fs.readFileSync(modulePath, 'utf8') + '\n';
-      }
-    });
-  }
-
-  js += "window.Hotspot = { util: util, ui: ui, i18n: i18n };\n";
-  if (page === 'status') {
-    js += "window.Hotspot.status = statusModule;\n";
-  } else if (page === 'login') {
-    js += "window.Hotspot.auth = auth;\n";
-    js += "window.Hotspot.qrScanner = qrScanner;\n";
-    // Inject dynamic config values to rate limiter
-    if (config.security) {
-      js += `if (rateLimiter) {\n`;
-      js += `  rateLimiter.config.maxAttempts = ${config.security.maxAttempts || 5};\n`;
-      js += `  rateLimiter.config.blockDurationMs = ${(config.security.blockDurationMinutes || 5) * 60 * 1000};\n`;
-      js += `}\n`;
+function readJsModules(modulesDir, names) {
+  let code = '';
+  for (const name of names) {
+    const modulePath = path.join(modulesDir, `${name}.js`);
+    if (fs.existsSync(modulePath)) {
+      code += fs.readFileSync(modulePath, 'utf8') + '\n';
     }
   }
-
-  return js;
+  return code;
 }
 
-// Read SVG and make it inline-safe (strip xml tag, keep inner content).
-// Also strip <script> blocks and event-handler attributes: brand assets are
-// operator-uploaded (admin profiles) so a malicious/accidental embedded
-// script must never execute inside the portal page.
+function minifyJsSafe(code, shouldMinify) {
+  if (!shouldMinify) return code;
+  const res = UglifyJS.minify(code);
+  if (res && !res.error && typeof res.code === 'string') {
+    return res.code;
+  }
+  return code;
+}
+
+// Build external shared JS bundles so CSS/JS are not duplicated across all 14 HTML files
+function emitSharedAssets(distDir, shouldMinify) {
+  const modulesDir = path.join(__dirname, 'src', 'js', 'modules');
+
+  const css = buildCSS(shouldMinify);
+  fs.writeFileSync(path.join(distDir, 'portal.css'), css, 'utf8');
+
+  const coreJsRaw =
+    readJsModules(modulesDir, ['util', 'i18n', 'rate-limiter', 'ui']) +
+    '\nwindow.Hotspot = { util: util, ui: ui, i18n: i18n };\n';
+  fs.writeFileSync(path.join(distDir, 'portal-core.js'), minifyJsSafe(coreJsRaw, shouldMinify), 'utf8');
+
+  const loginJsRaw =
+    readJsModules(modulesDir, ['auth', 'qr-scanner']) +
+    '\nwindow.Hotspot = window.Hotspot || {};\nwindow.Hotspot.auth = auth;\nwindow.Hotspot.qrScanner = qrScanner;\n';
+  fs.writeFileSync(path.join(distDir, 'portal-login.js'), minifyJsSafe(loginJsRaw, shouldMinify), 'utf8');
+
+  const statusJsRaw =
+    readJsModules(modulesDir, ['status']) +
+    '\nwindow.Hotspot = window.Hotspot || {};\nwindow.Hotspot.status = statusModule;\n';
+  fs.writeFileSync(path.join(distDir, 'portal-status.js'), minifyJsSafe(statusJsRaw, shouldMinify), 'utf8');
+}
+
+// Read SVG and make it inline-safe (sanitize + SVGO optimize)
 function inlineSVG(filePath) {
   try {
-    let svg = fs.readFileSync(filePath, 'utf8');
-    svg = svg.replace(/<\?xml[^?]*\?>/g, '');
-    svg = svg.replace(/<!--[\s\S]*?-->/g, '');
-    svg = svg.replace(/<script[\s\S]*?<\/script>/gi, '');
-    svg = svg.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
-    svg = svg.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
-    svg = svg.replace(/(href|xlink:href)\s*=\s*"javascript:[^"]*"/gi, '$1="#"');
-    svg = svg.replace(/(href|xlink:href)\s*=\s*'javascript:[^']*'/gi, "$1='#'");
-    svg = svg.trim();
-    return svg;
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return sanitizeSvg(raw);
   } catch {
     return '';
   }
@@ -181,41 +161,21 @@ function inlineSVG(filePath) {
 // Generate page HTML
 function generatePage(page, lang, options = {}) {
   try {
-    // Load config.json or fallback to config.example.json, then resolve the
-    // white-label preset (theme defaults + base i18n overrides).
-    let config = {};
-    const configPath = path.join(__dirname, 'config.json');
-    const configExamplePath = path.join(__dirname, 'config.example.json');
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    } else if (fs.existsSync(configExamplePath)) {
-      config = JSON.parse(fs.readFileSync(configExamplePath, 'utf8'));
-    }
-    config = resolveEffectiveConfig(config, loadCustomPresetsForBuild());
+    const config = options.resolvedConfig || loadConfig(options);
+    const assetsDir = options.assetsDir || path.join(__dirname, 'src', 'assets');
 
-    const css = buildCSS();
-    const js = buildJS(page);
     const allTranslations = applyI18nOverrides(loadTranslations(lang) || {}, config.i18nOverrides);
     const i18n = allTranslations[lang] || allTranslations.en || {};
-
-    // The full dictionary is embedded in a <script type="application/json">.
-    // Escape every "</" as "<\/" so an operator-supplied override value can
-    // never terminate the script block (JSON unescapes \/ back to /).
     const allTranslationsJson = JSON.stringify(allTranslations).replace(/<\//g, '<\\/');
 
-    // White-label brand tokens: derive every tint/glow/glass from the
-    // client's primaryColor/backgroundColor at BUILD time (see
-    // scripts/color-utils.js) — base.html injects them after the static CSS.
     const theme = config.theme || {};
     const themeTokens = deriveThemeTokens(theme.primaryColor, theme.backgroundColor);
 
-    const logoInline = inlineSVG(path.join(__dirname, 'src', 'assets', 'logo.svg'));
-    let prandTitleInline = inlineSVG(path.join(__dirname, 'src', 'assets', 'prand-title.svg'));
+    const logoInline = inlineSVG(path.join(assetsDir, 'logo.svg'));
+    const prandTitleInline = inlineSVG(path.join(assetsDir, 'prand-title.svg'));
 
     let html = nunjucks.render(`${page}.html`, {
       page: page,
-      css: css,
-      js: js,
       i18n: i18n,
       allTranslations: allTranslations,
       allTranslationsJson: allTranslationsJson,
@@ -247,13 +207,10 @@ function generatePage(page, lang, options = {}) {
   }
 }
 
-// Copy static RouterOS-required pages verbatim (NEVER minified — they contain
-// line-sensitive $(if ...) directives and a RouterOS-parsed format).
-// Subdirectories are preserved (e.g. src/static/ar/errors.txt → dist/ar/errors.txt)
-// so RouterOS language routing (target=ar) finds the localized variants.
-function copyStaticPages(distDir) {
+function copyStaticPages(distDir, config) {
   const staticDir = path.join(__dirname, 'src', 'static');
   if (!fs.existsSync(staticDir)) return;
+  const skipQr = config && config.features && config.features.enableQRScanner === false;
 
   const walk = (dir, relPath) => {
     fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
@@ -262,6 +219,9 @@ function copyStaticPages(distDir) {
       if (entry.isDirectory()) {
         walk(srcPath, rel);
       } else {
+        if (skipQr && rel.replace(/\\/g, '/') === 'jsQR.js') {
+          return;
+        }
         const destPath = path.join(distDir, rel);
         fs.mkdirSync(path.dirname(destPath), { recursive: true });
         fs.copyFileSync(srcPath, destPath);
@@ -272,35 +232,42 @@ function copyStaticPages(distDir) {
   walk(staticDir, '');
 }
 
-// Copy static assets
-function copyAssets() {
-  const assetsSource = path.join(__dirname, 'src', 'assets');
-  const assetsDest = path.join(__dirname, 'dist', 'assets');
+// Copy static assets (optimizing & sanitizing SVGs)
+function copyAssets(options = {}) {
+  const assetsSource = options.assetsDir || path.join(__dirname, 'src', 'assets');
+  const distDir = options.distDir || path.join(__dirname, 'dist');
+  const assetsDest = path.join(distDir, 'assets');
 
   if (fs.existsSync(assetsSource)) {
     fs.rmSync(assetsDest, { recursive: true, force: true });
     fs.mkdirSync(assetsDest, { recursive: true });
-    const entries = fs.readdirSync(assetsSource, { withFileTypes: true });
-    entries.forEach(entry => {
-      const srcPath = path.join(assetsSource, entry.name);
-      const destPath = path.join(assetsDest, entry.name);
-      if (entry.isDirectory()) {
-        fs.mkdirSync(destPath, { recursive: true });
-        const nested = fs.readdirSync(srcPath, { withFileTypes: true });
-        nested.forEach(nestedEntry => {
-          const nestedSrc = path.join(srcPath, nestedEntry.name);
-          const nestedDest = path.join(destPath, nestedEntry.name);
-          fs.copyFileSync(nestedSrc, nestedDest);
-        });
-      } else {
-        fs.copyFileSync(srcPath, destPath);
+
+    const copyDir = (srcDir, dstDir) => {
+      fs.mkdirSync(dstDir, { recursive: true });
+      for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+        const srcPath = path.join(srcDir, entry.name);
+        const destPath = path.join(dstDir, entry.name);
+        if (entry.isDirectory()) {
+          copyDir(srcPath, destPath);
+        } else if (path.extname(entry.name).toLowerCase() === '.svg') {
+          try {
+            const safeSvg = sanitizeSvg(fs.readFileSync(srcPath, 'utf8'));
+            fs.writeFileSync(destPath, safeSvg, 'utf8');
+          } catch {
+            fs.copyFileSync(srcPath, destPath);
+          }
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
       }
-    });
+    };
+
+    copyDir(assetsSource, assetsDest);
     console.log('✓ Copied assets');
   }
 
   const md5Source = path.join(__dirname, 'md5.js');
-  const md5Dest = path.join(__dirname, 'dist', 'md5.js');
+  const md5Dest = path.join(distDir, 'md5.js');
   if (fs.existsSync(md5Source)) {
     fs.mkdirSync(path.dirname(md5Dest), { recursive: true });
     fs.copyFileSync(md5Source, md5Dest);
@@ -312,28 +279,40 @@ function copyAssets() {
 function build(options = {}) {
   console.log('🔨 Building MikroTik Hotspot Portal...\n');
 
-  // Gate: refuse to emit dist/ on an invalid config.json (typos like a wrong
-  // loginMode silently degrade the portal).
+  const configPath = options.configPath || path.join(__dirname, 'config.json');
+  const assetsDir = options.assetsDir || path.join(__dirname, 'src', 'assets');
+  const announcementsSource = options.announcementsPath || path.join(__dirname, 'src', 'announcements.json');
+  const distDir = options.distDir || path.join(__dirname, 'dist');
+  const shouldMinify = options.minify !== false;
+
   const { validateConfigFile } = require('./scripts/validate-config.js');
-  const { errors: configErrors } = validateConfigFile();
+  const { errors: configErrors } = validateConfigFile(configPath, assetsDir);
   if (configErrors.length) {
     console.error(`✖ config.json failed validation (${configErrors.length} error${configErrors.length === 1 ? '' : 's'}):`);
     configErrors.forEach(e => console.error(`  - ${e}`));
     console.error('Run "npm run validate:config" for details. Aborting build.');
     process.exitCode = 1;
+    if (options.throwOnError) {
+      throw new Error(`config validation failed: ${configErrors.join('; ')}`);
+    }
     return;
   }
 
-  const distDir = path.join(__dirname, 'dist');
-  if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, { recursive: true });
+  if (options.clean !== false && fs.existsSync(distDir)) {
+    fs.rmSync(distDir, { recursive: true, force: true });
   }
+  fs.mkdirSync(distDir, { recursive: true });
+
+  const resolvedConfig = loadConfig(options);
+  const pageOptions = { ...options, resolvedConfig, assetsDir };
+
+  emitSharedAssets(distDir, shouldMinify);
 
   console.log('📄 Building English pages...');
   const buildErrors = [];
   ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
-      const html = generatePage(page, 'en', options);
+      const html = generatePage(page, 'en', pageOptions);
       const outputPath = path.join(distDir, `${page}.html`);
       fs.writeFileSync(outputPath, html);
       console.log(`  ✓ ${page}.html`);
@@ -349,7 +328,7 @@ function build(options = {}) {
 
   ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
     try {
-      const html = generatePage(page, 'ar', options);
+      const html = generatePage(page, 'ar', pageOptions);
       const outputPath = path.join(arDir, `${page}.html`);
       fs.writeFileSync(outputPath, html);
       console.log(`  ✓ ar/${page}.html`);
@@ -359,8 +338,6 @@ function build(options = {}) {
     }
   });
 
-  // Fail the build loudly so callers (admin build cycle) never zip a
-  // partial/stale dist/ as if it were a success.
   if (buildErrors.length) {
     const msg = 'build failed for pages: ' + buildErrors.join(', ');
     console.error('✖ ' + msg);
@@ -370,11 +347,17 @@ function build(options = {}) {
   const apiSource = path.join(__dirname, 'api.json');
   const apiDest = path.join(distDir, 'api.json');
   if (fs.existsSync(apiSource)) {
-    fs.copyFileSync(apiSource, apiDest);
+    let apiContent = fs.readFileSync(apiSource, 'utf8');
+    if (resolvedConfig.general && resolvedConfig.general.poweredByUrl) {
+      apiContent = apiContent.replace(
+        /"venue-info-url":\s*""/,
+        `"venue-info-url": ${JSON.stringify(resolvedConfig.general.poweredByUrl)}`
+      );
+    }
+    fs.writeFileSync(apiDest, apiContent, 'utf8');
     console.log('\n✓ Copied api.json');
   }
 
-  const announcementsSource = path.join(__dirname, 'src', 'announcements.json');
   const announcementsDest = path.join(distDir, 'announcements.json');
   if (fs.existsSync(announcementsSource)) {
     fs.copyFileSync(announcementsSource, announcementsDest);
@@ -382,20 +365,10 @@ function build(options = {}) {
   }
 
   const manifestSource = path.join(__dirname, 'src', 'manifest.json');
-  const manifestDest = path.join(__dirname, 'dist', 'manifest.json');
+  const manifestDest = path.join(distDir, 'manifest.json');
   if (fs.existsSync(manifestSource)) {
-    // The PWA install splash/title bar must follow the client brand instead
-    // of the template's slate defaults.
-    let manifest = JSON.parse(fs.readFileSync(manifestSource, 'utf8'));
-    let theme = {};
-    try {
-      const configPath = path.join(__dirname, 'config.json');
-      if (fs.existsSync(configPath)) {
-        theme = (JSON.parse(fs.readFileSync(configPath, 'utf8')).theme) || {};
-      }
-    } catch (err) {
-      console.error('Error loading config for manifest:', err);
-    }
+    const manifest = JSON.parse(fs.readFileSync(manifestSource, 'utf8'));
+    const theme = resolvedConfig.theme || {};
     if (theme.backgroundColor) {
       manifest.background_color = theme.backgroundColor;
       manifest.theme_color = theme.backgroundColor;
@@ -404,8 +377,8 @@ function build(options = {}) {
     console.log('✓ Copied manifest.json' + (theme.backgroundColor ? ' (theme colors from config)' : ''));
   }
 
-  copyAssets();
-  copyStaticPages(distDir);
+  copyAssets({ assetsDir, distDir });
+  copyStaticPages(distDir, resolvedConfig);
 
   console.log('\n✨ Build complete!\n');
 }
@@ -440,4 +413,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { build, generatePage, applyI18nOverrides };
+module.exports = { build, generatePage, applyI18nOverrides, buildCSS };

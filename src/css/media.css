@@ -447,31 +447,6 @@
   width: 100%;
 }
 
-.tech-details__grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-}
-
-.tech-detail-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-size-xs);
-}
-
-.tech-detail-item__label {
-  color: var(--color-text-muted);
-}
-
-.tech-detail-item__value {
-  color: var(--color-text);
-  font-weight: var(--font-weight-semibold);
-  font-family: 'Courier New', Courier, monospace;
-}
 
 /* Interactive Connection Status Card */
 .stat-card--interactive {
@@ -707,10 +682,6 @@
 
 
 /* Status page: layout remnants extracted from inline styles */
-.plans-link-compact {
-  width: 100%;
-  text-align: center;
-}
 .time-remaining-progress-container {
   margin-top: var(--space-xs);
 }

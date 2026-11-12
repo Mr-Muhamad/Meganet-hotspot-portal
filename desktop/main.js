@@ -6,18 +6,32 @@
 delete process.env.ELECTRON_RUN_AS_NODE;
 
 const { app, BrowserWindow, shell, dialog } = require('electron');
+const fs = require('fs');
 const path = require('path');
+
+// When packaged (NSIS under Program Files or Portable), keep user profiles,
+// custom presets, and isolated staging builds inside writable userData.
+if (app.isPackaged) {
+  if (!process.env.ADMIN_DATA_DIR) {
+    process.env.ADMIN_DATA_DIR = path.join(app.getPath('userData'), 'admin-data');
+  }
+  if (!process.env.BUILD_WORK_DIR) {
+    process.env.BUILD_WORK_DIR = path.join(app.getPath('userData'), 'workspace-work');
+  }
+}
+
+// Allow single instance only — exit immediately before spawning server/GPU cache
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.exit(0);
+}
+
 const { startServer, server, stopPreview } = require('../admin/server.js');
 
 let mainWindow = null;
 let serverPort = null;
 
-// Allow single instance only
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-} else {
+if (gotTheLock) {
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -43,11 +57,13 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
+  const windowIcon = path.join(__dirname, '..', 'build', 'icon.png');
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
     minWidth: 980,
     minHeight: 700,
+    icon: fs.existsSync(windowIcon) ? windowIcon : undefined,
     title: 'Meganet Hotspot Studio - مولد قوالب ميكروتك',
     backgroundColor: '#0f172a',
     autoHideMenuBar: true,

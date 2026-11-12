@@ -82,6 +82,44 @@ describe('admin profile-store', () => {
     expect(() => store.writeAsset('p', 'script.exe', Buffer.from('x'))).toThrow(/unsupported asset file/);
   });
 
+  test('saveMikrotikSettings persists non-secret router fields, strips password, and copies on duplicate', () => {
+    store.create('cafe', 'Cafe', SHIPPED);
+    expect(store.get('cafe').mikrotik).toBeNull();
+
+    const saved = store.saveMikrotikSettings('cafe', {
+      host: '10.10.0.1',
+      protocol: 'https',
+      port: 8443,
+      username: 'netops',
+      password: 'super-secret-password',
+      targetDir: 'flash/cafe',
+      htmlDir: 'flash/cafe',
+      dnsName: 'wifi.cafe.local',
+      profileName: 'cafe-hs',
+      dhcpServer: 'dhcp-cafe',
+      capportMode: 'http',
+      extraHosts: 'pay.cafe.local, cdn.cafe.local',
+      applyRsc: true,
+      createBackup: true,
+      tlsFingerprint: 'AA:BB:CC:DD'
+    });
+
+    expect(saved.password).toBeUndefined();
+    expect(saved.host).toBe('10.10.0.1');
+    expect(saved.protocol).toBe('https');
+    expect(saved.port).toBe(8443);
+    expect(saved.extraHosts).toEqual(['pay.cafe.local', 'cdn.cafe.local']);
+    expect(saved.tlsFingerprint).toBe('AA:BB:CC:DD');
+
+    const rawFile = fs.readFileSync(path.join(base, 'profiles', 'cafe', 'mikrotik.json'), 'utf8');
+    expect(rawFile).not.toContain('super-secret-password');
+    expect(store.get('cafe').mikrotik.dnsName).toBe('wifi.cafe.local');
+
+    store.duplicate('cafe', 'cafe-copy', 'Cafe Copy');
+    expect(store.get('cafe-copy').mikrotik.host).toBe('10.10.0.1');
+    expect(store.get('cafe-copy').mikrotik.tlsFingerprint).toBe('AA:BB:CC:DD');
+  });
+
   test('remove deletes the profile folder', () => {
     store.create('gone', 'Gone', SHIPPED);
     store.remove('gone');

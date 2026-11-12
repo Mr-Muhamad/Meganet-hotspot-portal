@@ -9,13 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.7.1] - 2026-11-12
 
+### Added
+- **Admin Studio 5-Package Upgrade**:
+  - **ISO/IEC 18004 QR Engine** (`admin/lib/qr-generator.js`): standalone Versions `1..10` ECC-L generator with 8-mask penalty evaluation, plus `80mm` & `58mm` thermal POS voucher print layouts alongside `A4`.
+  - **Brand Logo & Asset Studio** (`admin/lib/logo-maker.js`, `scripts/svg-utils.js`): generates `logo.svg`, `prand-title.svg`, and `icon.png`, with SVGO + XSS sanitization on uploaded `.svg` assets.
+  - **RouterOS v7 `.rsc` & One-Click Upload** (`admin/lib/mikrotik.js`, `/api/mikrotik/test`, `/api/profiles/:id/rsc`, `/api/profiles/:id/deploy`): RFC 8910 CAPPORT Option 114 (`https` | `http` | `off`), Walled Garden rules, dry-run preview, flash storage preflight, optional pre-deploy backup, lossless binary/large asset upload via `/tool/fetch`, and TOFU `tlsFingerprint` pinning.
+  - **Per-profile MikroTik settings persistence** (`mikrotik.json`, `PUT /api/profiles/:id/mikrotik`): remembers non-secret router host, port, protocol, profile name, DHCP server, CAPPORT mode, and TLS fingerprint across sessions without ever writing passwords to disk.
+- **Playwright Studio E2E (`tests/e2e/studio.spec.js`)** & **Unit/API coverage (`tests/modules/admin-studio-extras.test.js`)**.
+
 ### Fixed
+- **Admin Studio UI `<script>` syntax regression**: removed an orphan `return card;` statement in `admin/public/index.html` that broke client script initialization.
+- **Electron Desktop Single-Instance & Writable Data**: duplicate launches now exit via `app.exit(0)` before spinning up server/GPU cache locks, and packaged builds route `ADMIN_DATA_DIR` and `BUILD_WORK_DIR` into `app.getPath('userData')`.
+- **Isolated Studio staging builds**: `admin/lib/workspace.js` builds inside isolated temp staging directories without mutating `config.json`, `src/`, or `dist/`.
 - **DNS rebinding on the local admin server** — the loopback remote-address check alone was bypassable by a page whose hostname resolves to `127.0.0.1`, letting a malicious website read client data (profile configs, WhatsApp numbers) cross-origin via GET. The server now also requires a loopback `Host` header (browsers cannot forge it); regression test added
 - **Inline config JSON could close its `<script>` tag** — the translated RADIUS error map (`window.HotspotErrorMap`) was embedded with `dump | safe`, so a config string containing `</script>` could break out of the script block. A new `scriptjson` Nunjucks filter escapes every `<` as `\u003c` — the same defense the i18n dictionary embed already used
 - **Template attribute injection points** — `poweredByUrl`, `qrScannerUrl` and the plans fields (`name` / `quota` / `price` + Arabic variants) were interpolated without HTML escaping; they are now escaped, and the URL validators reject quotes/spaces/angle brackets
 
 ### Changed
-- **Desktop build no longer ships client data** — `electron-builder.yml` excludes `.admin/**`, `config.json`, `dist/**`, etc.; `config.example.json` stays (the admin server reads it when creating new-profile templates)
+- **Shared static portal bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`)**: extracted shared CSS/JS from per-page inline bloat and conditional `jsQR.js` copy, cutting `dist/` weight by more than half (~686 KB total).
+- **Desktop build no longer ships client data or test artifacts** — `electron-builder.yml` excludes `.admin/**`, `config.json`, `coverage/**`, `*.zip`, `tests/**`, etc.; `config.example.json` stays (the admin server reads it when creating new-profile templates)
+- **Windows desktop icon & CI workflow**: added `build/icon.ico` + GitHub Actions CI pipeline.
 - **`npm run watch` works again** — `chokidar` was referenced by `build.js` but never declared; added as a devDependency
 - **Docs corrected** — page-weight claims (~40KB) updated to the actual ~90–140KB; the CNA "all inline" rule now documents the two same-host vendored scripts (`md5.js`, lazy-loaded `jsQR.js`)
 

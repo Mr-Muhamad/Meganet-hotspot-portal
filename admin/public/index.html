@@ -11,12 +11,16 @@
     --danger: #ef4444; --warn: #f59e0b; --radius: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+  html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
   /* Sidebar */
-  aside { width: 260px; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
-  .brand { padding: 18px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  aside { width: 270px; height: 100vh; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  .brand { padding: 16px 18px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 8px var(--acc); }
-  #profileList { flex: 1; overflow-y: auto; padding: 8px; }
+  .searchbox { padding: 8px 8px 4px; flex-shrink: 0; }
+  .searchbox input { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+  .searchbox input:focus { outline: none; border-color: var(--acc); }
+  #profileList { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
   .profile-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 2px; border: 1px solid transparent; }
   .profile-item:hover { background: var(--panel2); }
   .profile-item.active { background: var(--panel2); border-color: var(--acc); }
@@ -26,23 +30,51 @@
   .iconbtn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 6px; }
   .iconbtn:hover { background: rgba(255,255,255,.06); color: var(--text); }
   .iconbtn.danger:hover { color: var(--danger); }
-  .newbtn { margin: 8px; padding: 11px; border-radius: var(--radius); border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; font-weight: 600; }
+  .newbtn { margin: 4px 8px; padding: 10px; border-radius: var(--radius); border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; font-weight: 600; font-size: 13px; flex-shrink: 0; }
   .newbtn:hover { border-color: var(--acc); color: var(--acc); }
   /* Main */
-  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  header.top { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel); }
-  #profileTitle { font-size: 17px; font-weight: 700; flex: 1; }
-  .badge { font-size: 12px; color: var(--muted); background: var(--panel2); padding: 4px 10px; border-radius: 999px; }
-  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  main { flex: 1; height: 100vh; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  header.top { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  #profileTitle { font-size: 17px; font-weight: 700; flex: 1; min-width: 140px; }
+  .badge { font-size: 12px; color: var(--muted); background: var(--panel2); padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .badge.dirty { color: #fde68a; background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.45); display: none; }
+  .badge.dirty.show { display: inline-flex; }
+  .badge.wcag-pass { color: #86efac; background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.4); }
+  .badge.wcag-warn { color: #fde68a; background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.4); }
+  .badge.wcag-fail { color: #fca5a5; background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.4); }
+  .btn { border: none; border-radius: 10px; padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: 13px; font-family: inherit; }
   .btn.primary { background: var(--acc); color: #052e16; }
   .btn.primary:hover { background: var(--acc2); }
   .btn.ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .btn.ghost:hover { border-color: var(--muted); }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .tabs { display: flex; gap: 4px; padding: 10px 22px 0; background: var(--panel); flex-wrap: wrap; }
-  .tab { padding: 9px 16px; border-radius: 10px 10px 0 0; background: transparent; color: var(--muted); border: none; cursor: pointer; font-weight: 600; font-size: 14px; }
+  /* Bundle Size & Flash Meter */
+  #bundleMeter { flex-shrink: 0; display: none; align-items: center; gap: 14px; padding: 8px 22px; background: rgba(26,35,51,.75); border-bottom: 1px solid var(--line); font-size: 12px; flex-wrap: wrap; }
+  #bundleMeter.show { display: flex; }
+  .flash-bar { width: 130px; height: 8px; background: var(--panel); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .flash-fill { height: 100%; background: var(--acc); transition: width .3s ease; }
+  /* Tabs & Workspace Split */
+  .tabs { flex-shrink: 0; display: flex; gap: 4px; padding: 8px 20px 0; background: var(--panel); flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .tab { padding: 9px 15px; border-radius: 10px 10px 0 0; background: transparent; color: var(--muted); border: none; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit; }
   .tab.active { background: var(--bg); color: var(--text); }
-  .content { flex: 1; overflow-y: auto; padding: 22px; }
+  .workspace-body { flex: 1; display: flex; min-height: 0; height: 100%; overflow: hidden; }
+  .content { flex: 1; height: 100%; overflow-y: auto; padding: 20px; min-width: 0; }
+  /* Split-Screen Live Simulator */
+  #simulatorPanel { width: 380px; height: 100%; background: var(--panel); border-right: 1px solid var(--line); display: none; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  #simulatorPanel.open { display: flex; }
+  .sim-head { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .sim-controls { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; background: var(--panel2); flex-shrink: 0; }
+  .sim-pages { display: flex; flex-wrap: wrap; gap: 4px; }
+  .sim-page-btn { background: var(--panel); border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
+  .sim-page-btn.active { border-color: var(--acc); color: var(--acc); font-weight: 700; }
+  .sim-row { display: flex; gap: 6px; align-items: center; }
+  .sim-row select { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
+  .sim-viewport { flex: 1; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; background: #070a12; min-height: 0; }
+  .phone-bezel { width: 320px; max-width: 100%; height: 100%; max-height: 580px; background: #000; border: 7px solid #26324a; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+  .phone-notch { height: 18px; background: #111827; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .phone-notch::after { content: ""; width: 64px; height: 5px; border-radius: 99px; background: #26324a; }
+  #simFrame { flex: 1; width: 100%; height: 100%; border: none; background: #020617; }
+  /* Cards & Forms */
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
   .card h3 { font-size: 14px; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
@@ -50,15 +82,27 @@
   .field input, .field select, .field textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: inherit; }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--acc); }
   .field textarea { resize: vertical; min-height: 70px; }
+  .codearea { font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size: 12px !important; direction: ltr; text-align: left; min-height: 220px !important; line-height: 1.55; }
   .hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
-  .colorrow { display: flex; align-items: center; gap: 10px; }
+  .colorrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .colorrow input[type=color] { width: 44px; height: 38px; padding: 2px; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
   .swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); }
+  /* Presets Gallery */
+  .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 12px; }
+  .preset-card { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; cursor: pointer; transition: all .15s ease; display: flex; flex-direction: column; gap: 8px; text-align: right; }
+  .preset-card:hover { border-color: var(--muted); transform: translateY(-2px); }
+  .preset-card.active { border-color: var(--acc); background: rgba(34,197,94,.09); box-shadow: 0 0 10px rgba(34,197,94,.2); }
+  .preset-card-top { display: flex; align-items: center; justify-content: space-between; }
+  .preset-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .preset-swatches { display: flex; gap: 6px; align-items: center; }
+  .preset-swatch-dot { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  .preset-meta-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .preset-tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--panel); color: var(--muted); border: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; }
   th { font-size: 12px; color: var(--muted); text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--line); }
   td { padding: 6px; border-bottom: 1px solid var(--line); }
   td input, td select { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 7px 9px; font-size: 13px; width: 100%; font-family: inherit; }
-  .rowbtn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 13px; }
+  .rowbtn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 13px; font-family: inherit; }
   .rowbtn:hover { border-color: var(--danger); color: var(--danger); }
   .addbtn { margin-top: 8px; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--acc); color: var(--text); padding: 12px 22px; border-radius: 12px; font-size: 14px; display: none; z-index: 50; }
@@ -69,14 +113,22 @@
   .planshint { font-size: 12px; color: var(--muted); margin: 8px 0; }
   .status { font-size: 12px; color: var(--muted); }
   .status.ok { color: var(--acc); }
+  .qr-preview-box { display: flex; align-items: center; gap: 16px; padding: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .qr-svg-wrap { width: 112px; height: 112px; background: #fff; border-radius: 10px; padding: 6px; display: flex; align-items: center; justify-content: center; }
+  .qr-svg-wrap svg { width: 100%; height: 100%; }
+  .brand-preview-row { display: flex; align-items: center; gap: 18px; padding: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
 
 <aside>
   <div class="brand"><span class="dot"></span> بوابة التوليد</div>
+  <div class="searchbox">
+    <input id="profileSearch" type="search" placeholder="🔍 تصفية البروفايلات..." oninput="renderProfileList()">
+  </div>
   <div id="profileList"></div>
   <button class="newbtn" onclick="createProfile()">＋ بريفايل جديد</button>
+  <button class="newbtn" onclick="batchBuildAll()" id="batchBuildBtn">⚡ بناء جميع البروفايلات</button>
   <button class="newbtn" onclick="exportProfile()">⬇ تصدير البروفايل الحالي</button>
   <button class="newbtn" onclick="importProfile()">⬆ استيراد بروفايل</button>
 </aside>
@@ -84,14 +136,57 @@
 <main>
   <header class="top">
     <div id="profileTitle">اختر بريفايل</div>
+    <span class="badge dirty" id="dirtyBadge" title="توجد تعديلات غير محفوظة (Ctrl+S للحفظ)">● تعديلات غير محفوظة</span>
     <span class="badge" id="profileMeta"></span>
-    <button class="btn ghost" onclick="saveConfig()">حفظ</button>
+    <button class="btn ghost" onclick="saveConfig()" id="saveBtn" title="حفظ (Ctrl+S)">حفظ</button>
     <button class="btn primary" onclick="buildAndDownload()">بناء وتحميل zip</button>
-    <button class="btn ghost" onclick="togglePreview()" id="previewBtn">معاينة</button>
+    <button class="btn ghost" onclick="toggleSimulator()" id="simToggleBtn">📱 المحاكي المدمج</button>
+    <button class="btn ghost" onclick="togglePreview()" id="previewBtn">معاينة خارجية</button>
   </header>
 
+  <div id="bundleMeter">
+    <strong id="bm-title">📦 حجم الحزمة:</strong>
+    <span class="badge" id="bm-zip">ZIP: —</span>
+    <span class="badge" id="bm-raw">Raw: —</span>
+    <div class="flash-bar" title="ميزانية ذاكرة الفلاش في الراوتر (1 MB)"><div class="flash-fill" id="bm-bar" style="width:0%"></div></div>
+    <span id="bm-breakdown" class="status"></span>
+  </div>
+
   <div class="tabs" id="tabs"></div>
-  <div class="content" id="content"></div>
+  <div class="workspace-body">
+    <div class="content" id="content"></div>
+
+    <section id="simulatorPanel" aria-label="محاكي البوابة المباشر">
+      <div class="sim-head">
+        <span>📱 محاكي الهاتف المباشر</span>
+        <div style="display:flex;gap:6px">
+          <button class="rowbtn" onclick="refreshSimulator(true)" title="إعادة البناء وتحديث المعاينة">🔄 تحديث</button>
+          <button class="rowbtn" onclick="toggleSimulator()">✕</button>
+        </div>
+      </div>
+      <div class="sim-controls">
+        <div class="sim-pages" id="simPagesBar"></div>
+        <div class="sim-row">
+          <select id="sim-scenario" onchange="updateSimulatorFrame()">
+            <option value="normal">السيناريو: عادي (متصل)</option>
+            <option value="error">السيناريو: رسالة خطأ RADIUS</option>
+            <option value="trial">السيناريو: فترة تجريبية (Trial)</option>
+            <option value="chap">السيناريو: تشفير CHAP</option>
+          </select>
+          <select id="sim-lang" onchange="updateSimulatorFrame()">
+            <option value="ar">اللغة: العربية (RTL)</option>
+            <option value="en">Language: English (LTR)</option>
+          </select>
+        </div>
+      </div>
+      <div class="sim-viewport">
+        <div class="phone-bezel">
+          <div class="phone-notch"></div>
+          <iframe id="simFrame" title="معاينة البوابة"></iframe>
+        </div>
+      </div>
+    </section>
+  </div>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -101,7 +196,33 @@
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-const state = { profiles: [], current: null, meta: null, tab: 'general', buildBusy: false, drafts: {} };
+const state = {
+  profiles: [],
+  current: null,
+  meta: null,
+  tab: 'general',
+  buildBusy: false,
+  dirty: false,
+  drafts: {},
+  sim: {
+    open: false,
+    baseUrl: null,
+    page: 'login',
+    scenario: 'normal',
+    lang: 'ar'
+  }
+};
+
+const SIM_PAGES = [
+  { id: 'login', label: 'الدخول' },
+  { id: 'status', label: 'الحالة' },
+  { id: 'plans', label: 'الباقات' },
+  { id: 'logout', label: 'الخروج' },
+  { id: 'expired', label: 'الانتهاء' },
+  { id: 'error', label: 'الخطأ' },
+  { id: 'alogin', label: 'التحويل' },
+  { id: 'index', label: 'الرئيسية' }
+];
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -113,6 +234,34 @@ function toast(msg, isError) {
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.className = 'toast'; }, 3200);
 }
+
+function markDirty(isDirty) {
+  state.dirty = Boolean(isDirty);
+  const badge = $('#dirtyBadge');
+  if (badge) badge.className = 'badge dirty' + (state.dirty ? ' show' : '');
+}
+
+// Track form edits in #content to light up Dirty State indicator
+document.addEventListener('input', (e) => {
+  if (state.current && $('#content') && $('#content').contains(e.target)) {
+    if (!e.target.dataset.ignoreDirty) markDirty(true);
+  }
+});
+
+// Keyboard shortcut Ctrl+S / Cmd+S to save
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (state.current) saveConfig();
+  }
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (state.dirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 
 async function api(path, options) {
   const res = await fetch('/api' + path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
@@ -133,6 +282,7 @@ async function api(path, options) {
 // ---------------------------------------------------------------------------
 async function boot() {
   try {
+    renderSimPagesBar();
     state.meta = await api('/meta');
     await loadProfiles();
   } catch (e) { toast('فشل التحميل: ' + e.message, true); }
@@ -146,12 +296,16 @@ async function loadProfiles(selectId) {
 
 function renderProfileList(selectId) {
   const list = $('#profileList');
+  const query = ($('#profileSearch')?.value || '').trim().toLowerCase();
   list.innerHTML = '';
-  for (const p of state.profiles) {
+  const filtered = state.profiles.filter(p =>
+    !query || p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query)
+  );
+  for (const p of filtered) {
     const row = document.createElement('div');
     row.className = 'profile-item' + (state.current && state.current.id === p.id ? ' active' : '');
     row.innerHTML =
-      '<span class="pname" title="' + esc(p.name) + '">' + esc(p.name) + '</span>' +
+      '<span class="pname" title="' + esc(p.name) + ' (' + esc(p.id) + ')">' + esc(p.name) + '</span>' +
       '<span class="pact">' +
       '<button class="iconbtn" title="نسخ" onclick="event.stopPropagation();duplicateProfile(\'' + p.id + '\')">⧉</button>' +
       '<button class="iconbtn" title="إعادة تسمية" onclick="event.stopPropagation();renameProfile(\'' + p.id + '\')">✎</button>' +
@@ -160,22 +314,29 @@ function renderProfileList(selectId) {
     row.onclick = () => selectProfile(p.id);
     list.appendChild(row);
   }
-  if (selectId) selectProfile(selectId);
+  const targetId = selectId || (!state.current && state.profiles.length > 0 ? state.profiles[0].id : null);
+  if (targetId) selectProfile(targetId);
 }
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
-async function selectProfile(id) {
+async function selectProfile(id, skipDirtyCheck) {
+  if (!skipDirtyCheck && state.dirty && state.current && state.current.id !== id) {
+    if (!confirm('لديك تعديلات غير محفوظة في البروفايل الحالي. هل تريد المتابعة وتجاهلها؟')) return;
+  }
   try {
     state.drafts = {};
+    markDirty(false);
     const data = await api('/profiles/' + encodeURIComponent(id));
     state.current = data.profile;
+    lastRouterFingerprint = (state.current && state.current.mikrotik && state.current.mikrotik.tlsFingerprint) || '';
     $('#profileTitle').textContent = state.current.name;
     $('#profileMeta').textContent =
       state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
     renderProfileList();
     renderTabs();
     renderTab();
+    if (state.sim.open) refreshSimulator(false);
   } catch (e) { toast(e.message, true); }
 }
 
@@ -189,8 +350,10 @@ const TABS = [
   { id: 'plans', label: 'الباقات' },
   { id: 'support', label: 'الدعم' },
   { id: 'announcements', label: 'الإعلانات' },
-  { id: 'words', label: 'الكلمات' },
-  { id: 'assets', label: 'الملفات' }
+  { id: 'words', label: 'الكلمات والأخطاء' },
+  { id: 'vouchers', label: 'الكروت والـ QR' },
+  { id: 'assets', label: 'الملفات والشعارات' },
+  { id: 'mikrotik', label: 'مايكروتك (.rsc والرفع)' }
 ];
 
 function renderTabs() {
@@ -297,6 +460,16 @@ function captureDraft(tab) {
         }
       });
       state.drafts.words = overrides;
+
+      const radiusErrors = {};
+      $$('#radius-errors-list .r-row').forEach(row => {
+        const k = row.querySelector('.r-key')?.value?.trim();
+        const v = row.querySelector('.r-val')?.value?.trim();
+        if (k && !k.startsWith('_') && v) {
+          radiusErrors[k] = v;
+        }
+      });
+      state.drafts.radiusErrors = radiusErrors;
     }
   } catch (err) { /* element not present — skip draft for this tab */ }
 }
@@ -374,6 +547,10 @@ function applyDrafts(c) {
       delete c.i18nOverrides;
     }
   }
+
+  if (d.radiusErrors !== undefined) {
+    c.radiusErrorTranslations = d.radiusErrors;
+  }
 }
 
 function renderTab() {
@@ -388,7 +565,9 @@ function renderTab() {
     case 'support': el.appendChild(formSupport(c)); break;
     case 'announcements': el.appendChild(formAnnouncements()); break;
     case 'words': el.appendChild(formWords()); break;
+    case 'vouchers': el.appendChild(formVouchers(c)); break;
     case 'assets': el.appendChild(formAssets()); break;
+    case 'mikrotik': el.appendChild(formMikrotik(c)); break;
   }
 }
 
@@ -397,6 +576,29 @@ function field(label, inputHtml, hint) {
   wrap.className = 'field';
   wrap.innerHTML = '<label>' + label + '</label>' + inputHtml + (hint ? '<div class="hint">' + hint + '</div>' : '');
   return wrap;
+}
+
+// ---------------------------------------------------------------------------
+// WCAG 2.1 Live Contrast Calculator
+// ---------------------------------------------------------------------------
+function hexLuminance(hex) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex || '')) return 0;
+  const rgb = [
+    parseInt(hex.slice(1, 3), 16) / 255,
+    parseInt(hex.slice(3, 5), 16) / 255,
+    parseInt(hex.slice(5, 7), 16) / 255
+  ].map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
+function computeWcag(hex1, hex2) {
+  const l1 = hexLuminance(hex1);
+  const l2 = hexLuminance(hex2);
+  const ratio = Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 100) / 100;
+  if (ratio >= 7) return { ratio, level: 'AAA', text: 'تباين ' + ratio + ':1 · AAA ممتاز', cls: 'wcag-pass' };
+  if (ratio >= 4.5) return { ratio, level: 'AA', text: 'تباين ' + ratio + ':1 · AA جيد', cls: 'wcag-pass' };
+  if (ratio >= 3) return { ratio, level: 'AA-Large', text: 'تباين ' + ratio + ':1 · AA للعناوين فقط', cls: 'wcag-warn' };
+  return { ratio, level: 'FAIL', text: '⚠ تباين ضعيف (' + ratio + ':1)', cls: 'wcag-fail' };
 }
 
 // ---------------------------------------------------------------------------
@@ -417,33 +619,83 @@ function formGeneral(c) {
 }
 
 // ---------------------------------------------------------------------------
-// Theme
+// Theme (with Live WCAG Contrast Badge & Presets Gallery)
 // ---------------------------------------------------------------------------
 function formTheme(c) {
   const t = c.theme || {};
+
+  // Presets Gallery Showcase
+  const galleryCard = document.createElement('div');
+  galleryCard.className = 'card';
+  galleryCard.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
+      '<h3 style="margin:0;font-size:15px;color:var(--text)">🎨 شخصيات القوالب والبريسيتات الجاهزة (12 شخصية)</h3>' +
+      '<span style="font-size:12px;color:var(--muted)">اضغط على أي شخصية لمعاينتها وتطبيق ألوانها وحوافها فوراً</span>' +
+    '</div>';
+
+  const pGrid = document.createElement('div');
+  pGrid.className = 'preset-grid';
+
+  const presets = (state.meta && state.meta.presets) ? state.meta.presets : [];
+  for (const p of presets) {
+    const isAct = (t.preset === p.id);
+    const pEl = document.createElement('div');
+    pEl.className = 'preset-card' + (isAct ? ' active' : '');
+    pEl.dataset.presetId = p.id;
+    pEl.onclick = () => applyPresetToInputs(p.id);
+
+    const colors = p.preview?.colors || ['#22c55e', '#020617'];
+    const defTh = p.theme?.defaultTheme === 'light' ? 'نهاري' : 'داكن';
+    const rad = p.preview?.radius || p.theme?.cardRadius || '16px';
+
+    pEl.innerHTML =
+      '<div class="preset-card-top">' +
+        '<span class="preset-card-title">' + (p.custom ? '★ ' : '') + esc(p.id) + '</span>' +
+        '<div class="preset-swatches">' +
+          '<span class="preset-swatch-dot" style="background:' + esc(colors[0]) + '" title="اللون الأساسي: ' + esc(colors[0]) + '"></span>' +
+          '<span class="preset-swatch-dot" style="background:' + esc(colors[1]) + '" title="الخلفية: ' + esc(colors[1]) + '"></span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.4">' + esc(p.label) + '</div>' +
+      '<div class="preset-meta-tags">' +
+        '<span class="preset-tag">' + defTh + '</span>' +
+        '<span class="preset-tag">حواف ' + esc(rad) + '</span>' +
+        (p.custom ? '<span class="preset-tag" style="color:var(--acc)">مخصص</span>' : '') +
+      '</div>';
+    pGrid.appendChild(pEl);
+  }
+  galleryCard.appendChild(pGrid);
+  $('#content').appendChild(galleryCard);
+
+  // Manual Adjustments Form
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = '<h3>الثيم والشخصية</h3>';
+  card.innerHTML = '<h3>تخصيص الألوان والحواف يدوياً</h3>';
   const grid = document.createElement('div');
   grid.className = 'grid';
 
-  const presetSel = '<select id="t-preset"><option value="">بدون بريسيت (يدوي)</option>' +
-    state.meta.presets.map(p =>
+  const presetSel = '<div style="display:flex;gap:8px;flex-direction:column">' +
+    '<select id="t-preset"><option value="">بدون بريسيت (يدوي)</option>' +
+    presets.map(p =>
       '<option value="' + esc(p.id) + '"' + (t.preset === p.id ? ' selected' : '') + '>' +
       (p.custom ? '★ ' : '') + esc(p.label) + '</option>').join('') +
     '</select>' +
-    '<div id="preset-preview" style="margin-top:8px"></div>' +
-    '<button class="rowbtn" style="margin-top:8px" onclick="saveCurrentAsPreset()">💾 احفظ الإعدادات الحالية كشخصية مخصصة</button>';
-  grid.appendChild(field('بريسيت الشخصية', presetSel, 'يملأ الثيم + قاموس الكلمات + إعلان الترحيب (للبروفايل الجديد) — أي قيمة صريحة تتغلب عليه'));
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      '<button class="rowbtn" type="button" style="color:var(--acc);border-color:var(--acc)" onclick="applyPresetToInputs()">⚡ تطبيق هذا البريسيت</button>' +
+      '<button class="rowbtn" type="button" onclick="saveCurrentAsPreset()">💾 احفظ كشخصية مخصصة</button>' +
+    '</div>' +
+    '<div id="preset-preview" style="margin-top:4px"></div>' +
+    '</div>';
+  grid.appendChild(field('بريسيت الشخصية النشط', presetSel, 'يحدد الشخصية التجارية للقالب — تملأ الثيم والكلمات'));
 
-  // live preview: sample colors + radius under the dropdown
   const renderPreview = () => {
     const sel = $('#t-preset');
     const p = state.meta.presets.find(x => x.id === sel.value);
     const box = $('#preset-preview');
+    if (!box) return;
     if (!p || !p.preview) { box.innerHTML = ''; return; }
-    box.innerHTML = p.preview.colors.map(c =>
-      '<span class="swatch" style="display:inline-block;background:' + esc(c) + ';width:22px;height:22px;margin-inline-end:6px;vertical-align:middle"></span>'
+    box.innerHTML = p.preview.colors.map(col =>
+      '<span class="swatch" style="display:inline-block;background:' + esc(col) + ';width:22px;height:22px;margin-inline-end:6px;vertical-align:middle"></span>'
     ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
   };
 
@@ -454,8 +706,8 @@ function formTheme(c) {
     'أول زيارة للزائر'));
 
   grid.appendChild(field('اللون الأساسي',
-    '<div class="colorrow"><input id="t-primary" type="color" value="' + (t.primaryColor || '#22c55e') + '"><span class="swatch" id="t-primary-swatch"></span></div>',
-    'كل التوهجات والحدود والزجاج تتبع هذا اللون تلقائياً'));
+    '<div class="colorrow"><input id="t-primary" type="color" value="' + (t.primaryColor || '#22c55e') + '"><span class="swatch" id="t-primary-swatch"></span><span class="badge" id="wcag-badge" aria-live="polite"></span></div>',
+    'كل التوهجات والحدود والزجاج تتبع هذا اللون تلقائياً · مؤشر التباين يفحص وضوح اللون الأساسي مع الخلفية'));
 
   grid.appendChild(field('لون الخلفية (دارك)',
     '<div class="colorrow"><input id="t-bg" type="color" value="' + (t.backgroundColor || '#020617') + '"><span class="swatch" id="t-bg-swatch"></span></div>'));
@@ -473,15 +725,75 @@ function formTheme(c) {
   card.appendChild(grid);
   $('#content').appendChild(card);
   const sync = () => {
-    $('#t-primary-swatch').style.background = $('#t-primary').value;
-    $('#t-bg-swatch').style.background = $('#t-bg').value;
+    const prim = $('#t-primary').value;
+    const bg = $('#t-bg').value;
+    $('#t-primary-swatch').style.background = prim;
+    $('#t-bg-swatch').style.background = bg;
+    const wcag = computeWcag(prim, bg);
+    const badge = $('#wcag-badge');
+    if (badge) {
+      badge.textContent = wcag.text;
+      badge.className = 'badge ' + wcag.cls;
+      badge.dataset.level = wcag.level;
+    }
     renderPreview();
   };
   $('#t-primary').addEventListener('input', sync);
   $('#t-bg').addEventListener('input', sync);
-  $('#t-preset').addEventListener('change', sync);
+  $('#t-preset').addEventListener('change', () => {
+    const val = $('#t-preset').value;
+    document.querySelectorAll('.preset-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.presetId === val);
+    });
+    sync();
+  });
   sync();
   return card;
+}
+
+function applyPresetToInputs(presetId) {
+  const id = presetId || $('#t-preset')?.value;
+  if (!id) return;
+  const p = state.meta?.presets?.find(x => x.id === id);
+  if (!p) return;
+  if ($('#t-preset')) $('#t-preset').value = id;
+  if (p.preview && p.preview.colors) {
+    if ($('#t-primary')) $('#t-primary').value = p.preview.colors[0];
+    if ($('#t-bg')) $('#t-bg').value = p.preview.colors[1];
+  }
+  if (p.preview && p.preview.radius && $('#t-radius')) {
+    $('#t-radius').value = p.preview.radius;
+  }
+  if (p.theme) {
+    if (p.theme.defaultTheme && $('#t-default')) {
+      $('#t-default').value = p.theme.defaultTheme;
+    }
+    if (p.theme.enableNetworkBackground !== undefined && $('#t-canvas')) {
+      $('#t-canvas').value = String(p.theme.enableNetworkBackground);
+    }
+  }
+  document.querySelectorAll('.preset-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.presetId === id);
+  });
+  const prim = $('#t-primary')?.value;
+  const bg = $('#t-bg')?.value;
+  if ($('#t-primary-swatch')) $('#t-primary-swatch').style.background = prim;
+  if ($('#t-bg-swatch')) $('#t-bg-swatch').style.background = bg;
+  const wcag = computeWcag(prim, bg);
+  const badge = $('#wcag-badge');
+  if (badge) {
+    badge.textContent = wcag.text;
+    badge.className = 'badge ' + wcag.cls;
+    badge.dataset.level = wcag.level;
+  }
+  const box = $('#preset-preview');
+  if (box && p.preview && p.preview.colors) {
+    box.innerHTML = p.preview.colors.map(col =>
+      '<span class="swatch" style="display:inline-block;background:' + esc(col) + ';width:22px;height:22px;margin-inline-end:6px;vertical-align:middle"></span>'
+    ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
+  }
+  markDirty(true);
+  toast('تم تطبيق بريسيت: ' + p.label);
 }
 
 async function saveCurrentAsPreset() {
@@ -490,6 +802,7 @@ async function saveCurrentAsPreset() {
   if (!id) return;
   try {
     captureDraft(state.tab);
+    await saveConfig(true);
     const data = await api('/presets', {
       method: 'POST',
       body: JSON.stringify({ slug: state.current.id, id, label: state.current.name + ' — شخصية مخصصة' })
@@ -530,7 +843,7 @@ function formFeatures(c) {
 
   grid.appendChild(field('ماسح QR خارجي (اختياري)',
     '<input id="f-qrurl" type="text" value="' + esc(f.qrScannerUrl || '') + '" placeholder="اتركه فارغاً للماسح المدمج">',
-    'رابط ماسح خارجي يستبدل الماسح المدمج — يحتاج walled garden'));
+    'رابط ماسح خارجي يستبدل الماسح المدمج — يُضاف تلقائياً إلى Walled Garden في ملف .rsc'));
 
   grid.appendChild(field('أدنى طول لكود الشحن',
     '<input id="f-min" type="number" min="1" value="' + (f.voucherMinLength || '') + '">',
@@ -562,7 +875,6 @@ function formFeatures(c) {
 
   card.appendChild(grid);
 
-  // Security card (was missing from the UI entirely)
   const secCard = document.createElement('div');
   secCard.className = 'card';
   secCard.innerHTML = '<h3>الحماية ومكافحة التخمين</h3>';
@@ -622,6 +934,7 @@ function addPlan() {
   applyDrafts(state.current.config);
   state.current.config.plans = state.current.config.plans || [];
   state.current.config.plans.push({ name: 'New Plan', name_ar: 'باقة جديدة', quota: '10 GB', quota_ar: '10 جيجا', price: '60', icon: 'globe' });
+  markDirty(true);
   renderTab();
 }
 
@@ -629,6 +942,7 @@ function removePlan(i) {
   captureDraft(state.tab);
   applyDrafts(state.current.config);
   state.current.config.plans.splice(i, 1);
+  markDirty(true);
   renderTab();
 }
 
@@ -639,8 +953,6 @@ function formSupport(c) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>فريق الدعم</h3>';
-  // plain container: each agent card spans the full width (its own inner
-  // grid lays out the fields)
   const grid = document.createElement('div');
 
   const agents = c.support && c.support.agents ? c.support.agents : [];
@@ -651,8 +963,6 @@ function formSupport(c) {
     box.style.marginBottom = '10px';
     const agentGrid = document.createElement('div');
     agentGrid.className = 'grid';
-    // field() returns a DOM element — appendChild it, never concatenate into
-    // innerHTML (that would render "[object HTMLDivElement]")
     const imgOptions = ['<option value="">بدون صورة</option>']
       .concat(imageAssets.map(a =>
         '<option value="' + esc(a.name) + '"' + (agent.image === a.name ? ' selected' : '') + '>' + esc(a.name) + '</option>'))
@@ -682,7 +992,8 @@ function formSupport(c) {
     captureDraft(state.tab);
     applyDrafts(state.current.config);
     state.current.config.support = state.current.config.support || { agents: [] };
-    state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '', whatsapp: '' });
+    state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '+201000000000', whatsapp: '201000000000' });
+    markDirty(true);
     renderTab();
   };
   card.appendChild(add);
@@ -693,6 +1004,7 @@ function removeAgent(i) {
   captureDraft(state.tab);
   applyDrafts(state.current.config);
   state.current.config.support.agents.splice(i, 1);
+  markDirty(true);
   renderTab();
 }
 
@@ -711,7 +1023,9 @@ function formAnnouncements() {
     '<select id="a-active"><option value="true"' + (a.active ? ' selected' : '') + '>نعم</option>' +
     '<option value="false"' + (!a.active ? ' selected' : '') + '>لا</option></select>'));
   grid.appendChild(field('النوع',
-    '<select id="a-type"><option value="promo"' + (a.type === 'promo' ? ' selected' : '') + '>ترويجي</option>' +
+    '<select id="a-type">' +
+    '<option value="info"' + (a.type === 'info' ? ' selected' : '') + '>معلومات</option>' +
+    '<option value="promo"' + (a.type === 'promo' ? ' selected' : '') + '>ترويجي</option>' +
     '<option value="warning"' + (a.type === 'warning' ? ' selected' : '') + '>تحذير</option></select>'));
   card.appendChild(grid);
 
@@ -725,14 +1039,16 @@ function formAnnouncements() {
 }
 
 // ---------------------------------------------------------------------------
-// Words (i18n overrides)
+// Words (i18n overrides) + RADIUS Error Translations UI
 // ---------------------------------------------------------------------------
 function formWords() {
+  const wrap = document.createElement('div');
+
   state.current.config.i18nOverrides = state.current.config.i18nOverrides || {};
   const ov = state.current.config.i18nOverrides;
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة</h3>' +
+  card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة (i18nOverrides)</h3>' +
     '<div class="planshint">اختر مفتاحاً من القائمة الرسمية، واترك النصوص فارغة لحذف التخصيص.</div>';
   const output = document.createElement('div');
   output.id = 'words-list';
@@ -742,7 +1058,7 @@ function formWords() {
     const entries = Object.entries(ov).filter(([k]) => !k.startsWith('_'));
     for (const [key, val] of entries) {
       const en = typeof val === 'object' ? (val.en || '') : val;
-      const ar = typeof val === 'object' ? (val.ar || '') : '';
+      const ar = typeof val === 'object' ? (val.ar || '') : val;
       const row = document.createElement('div');
       row.className = 'card';
       row.style.marginBottom = '10px';
@@ -755,18 +1071,18 @@ function formWords() {
         '<div class="field"><label>عربية</label><input class="w-ar" value="' + esc(ar) + '"></div>' +
         '</div><button class="rowbtn" style="margin-top:8px">إزالة</button>';
       const del = row.querySelector('.rowbtn');
-      del.onclick = () => { delete ov[key]; renderWords(); };
+      del.onclick = () => { delete ov[key]; markDirty(true); renderWords(); };
       row.querySelector('.w-key').onchange = (e) => {
         const nk = e.target.value;
-        ov[nk] = ov[key]; delete ov[key]; renderWords();
+        ov[nk] = ov[key]; delete ov[key]; markDirty(true); renderWords();
       };
       row.querySelector('.w-en').oninput = (e) => {
-        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: '' };
+        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: ov[key] || '' };
         currentPair.en = e.target.value;
         ov[key] = currentPair;
       };
       row.querySelector('.w-ar').oninput = (e) => {
-        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: '' };
+        const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: ov[key] || '' };
         currentPair.ar = e.target.value;
         ov[key] = currentPair;
       };
@@ -782,19 +1098,277 @@ function formWords() {
   add.onclick = () => {
     const firstFree = state.meta.knownKeys.find(k => !(k in ov));
     ov[firstFree || 'login_button'] = { en: '', ar: '' };
+    markDirty(true);
     renderWords();
   };
   card.appendChild(add);
-  return card;
+  wrap.appendChild(card);
+
+  // --- RADIUS & MikroTik Server Error Translations Card ---
+  state.current.config.radiusErrorTranslations = state.current.config.radiusErrorTranslations || {};
+  const radMap = state.current.config.radiusErrorTranslations;
+  const radCard = document.createElement('div');
+  radCard.className = 'card';
+  radCard.innerHTML =
+    '<h3>ترجمة رسائل أخطاء المايكروتك والـ RADIUS (radiusErrorTranslations)</h3>' +
+    '<div class="planshint">تُطابق رسائل الخطأ الإنجليزية القادمة من السيرفر (Reply-Message) وتستبدلها بالرسالة العربية المخصصة للمشترك.</div>' +
+    '<datalist id="radius-common-keys">' +
+    ['invalid username or password', 'uptime limit reached', 'traffic limit reached', 'simultaneous session limit reached', 'no more sessions are allowed', 'mac address is not yours', 'account expired', 'credit limit reached', 'trial time limit reached', 'radius server is not responding']
+      .map(k => '<option value="' + esc(k) + '">').join('') +
+    '</datalist>';
+
+  const radList = document.createElement('div');
+  radList.id = 'radius-errors-list';
+
+  const renderRadiusErrors = () => {
+    radList.innerHTML = '';
+    const entries = Object.entries(radMap).filter(([k]) => !k.startsWith('_'));
+    entries.forEach(([errKey, arText]) => {
+      const row = document.createElement('div');
+      row.className = 'card r-row';
+      row.style.marginBottom = '8px';
+      row.style.padding = '12px';
+      row.innerHTML =
+        '<div class="grid">' +
+        '<div class="field"><label>نص خطأ السيرفر (EN)</label><input class="r-key" list="radius-common-keys" dir="ltr" value="' + esc(errKey) + '"></div>' +
+        '<div class="field"><label>الترجمة العربية للمشترك</label><input class="r-val" value="' + esc(arText) + '"></div>' +
+        '</div>' +
+        '<button class="rowbtn" style="margin-top:8px">حذف الترجمة</button>';
+      row.querySelector('.rowbtn').onclick = () => {
+        delete radMap[errKey];
+        markDirty(true);
+        renderRadiusErrors();
+      };
+      row.querySelector('.r-key').onchange = (e) => {
+        const nk = e.target.value.trim();
+        if (!nk || nk === errKey) return;
+        radMap[nk] = radMap[errKey];
+        delete radMap[errKey];
+        markDirty(true);
+        renderRadiusErrors();
+      };
+      row.querySelector('.r-val').oninput = (e) => {
+        radMap[errKey] = e.target.value;
+      };
+      radList.appendChild(row);
+    });
+  };
+  renderRadiusErrors();
+  radCard.appendChild(radList);
+
+  const radBtnRow = document.createElement('div');
+  radBtnRow.style.display = 'flex';
+  radBtnRow.style.gap = '8px';
+  radBtnRow.style.marginTop = '8px';
+
+  const addRadBtn = document.createElement('button');
+  addRadBtn.className = 'btn ghost';
+  addRadBtn.textContent = '＋ إضافة ترجمة خطأ RADIUS';
+  addRadBtn.onclick = () => {
+    const newKey = 'custom error ' + (Object.keys(radMap).length + 1);
+    radMap[newKey] = 'رسالة خطأ مخصصة للمشترك.';
+    markDirty(true);
+    renderRadiusErrors();
+  };
+
+  const resetRadBtn = document.createElement('button');
+  resetRadBtn.className = 'btn ghost';
+  resetRadBtn.textContent = '↺ استعادة الترجمات الافتراضية';
+  resetRadBtn.onclick = () => {
+    if (state.meta && state.meta.template && state.meta.template.radiusErrorTranslations) {
+      state.current.config.radiusErrorTranslations = JSON.parse(JSON.stringify(state.meta.template.radiusErrorTranslations));
+      markDirty(true);
+      renderTab();
+    }
+  };
+
+  radBtnRow.appendChild(addRadBtn);
+  radBtnRow.appendChild(resetRadBtn);
+  radCard.appendChild(radBtnRow);
+  wrap.appendChild(radCard);
+
+  return wrap;
 }
 
 // ---------------------------------------------------------------------------
-// Assets
+// Vouchers & QR Tester + A4 Print Sheet (Package 3)
+// ---------------------------------------------------------------------------
+function formVouchers(c) {
+  const wrap = document.createElement('div');
+  const plans = c.plans || [];
+  const firstPlan = plans[0] || { name_ar: 'باقة البوب', quota_ar: '10 جيجا', price: '60' };
+
+  // Card 1: Instant QR Voucher Tester
+  const testerCard = document.createElement('div');
+  testerCard.className = 'card';
+  testerCard.innerHTML =
+    '<h3>🔍 مختبر كروت الـ QR الفوري (QR Voucher Tester)</h3>' +
+    '<div class="planshint">ولّد كرت QR تجريبي على الشاشة لاختبار كاميرا الهاتف أو الماسح المدمج قبل الطباعة للعملاء.</div>';
+
+  const testerGrid = document.createElement('div');
+  testerGrid.className = 'grid';
+  testerGrid.appendChild(field('كود الكرت التجريبي', '<input id="v-test-code" data-ignore-dirty="1" value="88442299">'));
+  testerGrid.appendChild(field('رابط صفحة الدخول بالراوتر', '<input id="v-test-dns" data-ignore-dirty="1" dir="ltr" value="http://login.meganet.local/login">'));
+  testerGrid.appendChild(field('محتوى رمز الـ QR',
+    '<select id="v-test-mode" data-ignore-dirty="1">' +
+    '<option value="url">رابط دخول مباشر (Username + Password)</option>' +
+    '<option value="code">رقم الكود فقط (Plain Code)</option>' +
+    '</select>'));
+  testerCard.appendChild(testerGrid);
+
+  const previewBox = document.createElement('div');
+  previewBox.className = 'qr-preview-box';
+  previewBox.innerHTML =
+    '<div class="qr-svg-wrap" id="v-qr-svg"></div>' +
+    '<div>' +
+    '<div style="font-weight:700;font-size:15px;margin-bottom:4px" id="v-card-title">' + esc(c.general.networkName) + '</div>' +
+    '<div style="font-family:monospace;font-size:18px;color:var(--acc);margin-bottom:4px" id="v-card-code">88442299</div>' +
+    '<div class="hint" id="v-card-payload" style="direction:ltr;text-align:left"></div>' +
+    '</div>';
+  testerCard.appendChild(previewBox);
+  wrap.appendChild(testerCard);
+
+  // Card 2: CSV Voucher Importer & A4 Print Sheet Generator
+  const printCard = document.createElement('div');
+  printCard.className = 'card';
+  printCard.innerHTML =
+    '<h3>🖨 مولّد صفحة طباعة الكروت (A4 Voucher Print Sheet)</h3>' +
+    '<div class="planshint">أدخل الكروت (سطر لكل كرت بصيغة <code>code,plan,quota,price</code> أو الكود فقط) أو استورد ملف CSV من المايكروتك / User Manager لطباعة صفحة A4 جاهزة بألوان وهوية البروفايل.</div>';
+
+  const printGrid = document.createElement('div');
+  printGrid.className = 'grid';
+  printGrid.appendChild(field('اسم الباقة الافتراضي', '<input id="v-def-plan" data-ignore-dirty="1" value="' + esc(firstPlan.name_ar || firstPlan.name || 'باقة إنترنت') + '">'));
+  printGrid.appendChild(field('الحصة الافتراضية', '<input id="v-def-quota" data-ignore-dirty="1" value="' + esc(firstPlan.quota_ar || firstPlan.quota || '10 GB') + '">'));
+  printGrid.appendChild(field('السعر الافتراضي', '<input id="v-def-price" data-ignore-dirty="1" value="' + esc(firstPlan.price || '60') + ' جنيه">'));
+  printGrid.appendChild(field('مقاس ورق الطباعة', '<select id="v-print-format" data-ignore-dirty="1"><option value="a4">ورق A4 (شبكة 3 أعمدة)</option><option value="80mm">رول كاشير حراري 80mm</option><option value="58mm">رول كاشير حراري 58mm</option></select>'));
+  printGrid.appendChild(field('استيراد ملف CSV / TXT', '<input type="file" id="v-csv-file" data-ignore-dirty="1" accept=".csv,.txt">'));
+  printCard.appendChild(printGrid);
+
+  const csvField = field(
+    'قائمة الكروت (كود في كل سطر أو code,plan,quota,price)',
+    '<textarea id="v-csv-text" class="codearea" data-ignore-dirty="1">77492011\n88301922\n99201833\n44501944\n55602955\n66703966</textarea>'
+  );
+  csvField.style.marginTop = '12px';
+  printCard.appendChild(csvField);
+
+  const btnBar = document.createElement('div');
+  btnBar.style.display = 'flex';
+  btnBar.style.gap = '8px';
+  btnBar.style.marginTop = '12px';
+  btnBar.innerHTML =
+    '<button class="btn ghost" onclick="generateSampleVouchers()">🎲 توليد 12 كرت عشوائي</button>' +
+    '<button class="btn primary" onclick="generateAndPrintVouchers()">🖨 معاينة وطباعة الكروت</button>';
+  printCard.appendChild(btnBar);
+  wrap.appendChild(printCard);
+
+  setTimeout(() => {
+    const updateLiveQr = async () => {
+      const code = ($('#v-test-code')?.value || '').trim() || '884422';
+      const dns = ($('#v-test-dns')?.value || '').trim();
+      const mode = $('#v-test-mode')?.value || 'url';
+      const passMode = state.current.config.features?.voucherPasswordMode || 'same';
+      const payload = (mode === 'url' && dns)
+        ? dns + '?username=' + encodeURIComponent(code) + (passMode === 'empty' ? '' : '&password=' + encodeURIComponent(code))
+        : code;
+      if ($('#v-card-code')) $('#v-card-code').textContent = code;
+      if ($('#v-card-payload')) $('#v-card-payload').textContent = payload;
+      try {
+        const res = await api('/qr?text=' + encodeURIComponent(payload));
+        if ($('#v-qr-svg')) $('#v-qr-svg').innerHTML = res.svg;
+      } catch {}
+    };
+    $('#v-test-code')?.addEventListener('input', updateLiveQr);
+    $('#v-test-dns')?.addEventListener('input', updateLiveQr);
+    $('#v-test-mode')?.addEventListener('change', updateLiveQr);
+    $('#v-csv-file')?.addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      $('#v-csv-text').value = await f.text();
+      toast('تم استيراد ملف الكروت');
+    });
+    updateLiveQr();
+  }, 0);
+
+  return wrap;
+}
+
+function generateSampleVouchers() {
+  const lines = [];
+  for (let i = 0; i < 12; i++) {
+    lines.push(String(Math.floor(10000000 + Math.random() * 90000000)));
+  }
+  const box = $('#v-csv-text');
+  if (box) box.value = lines.join('\n');
+}
+
+async function generateAndPrintVouchers() {
+  if (!state.current) return;
+  try {
+    const csv = $('#v-csv-text')?.value || '';
+    const plan = $('#v-def-plan')?.value || '';
+    const quota = $('#v-def-quota')?.value || '';
+    const price = $('#v-def-price')?.value || '';
+    const dnsName = $('#v-test-dns')?.value || 'http://login.meganet.local/login';
+    const qrMode = $('#v-test-mode')?.value || 'url';
+    const format = $('#v-print-format')?.value || 'a4';
+    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/vouchers', {
+      method: 'POST',
+      body: JSON.stringify({ csv, plan, quota, price, dnsName, qrMode, format })
+    });
+    const win = window.open('about:blank', '_blank');
+    if (win) {
+      win.document.open();
+      win.document.write(data.html);
+      win.document.close();
+    } else {
+      toast('تم تجهيز ' + data.count + ' كرت — اسمح بالنوافذ المنبثقة للطباعة', true);
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// Assets + Smart SVG Logo Maker + Auto-Crop & Compress (Package 4)
 // ---------------------------------------------------------------------------
 function formAssets() {
+  const wrap = document.createElement('div');
+  const c = state.current.config;
+
+  // Card 1: Smart SVG Logo & Brand Identity Maker
+  const makerCard = document.createElement('div');
+  makerCard.className = 'card';
+  makerCard.innerHTML =
+    '<h3>✨ مولّد الشعارات والهوية البصرية الذكي (Built-in SVG Logo Maker)</h3>' +
+    '<div class="planshint">يولّد تلقائياً <code>logo.svg</code> و <code>prand-title.svg</code> و <code>icon.png</code> من اسم الشبكة ولون الثيم والأيقونة المختارة ويحفظها في أصول البروفايل بضغطة واحدة.</div>';
+
+  const makerGrid = document.createElement('div');
+  makerGrid.className = 'grid';
+  makerGrid.appendChild(field('الاسم النصي للشعار', '<input id="lm-name" data-ignore-dirty="1" value="' + esc(c.general.networkName) + '">'));
+  makerGrid.appendChild(field('وصف فرعي (اختياري)', '<input id="lm-tagline" data-ignore-dirty="1" placeholder="مثال: HIGH SPEED WIFI">'));
+  const logoIcons = (state.meta && state.meta.logoIcons) || ['wifi', 'shield', 'bolt', 'globe', 'coffee', 'crown', 'rocket', 'star'];
+  makerGrid.appendChild(field('أيقونة الشعار',
+    '<select id="lm-icon" data-ignore-dirty="1">' +
+    logoIcons.map(ic => '<option value="' + esc(ic) + '">' + esc(ic) + '</option>').join('') +
+    '</select>'));
+  makerGrid.appendChild(field('لون الشعار', '<input id="lm-color" type="color" data-ignore-dirty="1" value="' + esc(c.theme.primaryColor || '#22c55e') + '">'));
+  makerCard.appendChild(makerGrid);
+
+  const genBtn = document.createElement('button');
+  genBtn.className = 'btn primary addbtn';
+  genBtn.textContent = '✨ توليد وحفظ الشعارات (logo.svg + prand-title.svg + icon.png)';
+  genBtn.onclick = generateBrandIdentity;
+  makerCard.appendChild(genBtn);
+
+  const previewRow = document.createElement('div');
+  previewRow.className = 'brand-preview-row';
+  previewRow.id = 'lm-preview';
+  previewRow.style.display = 'none';
+  makerCard.appendChild(previewRow);
+  wrap.appendChild(makerCard);
+
+  // Card 2: Profile Assets + Auto-Crop & Compress
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = '<h3>ملفات الهوية</h3>' +
+  card.innerHTML = '<h3>ملفات الهوية وصور الوكلاء</h3>' +
     '<div class="planshint">ارفع لوجو الشبكة (logo.svg)، الشعار النصي (prand-title.svg)، الأيقونة (icon.png) وصور وكلاء الدعم. نفس أسماء الملفات الأساسية تُستبدل عند البناء.</div>';
 
   const list = document.createElement('div');
@@ -811,14 +1385,12 @@ function formAssets() {
       meta.appendChild(document.createTextNode(a.name + ' '));
       const badge = document.createElement('span');
       badge.className = 'badge';
-      badge.textContent = Math.round(a.size / 1024) + ' KB';
+      badge.textContent = Math.max(1, Math.round(a.size / 1024)) + ' KB';
       meta.appendChild(badge);
 
       const del = document.createElement('button');
       del.className = 'rowbtn';
       del.textContent = 'حذف';
-      // never build inline handlers with filenames (that was an XSS vector:
-      // esc() inside onclick is double-decoded → arbitrary code)
       del.dataset.asset = a.name;
       del.addEventListener('click', () => deleteAsset(del.dataset.asset));
 
@@ -832,44 +1404,496 @@ function formAssets() {
 
   const up = document.createElement('div');
   up.className = 'field';
-  up.innerHTML = '<label>رفع ملف</label><input type="file" id="asset-file" accept=".svg,.png,.jpg,.jpeg,.webp">' +
+  up.innerHTML =
+    '<label>رفع ملف</label>' +
+    '<input type="file" id="asset-file" data-ignore-dirty="1" accept=".svg,.png,.jpg,.jpeg,.webp">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">' +
+    '<label style="display:inline-flex;align-items:center;gap:6px;margin:0;cursor:pointer">' +
+    '<input type="checkbox" id="asset-autocrop" data-ignore-dirty="1" checked style="width:auto"> ' +
+    'قص مربع وضغط تلقائي للصور النقطية عبر &lt;canvas&gt; (لحماية ذاكرة الفلاش بالراوتر)' +
+    '</label>' +
+    '<select id="asset-cropsize" data-ignore-dirty="1" style="width:auto;padding:4px 8px;font-size:12px">' +
+    '<option value="128">128×128 px (موصى به للوكلاء)</option>' +
+    '<option value="256">256×256 px</option>' +
+    '</select>' +
+    '</div>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="uploadAsset(event)">رفع</button>';
   card.appendChild(list);
   card.appendChild(up);
-  return card;
+  wrap.appendChild(card);
+  return wrap;
+}
+
+async function generateBrandIdentity() {
+  if (!state.current) return;
+  try {
+    const networkName = $('#lm-name')?.value || state.current.config.general.networkName;
+    const tagline = $('#lm-tagline')?.value || '';
+    const icon = $('#lm-icon')?.value || 'wifi';
+    const primaryColor = $('#lm-color')?.value || state.current.config.theme.primaryColor;
+    const backgroundColor = state.current.config.theme.backgroundColor || '#020617';
+    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/generate-brand', {
+      method: 'POST',
+      body: JSON.stringify({ networkName, tagline, icon, primaryColor, backgroundColor })
+    });
+    state.current.assets = data.assets;
+    toast('تم توليد وحفظ logo.svg و prand-title.svg و icon.png');
+    renderTab();
+    const prev = $('#lm-preview');
+    if (prev) {
+      prev.style.display = 'flex';
+      prev.innerHTML = '<div>' + data.logoSvg + '</div><div style="color:#fff">' + data.titleSvg + '</div>';
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+// Auto-crop center square and compress raster image via <canvas>
+function autoCropAndCompressImage(file, targetDim) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(url);
+        const side = Math.min(img.width, img.height);
+        const sx = Math.floor((img.width - side) / 2);
+        const sy = Math.floor((img.height - side) / 2);
+        const dim = Math.min(side, targetDim || 128);
+        const canvas = document.createElement('canvas');
+        canvas.width = dim;
+        canvas.height = dim;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, dim, dim);
+        const isPng = /\.png$/i.test(file.name);
+        const mime = isPng ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(mime, 0.82);
+        const b64 = dataUrl.split(',')[1];
+        resolve(b64);
+      } catch (err) { reject(err); }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('تعذر قراءة الصورة'));
+    };
+    img.src = url;
+  });
 }
 
 async function uploadAsset() {
   const file = $('#asset-file').files[0];
   if (!file) return toast('اختر ملفاً أولاً', true);
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  const dataBase64 = btoa(binary);
+  const autoCrop = $('#asset-autocrop')?.checked;
+  const cropDim = parseInt($('#asset-cropsize')?.value || '128', 10);
+  const isRaster = /\.(png|jpe?g|webp)$/i.test(file.name);
+
+  let dataBase64 = '';
+  const origKb = Math.max(1, Math.round(file.size / 1024));
+  if (autoCrop && isRaster && file.name.toLowerCase() !== 'icon.png') {
+    try {
+      dataBase64 = await autoCropAndCompressImage(file, cropDim);
+    } catch {
+      // Fallback to raw bytes if canvas fails in headless environments
+    }
+  }
+  if (!dataBase64) {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    dataBase64 = btoa(binary);
+  }
+  const finalKb = Math.max(1, Math.round((dataBase64.length * 3) / 4 / 1024));
   try {
     await api('/profiles/' + encodeURIComponent(state.current.id) + '/assets', {
       method: 'POST',
       body: JSON.stringify({ filename: file.name, dataBase64 })
     });
-    toast('تم رفع الملف');
-    await selectProfile(state.current.id);
+    toast(autoCrop && isRaster ? `تم رفع وضغط الصورة (${origKb} KB ← ${finalKb} KB)` : 'تم رفع الملف');
+    await selectProfile(state.current.id, true);
   } catch (e) { toast(e.message, true); }
 }
 
 async function deleteAsset(name) {
   try {
     await api('/profiles/' + encodeURIComponent(state.current.id) + '/assets/' + encodeURIComponent(name), { method: 'DELETE' });
-    await selectProfile(state.current.id);
+    await selectProfile(state.current.id, true);
   } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------------------
+// MikroTik (.rsc Generator & One-Click REST API Deploy) — Package 2
+// ---------------------------------------------------------------------------
+function formMikrotik(c) {
+  const wrap = document.createElement('div');
+  const slug = state.current.id;
+  const mk = state.current.mikrotik || {};
+  const extraHostsText = Array.isArray(mk.extraHosts) ? mk.extraHosts.join(', ') : (mk.extraHosts || '');
+  const mkProtocol = mk.protocol === 'https' ? 'https' : 'http';
+  const mkPort = mk.port || (mkProtocol === 'https' ? 443 : 80);
+
+  // Card 1: .rsc Generator
+  const rscCard = document.createElement('div');
+  rscCard.className = 'card';
+  rscCard.innerHTML =
+    '<h3>📜 مولّد سكربت إعداد المايكروتك التلقائي (hotspot-setup.rsc)</h3>' +
+    '<div class="planshint">يولّد سكربت RouterOS v7 متكامل يشمل DHCP Option 114 (RFC 8910 CAPPORT لملف api.json)، وقواعد Walled Garden IP للنطاقات الخارجية مع <code>comment="meganet-studio"</code>، وإعداد بروفايل الهوتسبوت. يتم تضمين هذا الملف تلقائياً داخل كل ملف ZIP مبني.</div>';
+
+  const rscGrid = document.createElement('div');
+  rscGrid.className = 'grid';
+  rscGrid.appendChild(field('اسم نطاق البوابة (DNS Name)', '<input id="mk-dns" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.dnsName || 'login.meganet.local') + '">'));
+  rscGrid.appendChild(field('مجلد ملفات الهوتسبوت (html-directory)', '<input id="mk-htmldir" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.htmlDir || 'hotspot') + '">'));
+  rscGrid.appendChild(field('اسم بروفايل الهوتسبوت بالراوتر', '<input id="mk-profname" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.profileName || (slug + '-hs-profile')) + '">'));
+  rscGrid.appendChild(field('سيرفر DHCP (لربط Option 114 اختيارياً)', '<input id="mk-dhcp-server" data-ignore-dirty="1" dir="ltr" placeholder="مثال: defconf" value="' + esc(mk.dhcpServer || '') + '">'));
+  rscGrid.appendChild(field('وضع CAPPORT (DHCP Option 114)', '<select id="mk-capport-mode" data-ignore-dirty="1"><option value="https"' + ((mk.capportMode || 'https') === 'https' ? ' selected' : '') + '>HTTPS (موصى به مع شهادة www-ssl)</option><option value="http"' + (mk.capportMode === 'http' ? ' selected' : '') + '>HTTP (للشبكات الداخلية بدون SSL)</option><option value="off"' + (mk.capportMode === 'off' ? ' selected' : '') + '>معطل</option></select>'));
+  rscGrid.appendChild(field('نطاقات إضافية لـ Walled Garden (بفواصل)', '<input id="mk-extra-wg" data-ignore-dirty="1" dir="ltr" placeholder="cdn.example.com, pay.example.com" value="' + esc(extraHostsText) + '">'));
+  rscCard.appendChild(rscGrid);
+
+  const dryRunSummary = document.createElement('div');
+  dryRunSummary.id = 'mk-rsc-summary';
+  dryRunSummary.className = 'planshint';
+  dryRunSummary.style.marginTop = '12px';
+  rscCard.appendChild(dryRunSummary);
+
+  const rscOutField = field('محتوى السكربت (hotspot-setup.rsc)', '<textarea id="mk-rsc-output" class="codearea" readonly></textarea>');
+  rscOutField.style.marginTop = '12px';
+  rscCard.appendChild(rscOutField);
+
+  const rscBtns = document.createElement('div');
+  rscBtns.style.display = 'flex';
+  rscBtns.style.gap = '8px';
+  rscBtns.style.marginTop = '10px';
+  rscBtns.innerHTML =
+    '<button class="btn ghost" onclick="refreshRscPreview()">🔄 توليد / معاينة التغييرات</button>' +
+    '<button class="btn ghost" onclick="copyRscScript()">📋 نسخ السكربت</button>' +
+    '<button class="btn primary" onclick="downloadRscScript()">⬇ تحميل hotspot-setup.rsc</button>';
+  rscCard.appendChild(rscBtns);
+  wrap.appendChild(rscCard);
+
+  // Card 2: Direct Deploy to RouterOS v7 REST API
+  const depCard = document.createElement('div');
+  depCard.className = 'card';
+  depCard.innerHTML =
+    '<h3>🚀 رفع مباشر إلى MikroTik (One-Click Router Upload)</h3>' +
+    '<div class="planshint">يرفع الملفات النصية عبر REST API والصور والملفات الثنائية بشكل خام وسليم عبر <code>/tool/fetch</code>، مع فحص مساحة الفلاش وأخذ نسخة احتياطية اختيارية. يتم حفظ إعدادات هذا الراوتر تلقائياً لكل بروفايل (بدون تخزين كلمة المرور).</div>';
+
+  const depGrid = document.createElement('div');
+  depGrid.className = 'grid';
+  depGrid.appendChild(field('عنوان IP الراوتر أو النطاق', '<input id="mk-host" data-ignore-dirty="1" dir="ltr" placeholder="192.168.88.1" value="' + esc(mk.host || '192.168.88.1') + '">'));
+  depGrid.appendChild(field('البروتوكول', '<select id="mk-proto" data-ignore-dirty="1"><option value="http"' + (mkProtocol === 'http' ? ' selected' : '') + '>HTTP (افتراضي 80)</option><option value="https"' + (mkProtocol === 'https' ? ' selected' : '') + '>HTTPS (443)</option></select>'));
+  depGrid.appendChild(field('المنفذ (Port)', '<input id="mk-port" type="number" data-ignore-dirty="1" dir="ltr" value="' + esc(String(mkPort)) + '">'));
+  depGrid.appendChild(field('اسم مستخدم الراوتر', '<input id="mk-user" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.username || 'admin') + '">'));
+  depGrid.appendChild(field('كلمة المرور', '<input id="mk-pass" type="password" data-ignore-dirty="1" dir="ltr" placeholder="لا يتم حفظ كلمة المرور على القرص">'));
+  depGrid.appendChild(field('مجلد الهوتسبوت المستهدف بالراوتر', '<input id="mk-target-dir" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.targetDir || 'hotspot') + '">'));
+  depCard.appendChild(depGrid);
+
+  const applyWrap = document.createElement('div');
+  applyWrap.style.marginTop = '12px';
+  applyWrap.style.display = 'flex';
+  applyWrap.style.flexDirection = 'column';
+  applyWrap.style.gap = '6px';
+  applyWrap.innerHTML =
+    '<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">' +
+    '<input type="checkbox" id="mk-create-backup" data-ignore-dirty="1" style="width:auto"' + (mk.createBackup ? ' checked' : '') + '> ' +
+    'أخذ نسخة احتياطية على الراوتر (<code>meganet-pre-deploy</code>) قبل الرفع' +
+    '</label>' +
+    '<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">' +
+    '<input type="checkbox" id="mk-apply-rsc" data-ignore-dirty="1" style="width:auto"' + (mk.applyRsc ? ' checked' : '') + '> ' +
+    'تنفيذ سكربت <code>hotspot-setup.rsc</code> تلقائياً على الراوتر بعد الرفع (<code>/import</code>)' +
+    '</label>';
+  depCard.appendChild(applyWrap);
+
+  const tlsBadge = document.createElement('div');
+  tlsBadge.id = 'mk-tls-badge';
+  tlsBadge.className = 'planshint';
+  tlsBadge.style.marginTop = '10px';
+  tlsBadge.innerHTML = (mk.tlsFingerprint || lastRouterFingerprint)
+    ? '🔒 بصمة TLS المحفوظة: <code>' + esc(mk.tlsFingerprint || lastRouterFingerprint) + '</code>'
+    : '🔓 لا توجد بصمة TLS محفوظة بعد (سيتم ربطها عند أول اتصال HTTPS).';
+  depCard.appendChild(tlsBadge);
+
+  const depBtns = document.createElement('div');
+  depBtns.style.display = 'flex';
+  depBtns.style.gap = '8px';
+  depBtns.style.flexWrap = 'wrap';
+  depBtns.style.marginTop = '12px';
+
+  const saveMkBtn = document.createElement('button');
+  saveMkBtn.className = 'btn ghost';
+  saveMkBtn.id = 'mk-save-btn';
+  saveMkBtn.textContent = '💾 حفظ إعدادات الراوتر';
+  saveMkBtn.onclick = () => saveMikrotikSettings(false);
+  depBtns.appendChild(saveMkBtn);
+
+  const testBtn = document.createElement('button');
+  testBtn.className = 'btn ghost';
+  testBtn.id = 'mk-test-btn';
+  testBtn.textContent = '🔍 فحص الاتصال ومساحة الراوتر';
+  testBtn.onclick = testMikrotikConnection;
+  depBtns.appendChild(testBtn);
+
+  const depBtn = document.createElement('button');
+  depBtn.className = 'btn primary';
+  depBtn.id = 'mk-deploy-btn';
+  depBtn.textContent = '🚀 بناء ورفع مباشر إلى الراوتر الآن';
+  depBtn.onclick = deployToMikrotik;
+  depBtns.appendChild(depBtn);
+  depCard.appendChild(depBtns);
+
+  const testInfo = document.createElement('div');
+  testInfo.id = 'mk-test-info';
+  testInfo.className = 'planshint';
+  testInfo.style.marginTop = '10px';
+  testInfo.style.display = 'none';
+  depCard.appendChild(testInfo);
+
+  const depStatus = document.createElement('div');
+  depStatus.id = 'mk-deploy-status';
+  depStatus.className = 'hint';
+  depStatus.style.marginTop = '10px';
+  depCard.appendChild(depStatus);
+
+  wrap.appendChild(depCard);
+
+  setTimeout(() => {
+    refreshRscPreview();
+    ['mk-dns', 'mk-htmldir', 'mk-profname', 'mk-dhcp-server', 'mk-capport-mode', 'mk-extra-wg'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => { syncMikrotikDraft(); refreshRscPreview(); });
+    });
+    ['mk-host', 'mk-proto', 'mk-port', 'mk-user', 'mk-target-dir', 'mk-create-backup', 'mk-apply-rsc'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        if (id === 'mk-proto' && $('#mk-port')) {
+          const curPort = Number($('#mk-port').value);
+          if (el.value === 'https' && (!curPort || curPort === 80)) $('#mk-port').value = '443';
+          if (el.value === 'http' && (!curPort || curPort === 443)) $('#mk-port').value = '80';
+        }
+        syncMikrotikDraft();
+      });
+    });
+  }, 0);
+  return wrap;
+}
+
+function collectMikrotikSettings() {
+  const rscOpts = mikrotikRscParams();
+  return {
+    host: $('#mk-host')?.value?.trim() || '192.168.88.1',
+    protocol: $('#mk-proto')?.value === 'https' ? 'https' : 'http',
+    port: Number($('#mk-port')?.value) || ($('#mk-proto')?.value === 'https' ? 443 : 80),
+    username: $('#mk-user')?.value?.trim() || 'admin',
+    targetDir: $('#mk-target-dir')?.value?.trim() || 'hotspot',
+    htmlDir: rscOpts.htmlDir,
+    dnsName: rscOpts.dnsName,
+    profileName: rscOpts.profileName,
+    dhcpServer: rscOpts.dhcpServer,
+    capportMode: rscOpts.capportMode,
+    extraHosts: rscOpts.extraHosts,
+    applyRsc: Boolean($('#mk-apply-rsc')?.checked),
+    createBackup: Boolean($('#mk-create-backup')?.checked),
+    tlsFingerprint: lastRouterFingerprint || ''
+  };
+}
+
+function syncMikrotikDraft() {
+  if (!state.current) return;
+  state.current.mikrotik = collectMikrotikSettings();
+}
+
+function updateTlsBadge(fp) {
+  const badge = $('#mk-tls-badge');
+  if (!badge) return;
+  badge.innerHTML = fp
+    ? '🔒 بصمة TLS المحفوظة: <code>' + esc(fp) + '</code>'
+    : '🔓 لا توجد بصمة TLS محفوظة بعد (سيتم ربطها عند أول اتصال HTTPS).';
+}
+
+async function saveMikrotikSettings(silent = false) {
+  if (!state.current) return null;
+  const btn = $('#mk-save-btn');
+  if (!silent && btn) { btn.disabled = true; btn.textContent = '⏳ جاري الحفظ…'; }
+  try {
+    const mikrotik = collectMikrotikSettings();
+    const res = await api('/profiles/' + encodeURIComponent(state.current.id) + '/mikrotik', {
+      method: 'PUT',
+      body: JSON.stringify({ mikrotik })
+    });
+    state.current.mikrotik = res.mikrotik;
+    if (res.mikrotik && res.mikrotik.tlsFingerprint) {
+      lastRouterFingerprint = res.mikrotik.tlsFingerprint;
+      updateTlsBadge(lastRouterFingerprint);
+    }
+    if (!silent) toast('تم حفظ إعدادات الراوتر لهذا البروفايل');
+    return res.mikrotik;
+  } catch (e) {
+    if (!silent) toast('فشل حفظ إعدادات الراوتر: ' + e.message, true);
+    return null;
+  } finally {
+    if (!silent && btn) { btn.disabled = false; btn.textContent = '💾 حفظ إعدادات الراوتر'; }
+  }
+}
+
+function mikrotikRscParams() {
+  return {
+    dnsName: $('#mk-dns')?.value?.trim() || 'login.meganet.local',
+    htmlDir: $('#mk-htmldir')?.value?.trim() || 'hotspot',
+    profileName: $('#mk-profname')?.value?.trim() || ((state.current ? state.current.id : 'meganet') + '-hs-profile'),
+    dhcpServer: $('#mk-dhcp-server')?.value?.trim() || '',
+    capportMode: $('#mk-capport-mode')?.value || 'https',
+    extraHosts: $('#mk-extra-wg')?.value?.trim() || ''
+  };
+}
+
+async function refreshRscPreview() {
+  if (!state.current) return;
+  try {
+    const q = new URLSearchParams(mikrotikRscParams());
+    const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/rsc?' + q.toString());
+    if ($('#mk-rsc-output')) $('#mk-rsc-output').value = data.rsc;
+    if ($('#mk-rsc-summary') && data.plan) {
+      const p = data.plan;
+      const wgTxt = p.walledGardenHosts && p.walledGardenHosts.length ? p.walledGardenHosts.join('، ') : 'لا يوجد (كل المكونات محلية)';
+      $('#mk-rsc-summary').innerHTML =
+        `<strong>ملخص التغييرات (Dry-Run):</strong> البروفايل: <code>${esc(p.profileName)}</code> · المسار: <code>${esc(p.htmlDir)}</code> · الدخول: <code>${esc(p.loginBy)}</code> · Option 114: <code>${esc(p.capportMode)}</code> · Walled Garden: <code>${esc(wgTxt)}</code>`;
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+function copyRscScript() {
+  const txt = $('#mk-rsc-output')?.value || '';
+  if (!txt) return;
+  if (navigator.clipboard) navigator.clipboard.writeText(txt);
+  toast('تم نسخ سكربت المايكروتك إلى الحافظة');
+}
+
+function downloadRscScript() {
+  if (!state.current) return;
+  const q = new URLSearchParams({ ...mikrotikRscParams(), download: '1' });
+  const a = document.createElement('a');
+  a.href = '/api/profiles/' + encodeURIComponent(state.current.id) + '/rsc?' + q.toString();
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+let lastRouterFingerprint = '';
+
+async function testMikrotikConnection() {
+  const btn = $('#mk-test-btn');
+  const box = $('#mk-test-info');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الفحص…'; }
+  try {
+    const payload = {
+      slug: state.current ? state.current.id : '',
+      host: $('#mk-host')?.value?.trim(),
+      protocol: $('#mk-proto')?.value || 'http',
+      port: Number($('#mk-port')?.value) || 80,
+      username: $('#mk-user')?.value?.trim() || 'admin',
+      password: $('#mk-pass')?.value || '',
+      tlsFingerprint: lastRouterFingerprint || ''
+    };
+    const info = await api('/mikrotik/test', { method: 'POST', body: JSON.stringify(payload) });
+    if (info.tlsFingerprint) {
+      lastRouterFingerprint = info.tlsFingerprint;
+      updateTlsBadge(lastRouterFingerprint);
+    }
+
+    if (info.dhcpServers && info.dhcpServers.length && $('#mk-dhcp-server') && !$('#mk-dhcp-server').value) {
+      $('#mk-dhcp-server').value = info.dhcpServers[0].name;
+    }
+    if (info.hotspotProfiles && info.hotspotProfiles.length && $('#mk-profname')) {
+      $('#mk-profname').value = info.hotspotProfiles[0].name;
+      if (info.hotspotProfiles[0].dnsName && $('#mk-dns')) {
+        $('#mk-dns').value = info.hotspotProfiles[0].dnsName;
+      }
+      if (info.hotspotProfiles[0].htmlDirectory) {
+        if ($('#mk-htmldir')) $('#mk-htmldir').value = info.hotspotProfiles[0].htmlDirectory;
+        if ($('#mk-target-dir')) $('#mk-target-dir').value = info.hotspotProfiles[0].htmlDirectory;
+      }
+    } else if (info.hasFlashPrefix && $('#mk-target-dir') && $('#mk-target-dir').value === 'hotspot') {
+      $('#mk-target-dir').value = 'flash/hotspot';
+    }
+    await refreshRscPreview();
+    await saveMikrotikSettings(true);
+
+    const freeMb = info.freeHddSpace ? (info.freeHddSpace / (1024 * 1024)).toFixed(2) + ' MB' : 'غير متاح';
+    const sslNote = info.wwwSslEnabled
+      ? (info.wwwSslCertificate ? `مفعل (${info.wwwSslCertificate})` : 'مفعل بدون شهادة!')
+      : 'غير مفعل';
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML =
+        `✓ متصل بـ <strong>${esc(info.identity)}</strong> (${esc(info.boardName || 'RouterOS')} v${esc(info.version || '?')})<br>` +
+        `الفلاش المتاح: <strong>${esc(freeMb)}</strong> · بادئة <code>flash/</code>: <strong>${info.hasFlashPrefix ? 'نعم' : 'لا'}</strong> · خدمة <code>www-ssl</code>: <strong>${esc(sslNote)}</strong>` +
+        (info.tlsFingerprint ? `<br>بصمة TLS: <code>${esc(info.tlsFingerprint)}</code>` : '');
+    }
+    toast('تم فحص الراوتر بنجاح');
+  } catch (e) {
+    if (box) {
+      box.style.display = 'block';
+      box.textContent = '✗ تعذر الاتصال بالراوتر: ' + e.message;
+    }
+    toast('فشل فحص الراوتر: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 فحص الاتصال ومساحة الراوتر'; }
+  }
+}
+
+async function deployToMikrotik() {
+  if (!state.current) return;
+  const btn = $('#mk-deploy-btn');
+  const statusEl = $('#mk-deploy-status');
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري البناء والرفع إلى الراوتر…'; }
+  try {
+    const saved = await saveConfig();
+    if (!saved) return;
+    const rscOpts = mikrotikRscParams();
+    const payload = {
+      host: $('#mk-host')?.value?.trim(),
+      protocol: $('#mk-proto')?.value || 'http',
+      port: Number($('#mk-port')?.value) || 80,
+      username: $('#mk-user')?.value?.trim() || 'admin',
+      password: $('#mk-pass')?.value || '',
+      targetDir: $('#mk-target-dir')?.value?.trim() || 'hotspot',
+      htmlDir: rscOpts.htmlDir,
+      dnsName: rscOpts.dnsName,
+      profileName: rscOpts.profileName,
+      dhcpServer: rscOpts.dhcpServer,
+      capportMode: rscOpts.capportMode,
+      extraHosts: rscOpts.extraHosts,
+      applyRsc: Boolean($('#mk-apply-rsc')?.checked),
+      createBackup: Boolean($('#mk-create-backup')?.checked),
+      tlsFingerprint: lastRouterFingerprint || ''
+    };
+    const res = await api('/profiles/' + encodeURIComponent(state.current.id) + '/deploy', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (res.tlsFingerprint) {
+      lastRouterFingerprint = res.tlsFingerprint;
+      updateTlsBadge(lastRouterFingerprint);
+    }
+    if (res.mikrotik) state.current.mikrotik = res.mikrotik;
+    else syncMikrotikDraft();
+    const msg = `✓ تم رفع ${res.uploadedCount} ملف بنجاح إلى ${res.host}:${res.port}/${res.targetDir}` +
+      (res.backupCreated ? ' · تم حفظ نسخة احتياطية' : '') +
+      (res.rscApplied ? ' · تم تطبيق السكربت' : '');
+    if (statusEl) { statusEl.textContent = msg; statusEl.className = 'status ok'; }
+    toast(msg);
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = '✗ فشل الرفع: ' + e.message; statusEl.className = 'status'; }
+    toast('فشل الرفع إلى الراوتر: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🚀 بناء ورفع مباشر إلى الراوتر الآن'; }
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Save
 // ---------------------------------------------------------------------------
 function collectConfig() {
-  // capture the visible tab now, then apply EVERY captured tab draft — this
-  // way editing several tabs and saving from any one of them loses nothing
   captureDraft(state.tab);
   const c = state.current.config;
   applyDrafts(c);
@@ -894,8 +1918,10 @@ async function saveConfig() {
       state.current.announcements = state.drafts.announcements;
     }
 
+    markDirty(false);
     toast('تم الحفظ — الإعدادات سليمة');
     $('#profileMeta').textContent = state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
+    if (state.sim.open) refreshSimulator(true);
     return true;
   } catch (e) {
     toast(e.message, true);
@@ -910,7 +1936,30 @@ async function saveConfig() {
 }
 
 // ---------------------------------------------------------------------------
-// Build
+// Bundle Size & Flash Memory Meter
+// ---------------------------------------------------------------------------
+function renderBundleMeter(buildResult, labelPrefix) {
+  const meter = $('#bundleMeter');
+  if (!meter || !buildResult || !buildResult.zipSize) return;
+  meter.className = 'show';
+  const zipKb = Math.max(1, Math.round(buildResult.zipSize / 1024));
+  const rawKb = Math.max(1, Math.round((buildResult.totalRawSize || buildResult.zipSize) / 1024));
+  const pct = Math.min(100, buildResult.flashUsagePercent || Math.round((rawKb / 1024) * 100));
+  $('#bm-title').textContent = (labelPrefix || '📦 حجم الحزمة') + ':';
+  $('#bm-zip').textContent = 'ZIP: ' + zipKb + ' KB';
+  $('#bm-raw').textContent = 'الذاكرة: ' + rawKb + ' KB (' + pct + '% من 1MB)';
+  const bar = $('#bm-bar');
+  if (bar) {
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 85 ? 'var(--danger)' : (pct > 60 ? 'var(--warn)' : 'var(--acc)');
+  }
+  const b = buildResult.breakdown || {};
+  $('#bm-breakdown').textContent =
+    `HTML: ${Math.round((b.html || 0) / 1024)}KB · أصول: ${Math.round((b.assets || 0) / 1024)}KB · سكربت: ${Math.round((b.scripts || 0) / 1024)}KB · .rsc: ${Math.max(1, Math.round((b.rsc || 0) / 1024))}KB`;
+}
+
+// ---------------------------------------------------------------------------
+// Build & Batch Build All
 // ---------------------------------------------------------------------------
 async function buildAndDownload() {
   if (!state.current) return toast('اختر بريفايل أولاً', true);
@@ -922,13 +1971,14 @@ async function buildAndDownload() {
     const saved = await saveConfig();
     if (!saved) return;
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/build', { method: 'POST' });
+    renderBundleMeter(data, '📦 حجم حزمة ' + state.current.name);
     const a = document.createElement('a');
     a.href = data.downloadUrl;
     a.download = '';
     document.body.appendChild(a);
     a.click();
     a.remove();
-    toast('تم البناء والتحميل (' + data.distFiles + ' ملف)');
+    toast('تم البناء والتحميل (' + data.distFiles + ' ملف · ' + Math.round((data.zipSize || 0) / 1024) + ' KB)');
   } catch (e) {
     toast('فشل البناء: ' + e.message, true);
   } finally {
@@ -937,20 +1987,91 @@ async function buildAndDownload() {
   }
 }
 
+async function batchBuildAll() {
+  if (state.buildBusy) return;
+  state.buildBusy = true;
+  const btn = $('#batchBuildBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري بناء الكل…'; }
+  try {
+    if (state.current && state.dirty) await saveConfig();
+    const res = await api('/profiles/build-all', { method: 'POST', body: '{}' });
+    if (res.built && res.built.length) {
+      const last = res.built[res.built.length - 1];
+      renderBundleMeter(last, `⚡ تم بناء ${res.count} بروفايلات (آخرها ${last.name})`);
+    }
+    toast(`تم بناء جميع البروفايلات بنجاح (${res.count} بروفايل)`);
+  } catch (e) {
+    toast('فشل البناء الجماعي: ' + e.message, true);
+  } finally {
+    state.buildBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ بناء جميع البروفايلات'; }
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Preview
+// Split-Screen Live Simulator & External Preview (Package 1)
 // ---------------------------------------------------------------------------
+function renderSimPagesBar() {
+  const bar = $('#simPagesBar');
+  if (!bar) return;
+  bar.innerHTML = SIM_PAGES.map(p =>
+    '<button class="sim-page-btn' + (state.sim.page === p.id ? ' active' : '') + '" onclick="setSimPage(\'' + p.id + '\')">' + p.label + '</button>'
+  ).join('');
+}
+
+function setSimPage(pageId) {
+  state.sim.page = pageId;
+  renderSimPagesBar();
+  updateSimulatorFrame();
+}
+
+async function toggleSimulator() {
+  const panel = $('#simulatorPanel');
+  state.sim.open = !state.sim.open;
+  panel.className = state.sim.open ? 'open' : '';
+  if (state.sim.open) {
+    await refreshSimulator(true);
+  }
+}
+
+async function refreshSimulator(rebuild) {
+  try {
+    const body = {};
+    if (rebuild && state.current) body.slug = state.current.id;
+    if (state.sim.port) body.port = state.sim.port;
+    const data = await api('/preview', { method: 'POST', body: JSON.stringify(body) });
+    state.sim.baseUrl = data.baseUrl || data.url.replace(/\/login\.html$/, '');
+    state.sim.port = data.port;
+    updateSimulatorFrame();
+  } catch (e) { toast('تعذر تشغيل المحاكي: ' + e.message, true); }
+}
+
+function updateSimulatorFrame() {
+  if (!state.sim.baseUrl) return;
+  const lang = $('#sim-lang')?.value || state.sim.lang || 'ar';
+  const scenario = $('#sim-scenario')?.value || state.sim.scenario || 'normal';
+  state.sim.lang = lang;
+  state.sim.scenario = scenario;
+  const prefix = (lang === 'ar') ? '/ar/' : '/';
+  const url = `${state.sim.baseUrl}${prefix}${state.sim.page}.html?scenario=${encodeURIComponent(scenario)}&_t=${Date.now()}`;
+  const frame = $('#simFrame');
+  if (frame) frame.src = url;
+}
+
 let previewUrl = null;
 async function togglePreview() {
   try {
     if (previewUrl) {
       await api('/preview/stop', { method: 'POST' });
       previewUrl = null;
-      $('#previewBtn').textContent = 'معاينة';
+      $('#previewBtn').textContent = 'معاينة خارجية';
       return;
     }
-    const data = await api('/preview', { method: 'POST', body: '{}' });
+    const body = state.current ? { slug: state.current.id } : {};
+    const data = await api('/preview', { method: 'POST', body: JSON.stringify(body) });
     previewUrl = data.url;
+    state.sim.baseUrl = data.baseUrl || data.url.replace(/\/login\.html$/, '');
+    state.sim.port = data.port;
     $('#previewBtn').textContent = 'إيقاف المعاينة';
     window.open(previewUrl, '_blank');
   } catch (e) { toast(e.message, true); }
@@ -963,12 +2084,14 @@ async function createProfile() {
   const slug = prompt('معرّف البريفايل (إنجليزي، بدون مسافات):', 'client-' + Date.now().toString(36));
   if (!slug) return;
   const name = prompt('الاسم الظاهر (مثال: كافيه التراس):', slug) || slug;
-  const presetList = (state.meta && state.meta.presets) ? state.meta.presets.map(p => p.id).join(', ') : '';
-  const preset = prompt('اختر شخصية القالب (اختياري):\n' + presetList, 'cafe');
+  const presetOptions = (state.meta && state.meta.presets)
+    ? state.meta.presets.map(p => '• ' + p.id + ' : ' + p.label).join('\n')
+    : 'meganet, cafe, hotel, clinic, restaurant, gym, netcafe, mall, school, coworking, bakery, mobile-shop';
+  const preset = prompt('اختر شخصية القالب (اكتب المعرّف مثل cafe أو hotel أو اتركه فارغاً):\n\n' + presetOptions, 'meganet');
   try {
-    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name, preset: preset ? preset.trim() : undefined }) });
+    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name, preset: (preset && preset.trim()) ? preset.trim() : 'meganet' }) });
     await loadProfiles(data.profile.id);
-    toast('تم إنشاء البريفايل');
+    toast('تم إنشاء البريفايل بنجاح');
   } catch (e) { toast(e.message, true); }
 }
 
@@ -998,6 +2121,7 @@ async function deleteProfile(id) {
   try {
     await api('/profiles/' + encodeURIComponent(id), { method: 'DELETE' });
     state.current = null;
+    markDirty(false);
     $('#profileTitle').textContent = 'اختر بريفايل';
     $('#content').innerHTML = '';
     await loadProfiles();

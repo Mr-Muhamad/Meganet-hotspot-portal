@@ -163,4 +163,138 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner._isStrippedWebView()).toBe(false);
     });
   });
+
+  describe('buildEscapeIntentUrl', () => {
+    test('builds intent URL with http fallback', () => {
+      const intent = qrScanner.buildEscapeIntentUrl('http://10.5.50.1/login.html?qrscan=1');
+      expect(intent).toContain('intent://10.5.50.1/login.html?qrscan=1#Intent');
+      expect(intent).toContain('scheme=http');
+      expect(intent).toContain('S.browser_fallback_url=http%3A%2F%2F10.5.50.1%2Flogin.html%3Fqrscan%3D1');
+    });
+
+    test('builds intent URL with https fallback', () => {
+      const intent = qrScanner.buildEscapeIntentUrl('https://wifi.net/login.html');
+      expect(intent).toContain('scheme=https');
+    });
+
+    test('returns empty string for empty input', () => {
+      expect(qrScanner.buildEscapeIntentUrl('')).toBe('');
+      expect(qrScanner.buildEscapeIntentUrl(null)).toBe('');
+    });
+  });
+
+  describe('scanDirect & onPageLoad interaction', () => {
+    let mockFileInput;
+    let mockGalleryInput;
+    let mockGalleryBtn;
+    let mockScanBtn;
+    let mockWebviewHint;
+    let mockHintOr;
+
+    beforeEach(() => {
+      qrScanner._fileInputWired = false;
+      document.body.innerHTML = `
+        <button id="qrScanButton" class="qr-scan-btn"></button>
+        <button id="qrGalleryButton"></button>
+        <input type="file" id="qr-file-input" style="display:none">
+        <input type="file" id="qr-gallery-input" style="display:none">
+        <div id="qr-webview-hint" style="display:none"></div>
+        <div id="qr-hint-or" style="display:none"></div>
+        <form id="login-form"></form>
+      `;
+      mockFileInput = document.getElementById('qr-file-input');
+      mockGalleryInput = document.getElementById('qr-gallery-input');
+      mockGalleryBtn = document.getElementById('qrGalleryButton');
+      mockScanBtn = document.getElementById('qrScanButton');
+      mockWebviewHint = document.getElementById('qr-webview-hint');
+      mockHintOr = document.getElementById('qr-hint-or');
+      global.util = {
+        showToast: jest.fn()
+      };
+      global.i18n = {
+        t: (k) => k
+      };
+    });
+
+    afterEach(() => {
+      delete global.util;
+      delete global.i18n;
+      document.body.innerHTML = '';
+      qrScanner._fileInputWired = false;
+    });
+
+    test('scanDirect in stripped webview calls escapeNow with intent URL', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      const origEscape = qrScanner.escapeNow;
+      qrScanner._isStrippedWebView = () => true;
+      const escapeSpy = jest.fn();
+      qrScanner.escapeNow = escapeSpy;
+
+      qrScanner.scanDirect();
+      expect(escapeSpy).toHaveBeenCalled();
+      expect(escapeSpy.mock.calls[0][0]).toContain('intent://');
+
+      qrScanner._isStrippedWebView = origIsStripped;
+      qrScanner.escapeNow = origEscape;
+    });
+
+    test('scanDirect in regular browser triggers file input click', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      qrScanner._isStrippedWebView = () => false;
+      const clickSpy = jest.spyOn(mockFileInput, 'click');
+
+      qrScanner.scanDirect();
+      expect(clickSpy).toHaveBeenCalled();
+
+      qrScanner._isStrippedWebView = origIsStripped;
+    });
+
+    test('onPageLoad in stripped webview unhides hint and separator', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      qrScanner._isStrippedWebView = () => true;
+
+      qrScanner.onPageLoad();
+      expect(mockWebviewHint.style.display).toBe('block');
+      expect(mockHintOr.style.display).toBe('block');
+
+      qrScanner._isStrippedWebView = origIsStripped;
+    });
+
+    test('onPageLoad with qrscan=1 pulses button and cleans URL query', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      qrScanner._isStrippedWebView = () => false;
+      window.history.pushState({}, '', '/login.html?qrscan=1');
+
+      qrScanner.onPageLoad();
+      expect(mockScanBtn.classList.contains('qr-scan-btn--attn')).toBe(true);
+      expect(window.location.search).toBe('');
+
+      qrScanner._isStrippedWebView = origIsStripped;
+    });
+
+    test('_handleResult routes bare code to auth.beginAutoLogin', () => {
+      const authSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {});
+      qrScanner._handleResult('123456');
+
+      expect(authSpy).toHaveBeenCalledWith('123456', true);
+      authSpy.mockRestore();
+    });
+
+    test('_handleResult with credential link sets data-scanned-password and begins auto-login', () => {
+      const authSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {});
+      const form = document.getElementById('login-form');
+
+      qrScanner._handleResult('http://10.5.50.1/login?username=myuser&password=mypassword');
+
+      expect(authSpy).toHaveBeenCalledWith('myuser', true);
+      // data-scanned-password should be cleaned up after beginAutoLogin
+      expect(form.hasAttribute('data-scanned-password')).toBe(false);
+      authSpy.mockRestore();
+    });
+
+    test('_handleResult shows toast error on invalid result', () => {
+      qrScanner._handleResult('https://untrusted-site.com/bad');
+      expect(global.util.showToast).toHaveBeenCalledWith('qr_scan_failed', 'error');
+    });
+  });
 });

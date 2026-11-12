@@ -1,6 +1,12 @@
 // Setup file for Jest tests
 // This runs before each test suite
 
+// Ensure Node.js timers are available in jsdom environment (required by yazl zip streaming)
+if (typeof global.setImmediate === 'undefined') {
+  global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+  global.clearImmediate = (id) => clearTimeout(id);
+}
+
 // Mock browser APIs
 global.browser = {
   language: 'en',

@@ -44,6 +44,13 @@ describe('a11y invariants (built dist)', () => {
     expect(ar).toContain('aria-label="Technical Support"');
   });
 
+  test('modals declare role="dialog" and aria-modal="true"', () => {
+    const en = readPage('login', 'en');
+    expect(en).toContain('id="supportModal"');
+    expect(en).toContain('role="dialog"');
+    expect(en).toContain('aria-modal="true"');
+  });
+
   test('no page ships an empty <title> (catches missing *_title keys)', () => {
     for (const page of PAGES) {
       for (const lang of ['en', 'ar']) {

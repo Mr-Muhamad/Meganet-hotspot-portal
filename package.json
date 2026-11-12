@@ -8,7 +8,7 @@
     "build:dev": "node build.js --dev",
     "watch": "node build.js --watch",
     "test": "jest --runInBand",
-    "test:unit": "jest --testPathPattern=tests/modules",
+    "test:unit": "jest --runInBand --testPathPattern=tests/modules",
     "test:e2e": "playwright test",
     "test:a11y": "jest --testPathPattern=tests/a11y",
     "test:watch": "jest --watch",
@@ -52,6 +52,6 @@
     "jest-environment-jsdom": "^29.7.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

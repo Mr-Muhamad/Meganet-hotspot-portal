@@ -234,6 +234,19 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
     expect(meta.json.presets.find(p => p.id === 'custom:teststyle')).toBeUndefined();
   });
 
+  test('preview endpoint handles profile build cycle and stop cleanly', async () => {
+    // Test POST /api/preview with a valid profile slug
+    const previewRes = await api('POST', '/preview', { slug: SLUG, port: 9555 });
+    expect(previewRes.status).toBe(200);
+    expect(previewRes.json).toHaveProperty('url');
+    expect(previewRes.json.url).toContain('9555');
+
+    // Test POST /api/preview/stop
+    const stopRes = await api('POST', '/preview/stop');
+    expect(stopRes.status).toBe(200);
+    expect(stopRes.json).toEqual({ ok: true });
+  });
+
   test('returns 404 for non-existent profile and validates import/download inputs', async () => {
     const missing = await api('GET', '/profiles/does-not-exist-xyz');
     expect(missing.status).toBe(404);

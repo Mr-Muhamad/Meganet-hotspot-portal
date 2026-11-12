@@ -145,6 +145,32 @@ function readableTextOn(hex) {
   return lum > 0.40 ? '#0f172a' : '#ffffff';
 }
 
+// WCAG 2.1 contrast ratio between two 6-digit hex colors (1..21).
+function contrastRatio(hex1, hex2) {
+  var l1 = relativeLuminance(hex1);
+  var l2 = relativeLuminance(hex2);
+  if (l1 === null || l2 === null) return null;
+  var lighter = Math.max(l1, l2);
+  var darker = Math.min(l1, l2);
+  return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
+}
+
+// Evaluate WCAG contrast badge metadata for studio live feedback.
+function wcagRating(hex1, hex2) {
+  var ratio = contrastRatio(hex1, hex2);
+  if (ratio === null) return null;
+  if (ratio >= 7) {
+    return { ratio: ratio, level: 'AAA', label: 'AAA ممتاز', pass: true };
+  }
+  if (ratio >= 4.5) {
+    return { ratio: ratio, level: 'AA', label: 'AA جيد', pass: true };
+  }
+  if (ratio >= 3) {
+    return { ratio: ratio, level: 'AA-Large', label: 'AA للعناوين فقط', pass: true };
+  }
+  return { ratio: ratio, level: 'FAIL', label: 'تباين ضعيف', pass: false };
+}
+
 function isDefault(value, fallback) {
   return typeof value === 'string' && value.toUpperCase() === fallback.toUpperCase();
 }
@@ -250,5 +276,7 @@ module.exports = {
   adjustLightness: adjustLightness,
   relativeLuminance: relativeLuminance,
   readableTextOn: readableTextOn,
+  contrastRatio: contrastRatio,
+  wcagRating: wcagRating,
   deriveThemeTokens: deriveThemeTokens
 };

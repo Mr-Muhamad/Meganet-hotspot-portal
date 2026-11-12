@@ -282,9 +282,11 @@ var auth = {
       var alertDiv = document.createElement('div');
       alertDiv.className = 'alert alert-error';
       alertDiv.id = 'voucher-min-length-alert';
+      var rawMsg = i18n.t('voucher_min_length_error', { n: minLength });
+      var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(rawMsg) : rawMsg;
       alertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
         '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-        '<span class="alert__text">' + i18n.t('voucher_min_length_error', { n: minLength }) + '</span>' +
+        '<span class="alert__text">' + safeMsg + '</span>' +
         '</div>';
 
       alertsContainer.appendChild(alertDiv);
@@ -368,9 +370,10 @@ var auth = {
 
       var updateAlertText = function(remainingMs) {
         var msg = i18n.t('rate_limit_message', { time: auth.formatRetryTime(remainingMs) });
+        var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(msg) : msg;
         rateAlertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
           '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
-          '<span class="alert__text">' + msg + '</span>' +
+          '<span class="alert__text">' + safeMsg + '</span>' +
           '</div>';
       };
 
@@ -479,13 +482,24 @@ var auth = {
       }
 
       if (typeof rateLimiter !== 'undefined') {
-        var limitStatus = rateLimiter.check('device');
-        if (limitStatus.blocked) {
+        var deviceLimit = rateLimiter.check('device');
+        var specificKey = (mode === 'voucher' && voucherInput && voucherInput.value)
+          ? voucherInput.value.trim()
+          : (usernameInput && usernameInput.value ? usernameInput.value.trim() : null);
+        var specificLimit = specificKey ? rateLimiter.check(specificKey) : null;
+        var limitStatus = (deviceLimit && deviceLimit.blocked)
+          ? deviceLimit
+          : (specificLimit && specificLimit.blocked ? specificLimit : deviceLimit);
+
+        if (limitStatus && limitStatus.blocked) {
           e.preventDefault();
           auth.handleRateLimit(limitStatus);
           return;
         }
         rateLimiter.recordAttempt('device');
+        if (specificKey) {
+          rateLimiter.recordAttempt(specificKey);
+        }
       }
 
       if (mode === 'voucher' && voucherInput && usernameInput && passwordInput) {
@@ -560,14 +574,39 @@ var auth = {
       var passwordInput = document.getElementById('password');
       var plainPasswordHidden = document.getElementById('plain-password');
 
-      if (chapId && chapChallenge && passwordInput &&
-          /^[0-9a-f]{2,32}$/i.test(String(chapId.value || '')) &&
-          String(chapChallenge.value || '') !== '' &&
-          typeof hexMD5 !== 'undefined') {
-        passwordInput.value = hexMD5(chapId.value + passwordInput.value + chapChallenge.value);
-        if (plainPasswordHidden) {
-          plainPasswordHidden.removeAttribute('name');
-        }
+      if (!chapId || !chapChallenge || !passwordInput) return;
+
+      var rawId = String(chapId.value || '').trim();
+      var rawChallenge = String(chapChallenge.value || '').trim();
+
+      // Guard against un-substituted RouterOS template variables
+      if (!rawId || !rawChallenge || rawId.indexOf('$(') !== -1 || rawChallenge.indexOf('$(') !== -1) {
+        return;
+      }
+
+      // Must match hex or octal escapes (\371) or non-empty challenge
+      var isHexOrOctalId = /^(?:[0-9a-f]{1,32}|(?:\\[0-7]{1,3})+)$/i.test(rawId);
+      if (!isHexOrOctalId) {
+        return;
+      }
+
+      var md5Fn = typeof hexMD5 === 'function' ? hexMD5 : (typeof hex_md5 === 'function' ? hex_md5 : null);
+      if (!md5Fn) return;
+
+      // Decode octal escapes (\371 -> byte 0xF9) and escaped characters
+      var decodeOctal = function(s) {
+        return s.replace(/\\(?:([0-7]{1,3})|(.))/g, function(_, oct, char) {
+          if (oct) return String.fromCharCode(parseInt(oct, 8));
+          return char;
+        });
+      };
+
+      var idVal = decodeOctal(rawId);
+      var challengeVal = decodeOctal(rawChallenge);
+
+      passwordInput.value = md5Fn(idVal + passwordInput.value + challengeVal);
+      if (plainPasswordHidden) {
+        plainPasswordHidden.removeAttribute('name');
       }
     } catch (err) {
       console.error('CHAP login error:', err);
@@ -740,13 +779,21 @@ var auth = {
       autoLoginDiv.style.justifyContent = 'space-between';
       autoLoginDiv.style.gap = 'var(--space-sm)';
 
-      var text = i18n.t('auto_login_countdown').split('{n}').join('<strong id="auto-login-sec">3</strong>');
+      var rawCountdown = i18n.t('auto_login_countdown') || '';
+      var text;
+      if (rawCountdown.indexOf('id="auto-login-sec"') !== -1 || rawCountdown.indexOf("id='auto-login-sec'") !== -1) {
+        text = rawCountdown.replace('{n}', '3');
+      } else {
+        text = rawCountdown.replace('{n}', '<strong id="auto-login-sec">3</strong>');
+      }
+
+      var cancelLabel = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(i18n.t('cancel')) : i18n.t('cancel');
 
       autoLoginDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
         '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
         '<span class="alert__text">' + text + '</span>' +
         '</div>' +
-        '<button type="button" id="cancel-auto-login-btn" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin:0;width:auto;">' + i18n.t('cancel') + '</button>';
+        '<button type="button" id="cancel-auto-login-btn" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin:0;width:auto;">' + cancelLabel + '</button>';
 
       alertsContainer.appendChild(autoLoginDiv);
 

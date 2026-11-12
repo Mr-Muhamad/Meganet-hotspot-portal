@@ -162,10 +162,14 @@ function checkField(pathStr, value, rule) {
   }
 }
 
-function validate(config) {
+function validate(config, assetsDir = ASSETS_DIR) {
   // Fresh state per call — validate() may run repeatedly (CLI, build, tests).
   errors.length = 0;
   warnings.length = 0;
+
+  if (config && config.theme && config.theme.preset === '') {
+    delete config.theme.preset;
+  }
 
   for (const [section, sectionRule] of Object.entries(SCHEMA)) {
     const value = config[section];
@@ -266,9 +270,9 @@ function validate(config) {
   }
 
   // theme.preset must be a built-in id or a custom:<id> saved in the admin tool
-  if (config.theme && config.theme.preset !== undefined && config.theme.preset !== null) {
-    const p = String(config.theme.preset);
-    if (!BUILTIN_PRESET_IDS.includes(p) && !CUSTOM_PRESET_RE.test(p)) {
+  if (config.theme && config.theme.preset) {
+    const p = String(config.theme.preset).trim();
+    if (p && !BUILTIN_PRESET_IDS.includes(p) && !CUSTOM_PRESET_RE.test(p)) {
       errors.push(`theme.preset: "${p}" is not a built-in preset [${BUILTIN_PRESET_IDS.join(', ')}] nor a custom:<id> preset`);
     }
   }
@@ -277,7 +281,7 @@ function validate(config) {
 
   if (Array.isArray(config.support?.agents)) {
     config.support.agents.forEach((agent, i) => {
-      if (agent.image && !fs.existsSync(path.join(ASSETS_DIR, agent.image))) {
+      if (agent.image && !fs.existsSync(path.join(assetsDir, agent.image))) {
         warnings.push(`support.agents[${i}].image: "${agent.image}" not found in src/assets/ (avatar falls back to the icon)`);
       }
     });
@@ -286,14 +290,14 @@ function validate(config) {
   return { errors, warnings };
 }
 
-function validateConfigFile(configPath = CONFIG_PATH) {
+function validateConfigFile(configPath = CONFIG_PATH, assetsDir = ASSETS_DIR) {
   let config;
   try {
     config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   } catch (err) {
     return { errors: [`config.json: ${err.message}`], warnings: [], config: null };
   }
-  return { ...validate(config), config };
+  return { ...validate(config, assetsDir), config };
 }
 
 // CLI entry point

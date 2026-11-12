@@ -8,13 +8,11 @@ const path = require('path');
 
 // Validation rules
 const rules = {
-  // Check for required MikroTik variables
-  requiredVariables: [
-    'hostname',
-    'identity',
-    'link-login',
-    'link-login-only'
-  ],
+  // Check for required MikroTik variables mapped by template filename
+  requiredVariables: {
+    'login.html': ['hostname', 'link-login-only'],
+    'logout.html': ['link-login']
+  },
 
   // Check for XSS-safe escaping — NOTE: no `g` flag. A global regex keeps
   // lastIndex across .test() calls, silently skipping matches in later
@@ -50,6 +48,13 @@ function validateFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const filename = path.basename(filePath);
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const isArabic = normalizedPath.includes('/ar/');
+
+    // Validate RTL direction on Arabic templates
+    if (isArabic && !content.includes('dir="rtl"')) {
+      warnings.push('Arabic page missing dir="rtl" attribute');
+    }
 
     // Check required HTML structure
     rules.requiredElements.forEach(element => {
@@ -63,6 +68,15 @@ function validateFile(filePath) {
         errors.push(`Missing required element: ${element}`);
       }
     });
+
+    // Check for required MikroTik variables on applicable templates via rules.requiredVariables
+    if (rules.requiredVariables[filename]) {
+      rules.requiredVariables[filename].forEach(v => {
+        if (!content.includes(`$(${v})`)) {
+          warnings.push(`Missing recommended RouterOS variable: $(${v})`);
+        }
+      });
+    }
 
     // Check for unsafe MikroTik variables
     rules.unsafePatterns.forEach(({ pattern, message }) => {

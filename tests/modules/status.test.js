@@ -318,15 +318,39 @@ document.body.appendChild(mockSmartUsageCard);
     });
   });
 
-  describe('mac address decoding', () => {
-    test('decodes URL-escaped MAC address in HTML on init', () => {
+  describe('mac and username address decoding', () => {
+    test('decodes URL-escaped MAC address in both #stat-mac and #tech-mac on init', () => {
       mockTimeLeft.setAttribute('data-seconds', '0'); // prevent countdown redirect trigger
       const mockMacElement = document.getElementById('stat-mac');
       mockMacElement.textContent = '1C%3ABF%3ACE%3AB7%3AA4%3AD8';
 
+      const techMac = document.createElement('div');
+      techMac.id = 'tech-mac';
+      techMac.textContent = 'AA%3ABB%3ACC%3ADD%3AEE%3AFF';
+      document.body.appendChild(techMac);
+
       statusModule.init();
 
       expect(mockMacElement.textContent).toBe('1C:BF:CE:B7:A4:D8');
+      expect(techMac.textContent).toBe('AA:BB:CC:DD:EE:FF');
+    });
+
+    test('decodes URL-escaped username in both #stat-username and #tech-username on init', () => {
+      mockTimeLeft.setAttribute('data-seconds', '0');
+      const statUser = document.createElement('div');
+      statUser.id = 'stat-username';
+      statUser.textContent = 'user%20name%40wifi';
+      document.body.appendChild(statUser);
+
+      const techUser = document.createElement('div');
+      techUser.id = 'tech-username';
+      techUser.textContent = '1C%3ABF%3ACE%3AB7%3AA4%3AD8';
+      document.body.appendChild(techUser);
+
+      statusModule.init();
+
+      expect(statUser.textContent).toBe('user name@wifi');
+      expect(techUser.textContent).toBe('1C:BF:CE:B7:A4:D8');
     });
   });
 

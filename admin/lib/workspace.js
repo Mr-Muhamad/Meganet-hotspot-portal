@@ -1,40 +1,34 @@
 /**
- * workspace.js — the build pipeline behind the admin portal generator.
+ * workspace.js — isolated build pipeline behind the admin portal generator.
  *
- * A profile lives isolated in `.admin/profiles/<slug>/`. To build it, the
- * workspace (repo root) is temporarily switched to that profile:
- *
- *   1. stash()   — snapshot config.json, announcements.json and src/assets
- *   2. applyProfile(profile) — write the profile's config/announcements and
- *                  copy its client-only assets into src/assets
- *   3. buildAndZip() — run the REAL build (build.js) and zip dist/
- *   4. restore(snapshot) — put every stashed byte back EXACTLY and remove
- *                  the assets the profile introduced
- *
- * The shipped (green) workspace is therefore always restored byte-identical
- * after a build — same pattern as the demo rounds.
+ * Each profile build runs inside an isolated staging directory (never mutating
+ * the shipped repo's config.json, src/announcements.json, src/assets, or dist/
+ * directory). That guarantees concurrency safety, zero leftover pollution on
+ * crash, and full compatibility with read-only installation folders such as
+ * C:\Program Files\ on Windows.
  */
 
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { ZipFile } = require('yazl'); // CommonJS zip writer
+const { ZipFile } = require('yazl');
+const { generateRscScript } = require('./mikrotik.js');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
+const FLASH_BUDGET_BYTES = 1024 * 1024; // 1 MB recommended hotspot flash budget
 
-function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
+function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
   const assetsDir = path.join(repoRoot, 'src', 'assets');
   const configFile = path.join(repoRoot, 'config.json');
   const announcementsFile = path.join(repoRoot, 'src', 'announcements.json');
-  const distDir = path.join(repoRoot, 'dist');
+  const resolvedWorkDir = workDir || process.env.BUILD_WORK_DIR || path.join(repoRoot, '.admin');
 
   function readBuffer(file) {
     return fs.existsSync(file) ? fs.readFileSync(file) : null;
   }
 
-  // Containment guard: resolve a repo-relative path and require the result to
-  // stay inside the base directory (defense-in-depth even for internal paths).
   function inside(base, candidate) {
     const resolved = path.resolve(base, candidate);
     return resolved === base || resolved.startsWith(base + path.sep) ? resolved : null;
@@ -65,26 +59,33 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     }
   }
 
-  function applyProfile(profile) {
+  function applyProfileToDir(profile, targetAssetsDir, targetConfigFile, targetAnnouncementsFile) {
     checkProfileShape(profile);
-    // config.json
-    fs.writeFileSync(configFile, JSON.stringify(profile.config, null, 2) + '\n', 'utf8');
-    // announcements.json (optional)
-    if (profile.announcements !== null && profile.announcements !== undefined) {
-      fs.writeFileSync(announcementsFile, JSON.stringify(profile.announcements, null, 2) + '\n', 'utf8');
+    const cfgCopy = JSON.parse(JSON.stringify(profile.config));
+    if (cfgCopy.theme && cfgCopy.theme.preset === '') {
+      delete cfgCopy.theme.preset;
     }
-    // client assets (only the ones the profile provides)
+    fs.writeFileSync(targetConfigFile, JSON.stringify(cfgCopy, null, 2) + '\n', 'utf8');
+
+    if (profile.announcements !== null && profile.announcements !== undefined) {
+      fs.writeFileSync(targetAnnouncementsFile, JSON.stringify(profile.announcements, null, 2) + '\n', 'utf8');
+    } else if (fs.existsSync(announcementsFile)) {
+      fs.copyFileSync(announcementsFile, targetAnnouncementsFile);
+    }
+
+    fs.mkdirSync(targetAssetsDir, { recursive: true });
+    if (fs.existsSync(assetsDir)) {
+      fs.cpSync(assetsDir, targetAssetsDir, { recursive: true, force: true });
+    }
+
     const applied = [];
     if (profile.assets && profile.assets.length) {
-      fs.mkdirSync(assetsDir, { recursive: true });
       for (const asset of profile.assets) {
-        // basename whitelist: only a plain filename (no separators, no dot
-        // prefix) may land in src/assets
         const safe = path.basename(asset.name);
         if (safe !== asset.name || safe.startsWith('.') || !safe) continue;
         const src = inside(profile.dir, path.join('assets', safe));
-        const dest = inside(repoRoot, path.join('src', 'assets', safe));
-        if (!src || !dest) continue; // containment guard
+        const dest = inside(targetAssetsDir, safe);
+        if (!src || !dest || !fs.existsSync(src)) continue;
         fs.copyFileSync(src, dest);
         applied.push(safe);
       }
@@ -92,31 +93,84 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     return applied;
   }
 
-  function buildAndZip({ outputZip = path.join(repoRoot, '.admin', 'tmp', 'dist.zip') } = {}) {
-    // Literal require — the build module is a fixed part of the repo, never
-    // derived from input (and no shell is ever invoked anywhere in this file).
-    const { build } = require('../../build.js');
-    build(); // writes dist/
-    if (!fs.existsSync(distDir)) throw new Error('build did not produce dist/');
+  // Legacy in-place helpers kept exported for backwards compatibility
+  function applyProfile(profile) {
+    return applyProfileToDir(profile, assetsDir, configFile, announcementsFile);
+  }
+
+  function categorizeFile(relPath) {
+    const norm = relPath.replace(/\\/g, '/').toLowerCase();
+    if (norm.endsWith('.rsc')) return 'rsc';
+    if (norm.endsWith('.html')) return 'html';
+    if (norm.startsWith('assets/') || /\.(svg|png|jpe?g|webp|ico)$/.test(norm)) return 'assets';
+    if (norm.endsWith('.js') || norm.endsWith('.css')) return 'scripts';
+    return 'other';
+  }
+
+  function zipDistDir(sourceDistDir, { outputZip = path.join(resolvedWorkDir, 'tmp', 'dist.zip'), rscContent = null, collectBuffers = false } = {}) {
+    if (!fs.existsSync(sourceDistDir)) throw new Error('build did not produce dist/');
     fs.mkdirSync(path.dirname(outputZip), { recursive: true });
+
+    const breakdown = { html: 0, assets: 0, scripts: 0, rsc: 0, other: 0 };
+    let totalRawSize = 0;
+    const collectedFiles = [];
+    let fileCount = 0;
+
     return new Promise((resolve, reject) => {
       const zipfile = new ZipFile();
       const output = fs.createWriteStream(outputZip);
-      output.on('close', () => resolve(outputZip));
+      output.on('close', () => {
+        let zipSize = 0;
+        try { zipSize = fs.statSync(outputZip).size; } catch { /* ignore */ }
+        resolve({
+          outputZip,
+          zipSize,
+          totalRawSize,
+          breakdown,
+          flashBudgetBytes: FLASH_BUDGET_BYTES,
+          flashUsagePercent: Math.round((totalRawSize / FLASH_BUDGET_BYTES) * 100),
+          files: collectedFiles,
+          fileCount
+        });
+      });
       zipfile.outputStream.on('error', reject);
       zipfile.outputStream.pipe(output);
-      // recursive add of dist/ contents (preserves subdirectories like ar/)
+
       const walk = (dir, prefix) => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
           const full = path.join(dir, entry.name);
           const rel = prefix ? path.join(prefix, entry.name) : entry.name;
-          if (entry.isDirectory()) walk(full, rel);
-          else zipfile.addFile(full, rel);
+          if (entry.isDirectory()) {
+            walk(full, rel);
+          } else {
+            fileCount++;
+            const stat = fs.statSync(full);
+            const cat = categorizeFile(rel);
+            breakdown[cat] = (breakdown[cat] || 0) + stat.size;
+            totalRawSize += stat.size;
+            if (collectBuffers) {
+              collectedFiles.push({ relPath: rel.replace(/\\/g, '/'), buffer: fs.readFileSync(full) });
+            }
+            zipfile.addFile(full, rel);
+          }
         }
       };
-      walk(distDir, '');
+      walk(sourceDistDir, '');
+      if (typeof rscContent === 'string' && rscContent.length > 0) {
+        const rscBuf = Buffer.from(rscContent, 'utf8');
+        breakdown.rsc += rscBuf.length;
+        totalRawSize += rscBuf.length;
+        zipfile.addBuffer(rscBuf, 'hotspot-setup.rsc');
+      }
       zipfile.end();
     });
+  }
+
+  function buildAndZip({ outputZip = path.join(resolvedWorkDir, 'tmp', 'dist.zip'), rscContent = null, collectBuffers = false } = {}) {
+    const { build } = require('../../build.js');
+    const defaultDistDir = path.join(repoRoot, 'dist');
+    build({ distDir: defaultDistDir, throwOnError: true });
+    return zipDistDir(defaultDistDir, { outputZip, rscContent, collectBuffers });
   }
 
   function restore(snap, appliedAssets) {
@@ -124,12 +178,10 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     else fs.writeFileSync(configFile, snap.config);
     if (snap.announcements === null) fs.rmSync(announcementsFile, { force: true });
     else fs.writeFileSync(announcementsFile, snap.announcements);
-    // remove any assets the profile introduced
     for (const name of appliedAssets || []) {
       const file = path.join(assetsDir, name);
       if (fs.existsSync(file)) fs.rmSync(file);
     }
-    // restore every original asset byte
     for (const asset of snap.assets) {
       const dest = path.join(assetsDir, asset.rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -137,22 +189,12 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     }
   }
 
-  // Serialize build runs — only one profile build at a time.
   let chain = Promise.resolve();
 
-  // ---- crash-safe cycle --------------------------------------------------
-  // Before touching the workspace we persist an "in-progress" marker plus a
-  // full backup of the factory state. If the process dies between applyProfile
-  // and restore (power loss, kill -9), the next server boot restores the
-  // factory automatically. Without this, a crash mid-build would leave the
-  // shipped Meganet workspace swapped for a client profile.
-  const SAFE_DIR = path.join(repoRoot, '.admin', 'tmp');
+  const SAFE_DIR = path.join(resolvedWorkDir, 'tmp');
   const MARKER = path.join(SAFE_DIR, 'build-in-progress.marker');
   const GOOD_STATE = path.join(SAFE_DIR, 'last-good-state.json');
 
-  // The profile's applied-assets list is saved with the factory backup so a
-  // crash recovery can remove exactly what the interrupted build introduced
-  // (previously restore(snap, []) could leave foreign assets in src/assets).
   function persistGoodState(snap, appliedAssets) {
     fs.mkdirSync(SAFE_DIR, { recursive: true });
     fs.writeFileSync(GOOD_STATE, JSON.stringify({
@@ -179,9 +221,7 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
         assets: (saved.assets || []).map(a => ({ rel: a.rel, buffer: Buffer.from(a.b64, 'base64') })),
         appliedAssets: saved.appliedAssets || []
       };
-    } catch (err) {
-      // backup unreadable: cannot auto-restore, but still clear the marker,
-      // so future builds are not blocked forever.
+    } catch {
       clearMarker();
       throw new Error('interrupted build found but its backup is unreadable — check config.json / src/assets manually');
     }
@@ -190,30 +230,81 @@ function createWorkspace({ repoRoot = REPO_ROOT } = {}) {
     return true;
   }
 
-  function runBuildCycle(profile, zipPath) {
+  function makeStageDir() {
+    const base = path.join(resolvedWorkDir, 'staging');
+    try {
+      fs.mkdirSync(base, { recursive: true });
+      return fs.mkdtempSync(path.join(base, 'job-'));
+    } catch {
+      return fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-stage-'));
+    }
+  }
+
+  function runBuildCycle(profile, zipPath, options = {}) {
     const job = chain.then(async () => {
-      const snap = snapshot();
-      let applied = [];
+      checkProfileShape(profile);
+      const stageDir = makeStageDir();
+      const stageConfig = path.join(stageDir, 'config.json');
+      const stageAnnouncements = path.join(stageDir, 'announcements.json');
+      const stageAssets = path.join(stageDir, 'assets');
+      const stageDist = path.join(stageDir, 'dist');
+
       try {
-        // apply INSIDE the guarded cycle: if it throws, we can already restore
-        // the factory + clear the marker (no dirty workspace till restart)
-        applied = applyProfile(profile);
-        persistGoodState(snap, applied); // crash-safe marker + factory backup
-        // delete any previous zip first — a failed build must never serve a
-        // STALE artifact as a success
         try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }
-        const built = await buildAndZip({ outputZip: zipPath });
-        return { zipPath: built, distFiles: fs.readdirSync(distDir).length };
+
+        applyProfileToDir(profile, stageAssets, stageConfig, stageAnnouncements);
+
+        const rscContent = generateRscScript(profile.config, {
+          profileName: options.profileName || (profile.id ? `${profile.id}-hs-profile` : 'meganet-hs-profile'),
+          htmlDir: options.htmlDir || 'hotspot',
+          dnsName: options.dnsName || 'login.meganet.local',
+          dhcpServer: options.dhcpServer || '',
+          extraHosts: options.extraHosts || [],
+          capportMode: options.capportMode || 'https'
+        });
+
+        const { build } = require('../../build.js');
+        build({
+          configPath: stageConfig,
+          customPresetsPath: options.customPresetsPath || path.join(resolvedWorkDir, 'custom-presets.json'),
+          announcementsPath: stageAnnouncements,
+          assetsDir: stageAssets,
+          distDir: stageDist,
+          throwOnError: true
+        });
+
+        if (options.previewDistDir) {
+          fs.rmSync(options.previewDistDir, { recursive: true, force: true });
+          fs.cpSync(stageDist, options.previewDistDir, { recursive: true, force: true });
+        }
+
+        const built = await zipDistDir(stageDist, {
+          outputZip: zipPath,
+          rscContent,
+          collectBuffers: Boolean(options.collectBuffers)
+        });
+
+        return {
+          zipPath: built.outputZip,
+          distFiles: fs.readdirSync(stageDist).length,
+          zipSize: built.zipSize,
+          totalRawSize: built.totalRawSize,
+          breakdown: built.breakdown,
+          flashBudgetBytes: built.flashBudgetBytes,
+          flashUsagePercent: built.flashUsagePercent,
+          overBudget: built.totalRawSize > FLASH_BUDGET_BYTES,
+          rscContent,
+          files: built.files
+        };
       } finally {
-        restore(snap, applied);
-        clearMarker();
+        try { fs.rmSync(stageDir, { recursive: true, force: true }); } catch { /* best-effort */ }
       }
     });
     chain = job.catch(() => {});
     return job;
   }
 
-  return { snapshot, applyProfile, buildAndZip, restore, runBuildCycle, recoverIfInterrupted, repoRoot };
+  return { snapshot, applyProfile, buildAndZip, restore, runBuildCycle, recoverIfInterrupted, persistGoodState, repoRoot };
 }
 
-module.exports = { createWorkspace, REPO_ROOT };
+module.exports = { createWorkspace, REPO_ROOT, FLASH_BUDGET_BYTES };

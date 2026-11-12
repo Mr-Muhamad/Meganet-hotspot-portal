@@ -10,6 +10,8 @@ const {
   adjustLightness,
   relativeLuminance,
   readableTextOn,
+  contrastRatio,
+  wcagRating,
   deriveThemeTokens,
   DEFAULT_PRIMARY,
   DEFAULT_BACKGROUND
@@ -52,6 +54,26 @@ describe('color-utils', () => {
       expect(readableTextOn('#22ff88')).toBe('#0f172a'); // very light green
       expect(readableTextOn('#3b82f6')).toBe('#ffffff'); // medium blue
       expect(readableTextOn('#6d5efc')).toBe('#ffffff'); // violet
+    });
+  });
+
+  describe('contrastRatio and wcagRating', () => {
+    test('computes WCAG 2.1 contrast ratio and rating levels accurately', () => {
+      expect(contrastRatio('#ffffff', '#000000')).toBe(21);
+      expect(wcagRating('#ffffff', '#020617')).toEqual(
+        expect.objectContaining({ level: 'AAA', pass: true })
+      );
+      expect(wcagRating('#22c55e', '#020617')).toEqual(
+        expect.objectContaining({ level: 'AAA', pass: true })
+      );
+      expect(wcagRating('#3b82f6', '#0f172a')).toEqual(
+        expect.objectContaining({ level: 'AA', pass: true })
+      );
+      expect(wcagRating('#1e293b', '#0f172a')).toEqual(
+        expect.objectContaining({ level: 'FAIL', pass: false })
+      );
+      expect(contrastRatio('bad', '#000000')).toBeNull();
+      expect(wcagRating('#000000', 'invalid')).toBeNull();
     });
   });
 

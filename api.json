@@ -6,11 +6,11 @@
   "user-name": "$(username-esc)",
   "session-info-url": "$(link-status)",
   "session-logout-url": "$(link-logout)",
-  $(if session-timeout-secs)
-  "seconds-remaining": $(session-timeout-secs),
+  $(if session-time-left-secs)
+  "seconds-remaining": $(session-time-left-secs),
   $(endif)
-  $(if remain-bytes-in)
-  "bytes-remaining": $(remain-bytes-in),
+  $(if remain-bytes-total)
+  "bytes-remaining": $(remain-bytes-total),
   $(endif)
   $(else)
   "user-login": false,

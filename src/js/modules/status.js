@@ -19,27 +19,30 @@ var statusModule = {
         rateLimiter.clearAll();
       }
 
-      // Decode MAC address from URL-encoded format on load
-      var macEl = document.getElementById('tech-mac') || document.getElementById('stat-mac');
-      if (macEl) {
+      // Decode MAC address from URL-encoded format on load in all matching elements
+      var macEls = document.querySelectorAll('#tech-mac, #stat-mac');
+      macEls.forEach(function(macEl) {
         var rawMac = macEl.textContent.trim();
         try {
           macEl.textContent = decodeURIComponent(rawMac);
         } catch (macErr) {
           macEl.textContent = rawMac.replace(/%3A/gi, ':');
         }
-      }
+      });
 
-      // Decode username from URL-encoded format (in case username is MAC address)
-      var userEl = document.getElementById('tech-username') || document.getElementById('stat-username');
-      if (userEl) {
+      // Decode username from URL-encoded format in all matching elements
+      var userEls = document.querySelectorAll('#tech-username, #stat-username');
+      userEls.forEach(function(userEl) {
         var rawUser = userEl.textContent.trim();
         try {
           userEl.textContent = decodeURIComponent(rawUser);
         } catch (userErr) {
           userEl.textContent = rawUser.replace(/%3A/gi, ':');
         }
+      });
 
+      var userEl = document.getElementById('tech-username') || document.getElementById('stat-username');
+      if (userEl) {
         // Hide logout button if username matches MAC address format (e.g. 1C:BF:CE:B7:A4:D8 or 1c-bf-ce-b7-a4-d8)
         var usernameVal = userEl.textContent.trim();
         var macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;

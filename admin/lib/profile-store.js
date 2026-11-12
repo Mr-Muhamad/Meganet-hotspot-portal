@@ -17,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { sanitizeSvg } = require('../../scripts/svg-utils.js');
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const ASSET_EXT = new Set(['.svg', '.png', '.jpg', '.jpeg', '.webp']);
@@ -91,6 +92,9 @@ function createProfileStore(baseDir) {
     if (fs.existsSync(path.join(src, 'announcements.json'))) {
       fs.cpSync(path.join(src, 'announcements.json'), path.join(dst, 'announcements.json'), { force: true });
     }
+    if (fs.existsSync(path.join(src, 'mikrotik.json'))) {
+      fs.cpSync(path.join(src, 'mikrotik.json'), path.join(dst, 'mikrotik.json'), { force: true });
+    }
     for (const f of fs.readdirSync(path.join(src, 'assets'))) {
       fs.copyFileSync(path.join(src, 'assets', f), path.join(dst, 'assets', f));
     }
@@ -115,6 +119,67 @@ function createProfileStore(baseDir) {
     fs.rmSync(profileDir(id), { recursive: true, force: true });
   }
 
+  function sanitizeMikrotikSettings(input = {}, id = '') {
+    const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
+    const protocol = src.protocol === 'https' ? 'https' : 'http';
+    const rawPort = Number(src.port);
+    const port = Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535
+      ? rawPort
+      : (protocol === 'https' ? 443 : 80);
+    const capportMode = ['https', 'http', 'off'].includes(src.capportMode) ? src.capportMode : 'https';
+    let extraHosts = [];
+    if (Array.isArray(src.extraHosts)) {
+      extraHosts = src.extraHosts.map((s) => String(s || '').trim()).filter(Boolean);
+    } else if (typeof src.extraHosts === 'string') {
+      extraHosts = src.extraHosts.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    const targetDir = String(src.targetDir || 'hotspot').trim() || 'hotspot';
+    const htmlDir = String(src.htmlDir || targetDir || 'hotspot').trim() || 'hotspot';
+    return {
+      host: String(src.host ?? '192.168.88.1').trim(),
+      protocol,
+      port,
+      username: String(src.username || 'admin').trim() || 'admin',
+      targetDir,
+      htmlDir,
+      dnsName: String(src.dnsName || 'login.meganet.local').trim() || 'login.meganet.local',
+      profileName: String(src.profileName || (id ? `${id}-hs-profile` : '')).trim(),
+      dhcpServer: String(src.dhcpServer || '').trim(),
+      capportMode,
+      extraHosts,
+      applyRsc: Boolean(src.applyRsc),
+      createBackup: Boolean(src.createBackup),
+      tlsFingerprint: String(src.tlsFingerprint || '').trim(),
+      updatedAt: String(src.updatedAt || new Date().toISOString())
+    };
+  }
+
+  function readMikrotikSettings(slug) {
+    const id = assertSlug(slug);
+    const file = path.join(profileDir(id), 'mikrotik.json');
+    if (!fs.existsSync(file)) return null;
+    try {
+      const raw = readJson(file);
+      return sanitizeMikrotikSettings(raw, id);
+    } catch {
+      return null;
+    }
+  }
+
+  function saveMikrotikSettings(slug, settings) {
+    const id = assertSlug(slug);
+    if (!exists(id)) throw new Error(`profile not found: ${id}`);
+    const existing = readMikrotikSettings(id) || {};
+    const patch = (settings && typeof settings === 'object' && !Array.isArray(settings)) ? { ...settings } : {};
+    delete patch.password;
+    const sanitized = sanitizeMikrotikSettings(
+      { ...existing, ...patch, updatedAt: new Date().toISOString() },
+      id
+    );
+    writeJson(path.join(profileDir(id), 'mikrotik.json'), sanitized);
+    return sanitized;
+  }
+
   function get(slug) {
     const id = assertSlug(slug);
     if (!exists(id)) throw new Error(`profile not found: ${id}`);
@@ -125,13 +190,14 @@ function createProfileStore(baseDir) {
     const announcements = fs.existsSync(path.join(profileDir(id), 'announcements.json'))
       ? readJson(path.join(profileDir(id), 'announcements.json'))
       : null;
+    const mikrotik = readMikrotikSettings(id);
     const assets = fs.readdirSync(path.join(profileDir(id), 'assets'))
       .filter((f) => !f.startsWith('.'))
       .map((f) => {
         const stat = fs.statSync(path.join(profileDir(id), 'assets', f));
         return { name: f, size: stat.size };
       });
-    return { id, name: meta.name, createdAt: meta.createdAt, updatedAt: meta.updatedAt, config, announcements, assets };
+    return { id, name: meta.name, createdAt: meta.createdAt, updatedAt: meta.updatedAt, config, announcements, mikrotik, assets };
   }
 
   /**
@@ -141,6 +207,9 @@ function createProfileStore(baseDir) {
   function saveConfig(slug, config, validateFn) {
     const id = assertSlug(slug);
     if (!exists(id)) throw new Error(`profile not found: ${id}`);
+    if (config && config.theme && config.theme.preset === '') {
+      delete config.theme.preset;
+    }
     const result = validateFn ? validateFn(config) : { errors: [] };
     if (result.errors && result.errors.length) {
       const err = new Error('config validation failed');
@@ -177,7 +246,11 @@ function createProfileStore(baseDir) {
       throw new Error('asset must be a non-empty buffer ≤ 3 MB');
     }
     const safe = sanitizeAssetName(filename);
-    fs.writeFileSync(path.join(profileDir(id), 'assets', safe), buffer);
+    let outBuffer = buffer;
+    if (path.extname(safe).toLowerCase() === '.svg') {
+      outBuffer = Buffer.from(sanitizeSvg(buffer.toString('utf8')), 'utf8');
+    }
+    fs.writeFileSync(path.join(profileDir(id), 'assets', safe), outBuffer);
     return safe;
   }
 
@@ -199,8 +272,10 @@ function createProfileStore(baseDir) {
     rename,
     remove,
     get,
+    getMikrotikSettings: readMikrotikSettings,
     saveConfig,
     saveAnnouncements,
+    saveMikrotikSettings,
     writeAsset,
     deleteAsset,
     sanitizeAssetName,

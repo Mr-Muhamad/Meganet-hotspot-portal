@@ -526,6 +526,7 @@
 
 /* Plans Link Compact (Status Page) */
 .plans-link-compact {
+  width: 100%;
   text-align: center;
   margin-top: var(--space-md);
   padding-bottom: var(--space-xs);
@@ -912,6 +913,31 @@
 }
 .announcement-banner--promo .announcement-banner__text {
   color: var(--color-primary-bright-text);
+}
+
+/* Info Announcement Banner */
+.announcement-banner--info {
+  border-color: var(--color-info-alpha-50, var(--color-primary-alpha-50));
+  box-shadow: 0 4px 20px var(--color-info-alpha-15, var(--color-primary-alpha-15));
+  animation: announcement-pulse-info 2s infinite alternate ease-in-out;
+}
+.announcement-banner--info .announcement-banner__icon-wrapper {
+  background: var(--color-info-alpha-15, var(--color-primary-alpha-15));
+  color: var(--color-info, var(--color-primary));
+}
+.announcement-banner--info .announcement-banner__text {
+  color: var(--color-info-bright, var(--color-primary-bright-text));
+}
+
+@keyframes announcement-pulse-info {
+  0% {
+    box-shadow: 0 4px 15px var(--color-info-alpha-10, var(--color-primary-alpha-10));
+    border-color: var(--color-info-alpha-30, var(--color-primary-alpha-30));
+  }
+  100% {
+    box-shadow: 0 4px 25px var(--color-info-alpha-35, var(--color-primary-alpha-35));
+    border-color: var(--color-info-alpha-70, var(--color-primary-alpha-70));
+  }
 }
 
 @keyframes announcement-pulse-warning {

@@ -26,6 +26,7 @@
 'use strict';
 
 const http = require('http');
+const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -37,15 +38,56 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const ADMIN_DIR = process.env.ADMIN_DATA_DIR
   ? path.resolve(process.env.ADMIN_DATA_DIR)
   : path.join(REPO_ROOT, '.admin');
+const PREVIEW_DIST_DIR = path.join(ADMIN_DIR, 'preview-dist');
 
 const { createProfileStore, SLUG_RE } = require('./lib/profile-store.js');
 const { createWorkspace } = require('./lib/workspace.js');
+const { previewRscPlan, inspectRouter, deployToRouter } = require('./lib/mikrotik.js');
+const { generateQrSvg, parseVoucherCsv, generatePrintSheetHtml } = require('./lib/qr-generator.js');
+const { ICON_PATHS, generateBrandAssets } = require('./lib/logo-maker.js');
 const { validate } = require(path.join(REPO_ROOT, 'scripts', 'validate-config.js'));
 const { PRESETS, resolveEffectiveConfig, CUSTOM_PRESET_RE } = require(path.join(REPO_ROOT, 'scripts', 'presets.js'));
 
 const store = createProfileStore(ADMIN_DIR);
-const workspace = createWorkspace({ repoRoot: REPO_ROOT });
+const workspace = createWorkspace({
+  repoRoot: REPO_ROOT,
+  workDir: process.env.BUILD_WORK_DIR ? path.resolve(process.env.BUILD_WORK_DIR) : ADMIN_DIR
+});
 const CUSTOM_PRESETS_FILE = path.join(ADMIN_DIR, 'custom-presets.json');
+
+// Auto-seed factory Meganet official profile if the store has no profiles yet
+function seedMeganetProfileIfEmpty() {
+  try {
+    if (store.list().length === 0) {
+      const cfgPath = path.join(REPO_ROOT, 'config.json');
+      const cfg = fs.existsSync(cfgPath)
+        ? JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
+        : buildTemplateConfig();
+      if (!cfg.theme) cfg.theme = {};
+      if (!cfg.theme.preset) cfg.theme.preset = 'meganet';
+      store.create('meganet-official', 'ميجا نت — البروفايل الأساسي (الأخضر)', cfg);
+
+      const annPath = path.join(REPO_ROOT, 'src', 'announcements.json');
+      if (fs.existsSync(annPath)) {
+        try {
+          store.saveAnnouncements('meganet-official', JSON.parse(fs.readFileSync(annPath, 'utf8')));
+        } catch { /* empty */ }
+      }
+
+      const assetsDir = path.join(REPO_ROOT, 'src', 'assets');
+      if (fs.existsSync(assetsDir)) {
+        for (const file of fs.readdirSync(assetsDir)) {
+          try {
+            store.writeAsset('meganet-official', file, fs.readFileSync(path.join(assetsDir, file)));
+          } catch { /* empty */ }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not auto-seed meganet-official profile:', err.message);
+  }
+}
+seedMeganetProfileIfEmpty();
 
 function loadCustomPresets() {
   try {
@@ -171,19 +213,66 @@ const TEMPLATE_CONFIG = buildTemplateConfig();
 // ---------------------------------------------------------------------------
 
 let previewChild = null;
+let currentPreviewPort = null;
+let currentPreviewDist = null;
 
-function startPreview(port) {
+function findFreeLoopbackPort() {
+  return new Promise((resolve, reject) => {
+    const s = net.createServer();
+    s.on('error', reject);
+    s.listen(0, '127.0.0.1', () => {
+      const { port } = s.address();
+      s.close(() => resolve(port));
+    });
+  });
+}
+
+async function startPreview(port, distDir) {
+  const targetDist = distDir || (fs.existsSync(PREVIEW_DIST_DIR) ? PREVIEW_DIST_DIR : path.join(REPO_ROOT, 'dist'));
+  if (previewChild && currentPreviewPort === port && currentPreviewDist === targetDist) {
+    return port;
+  }
   stopPreview();
   // spawn with an explicit argv array (no shell) — nothing here is ever
   // concatenated into a command string. The port is validated as a bounded
   // integer by the caller before it reaches this point.
-  const child = spawn(process.execPath, [path.join(REPO_ROOT, 'scripts', 'preview.mjs'), '--port', String(port)], {
-    cwd: REPO_ROOT,
-    stdio: 'ignore',
-    detached: false
-  });
+  const child = spawn(
+    process.execPath,
+    [path.join(REPO_ROOT, 'scripts', 'preview.mjs'), '--port', String(port), '--dist', targetDist],
+    {
+      cwd: REPO_ROOT,
+      stdio: 'ignore',
+      detached: false,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PREVIEW_DIST_DIR: targetDist }
+    }
+  );
   previewChild = child;
-  child.on('exit', () => { if (previewChild === child) previewChild = null; });
+  currentPreviewPort = port;
+  currentPreviewDist = targetDist;
+  child.on('exit', () => {
+    if (previewChild === child) {
+      previewChild = null;
+      currentPreviewPort = null;
+      currentPreviewDist = null;
+    }
+  });
+
+  // Wait until preview server is bound and answering HTTP requests
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    if (!previewChild) break;
+    const ready = await new Promise((resolve) => {
+      const probe = http.request({ hostname: '127.0.0.1', port, path: '/index.html', method: 'HEAD', timeout: 300 }, (r) => {
+        r.resume();
+        resolve(r.statusCode === 200 || r.statusCode === 302 || r.statusCode === 404);
+      });
+      probe.on('error', () => resolve(false));
+      probe.on('timeout', () => { probe.destroy(); resolve(false); });
+      probe.end();
+    });
+    if (ready) break;
+  }
+
   return port;
 }
 
@@ -191,6 +280,8 @@ function stopPreview() {
   if (previewChild) {
     previewChild.kill('SIGTERM');
     previewChild = null;
+    currentPreviewPort = null;
+    currentPreviewDist = null;
   }
 }
 
@@ -225,8 +316,67 @@ async function handleApi(req, res, url, method) {
         knownKeys,
         presets,
         planIcons: ['globe', 'briefcase', 'graduation-cap', 'ghost', 'star', 'shield', 'crown', 'package'],
+        logoIcons: Object.keys(ICON_PATHS),
         template: TEMPLATE_CONFIG
       });
+    }
+
+    // GET /api/qr?text=...
+    if (method === 'GET' && parts[0] === 'api' && parts[1] === 'qr' && parts.length === 2) {
+      const text = url.searchParams.get('text') || '';
+      if (!text) return sendJson(res, 400, { error: 'text query parameter is required' });
+      const svg = generateQrSvg(text, {
+        color: url.searchParams.get('color') || '#020617',
+        background: url.searchParams.get('bg') || '#ffffff'
+      });
+      if (url.searchParams.get('raw') === '1') {
+        res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Content-Length': Buffer.byteLength(svg) });
+        return res.end(svg);
+      }
+      return sendJson(res, 200, { svg });
+    }
+
+    // POST /api/mikrotik/test — inspect RouterOS v7 device capabilities & storage
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'mikrotik' && parts[2] === 'test' && parts.length === 3) {
+      const body = await readJsonBody(req);
+      const info = await inspectRouter(body || {});
+      if (body && body.slug && store.exists(body.slug)) {
+        store.saveMikrotikSettings(body.slug, {
+          host: body.host,
+          protocol: body.protocol,
+          port: body.port,
+          username: body.username,
+          tlsFingerprint: info.tlsFingerprint || body.tlsFingerprint || ''
+        });
+      }
+      return sendJson(res, 200, info);
+    }
+
+    // POST /api/profiles/build-all — batch build every profile
+    if (method === 'POST' && parts[0] === 'api' && parts[1] === 'profiles' && parts[2] === 'build-all' && parts.length === 3) {
+      const all = store.list();
+      const built = [];
+      for (const item of all) {
+        const p = store.get(item.id);
+        const effective = resolveEffectiveConfig(p.config, loadCustomPresets());
+        const zipPath = path.join(ADMIN_DIR, 'tmp', `${item.id}-dist.zip`);
+        const r = await workspace.runBuildCycle(
+          { ...p, config: effective, dir: path.join(store.profilesDir, item.id) },
+          zipPath,
+          { customPresetsPath: CUSTOM_PRESETS_FILE }
+        );
+        built.push({
+          id: item.id,
+          name: item.name,
+          distFiles: r.distFiles,
+          zipSize: r.zipSize,
+          totalRawSize: r.totalRawSize,
+          breakdown: r.breakdown,
+          flashUsagePercent: r.flashUsagePercent,
+          downloadUrl: `/api/download/${item.id}`
+        });
+      }
+      return sendJson(res, 200, { ok: true, count: built.length, built });
     }
 
     // POST /api/presets — save the CURRENT profile's effective personality as a
@@ -320,13 +470,37 @@ async function handleApi(req, res, url, method) {
     // POST /api/preview
     if (method === 'POST' && parts[0] === 'api' && parts[1] === 'preview' && parts.length === 2) {
       const body = await readJsonBody(req);
+      let targetSlug = body.slug || '';
+      if (!targetSlug && !fs.existsSync(PREVIEW_DIST_DIR) && !fs.existsSync(path.join(REPO_ROOT, 'dist'))) {
+        const list = store.list();
+        if (list.length > 0) targetSlug = list[0].id;
+      }
+      if (targetSlug) {
+        const p = store.get(targetSlug);
+        if (p) {
+          const effective = resolveEffectiveConfig(p.config, loadCustomPresets());
+          const previewZip = path.join(ADMIN_DIR, 'tmp', `${targetSlug}-preview.zip`);
+          await workspace.runBuildCycle(
+            { ...p, config: effective, dir: path.join(store.profilesDir, targetSlug) },
+            previewZip,
+            { previewDistDir: PREVIEW_DIST_DIR, customPresetsPath: CUSTOM_PRESETS_FILE }
+          );
+        }
+      }
       // strict port validation: positive integer in the private/ephemeral range
       const requested = Number(body.port);
       const port = Number.isInteger(requested) && requested >= 1024 && requested <= 65535
         ? requested
-        : 8000 + Math.floor(Math.random() * 2000);
-      startPreview(port);
-      return sendJson(res, 200, { url: `http://127.0.0.1:${port}/login.html` });
+        : (currentPreviewPort || await findFreeLoopbackPort());
+      const distToServe = fs.existsSync(PREVIEW_DIST_DIR)
+        ? PREVIEW_DIST_DIR
+        : path.join(REPO_ROOT, 'dist');
+      await startPreview(port, distToServe);
+      return sendJson(res, 200, {
+        url: `http://127.0.0.1:${port}/login.html`,
+        baseUrl: `http://127.0.0.1:${port}`,
+        port
+      });
     }
 
     // POST /api/preview/stop
@@ -400,6 +574,13 @@ async function handleApi(req, res, url, method) {
       return sendJson(res, 200, { ok: true });
     }
 
+    // PUT /api/profiles/:id/mikrotik
+    if (method === 'PUT' && action === 'mikrotik') {
+      const body = await readJsonBody(req);
+      const mikrotik = store.saveMikrotikSettings(id, (body && body.mikrotik) || body || {});
+      return sendJson(res, 200, { ok: true, mikrotik });
+    }
+
     // POST /api/profiles/:id/assets
     if (method === 'POST' && action === 'assets') {
       const body = await readJsonBody(req);
@@ -424,9 +605,154 @@ async function handleApi(req, res, url, method) {
       const zipPath = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
       const result = await workspace.runBuildCycle(
         { ...profile, config: effective, dir: path.join(store.profilesDir, id) },
-        zipPath
+        zipPath,
+        { customPresetsPath: CUSTOM_PRESETS_FILE }
       );
-      return sendJson(res, 200, { ok: true, distFiles: result.distFiles, downloadUrl: `/api/download/${id}` });
+      return sendJson(res, 200, {
+        ok: true,
+        distFiles: result.distFiles,
+        zipSize: result.zipSize,
+        totalRawSize: result.totalRawSize,
+        breakdown: result.breakdown,
+        flashBudgetBytes: result.flashBudgetBytes,
+        flashUsagePercent: result.flashUsagePercent,
+        downloadUrl: `/api/download/${id}`
+      });
+    }
+
+    // GET /api/profiles/:id/rsc — generate RouterOS v7 hotspot-setup.rsc
+    if (method === 'GET' && action === 'rsc' && parts.length === 4) {
+      const profile = store.get(id);
+      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
+      const extraHosts = (url.searchParams.get('extraHosts') || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const plan = previewRscPlan(effective, {
+        profileName: url.searchParams.get('profileName') || `${id}-hs-profile`,
+        htmlDir: url.searchParams.get('htmlDir') || 'hotspot',
+        dnsName: url.searchParams.get('dnsName') || 'login.meganet.local',
+        dhcpServer: url.searchParams.get('dhcpServer') || '',
+        capportMode: url.searchParams.get('capportMode') || 'https',
+        extraHosts
+      });
+      const rsc = plan.rsc;
+      const filename = `${id}-hotspot-setup.rsc`;
+      if (url.searchParams.get('download') === '1') {
+        res.writeHead(200, {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': Buffer.byteLength(rsc)
+        });
+        return res.end(rsc);
+      }
+      return sendJson(res, 200, { rsc, filename, plan });
+    }
+
+    // POST /api/profiles/:id/deploy — build and upload directly to MikroTik RouterOS v7 REST API
+    if (method === 'POST' && action === 'deploy' && parts.length === 4) {
+      const body = await readJsonBody(req);
+      const profile = store.get(id);
+      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
+      const targetDir = String(body.targetDir || 'hotspot').trim() || 'hotspot';
+      const htmlDir = String(body.htmlDir || targetDir).trim() || targetDir;
+      const dnsName = String(body.dnsName || 'login.meganet.local').trim() || 'login.meganet.local';
+      const profileName = String(body.profileName || `${id}-hs-profile`).trim() || `${id}-hs-profile`;
+      const dhcpServer = String(body.dhcpServer || '').trim();
+      const capportMode = body.capportMode || 'https';
+      const extraHosts = body.extraHosts || [];
+      const zipPath = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
+      const built = await workspace.runBuildCycle(
+        { ...profile, config: effective, dir: path.join(store.profilesDir, id) },
+        zipPath,
+        {
+          collectBuffers: true,
+          customPresetsPath: CUSTOM_PRESETS_FILE,
+          profileName,
+          htmlDir,
+          dnsName,
+          dhcpServer,
+          capportMode,
+          extraHosts
+        }
+      );
+      const deployResult = await deployToRouter(built.files, {
+        host: body.host,
+        port: body.port,
+        protocol: body.protocol,
+        username: body.username,
+        password: body.password,
+        targetDir,
+        applyRsc: Boolean(body.applyRsc),
+        createBackup: Boolean(body.createBackup),
+        tlsFingerprint: body.tlsFingerprint || '',
+        studioHost: body.studioHost || '',
+        rscContent: built.rscContent
+      });
+      const savedMikrotik = store.saveMikrotikSettings(id, {
+        host: body.host,
+        port: body.port,
+        protocol: body.protocol,
+        username: body.username,
+        targetDir,
+        htmlDir,
+        dnsName,
+        profileName,
+        dhcpServer,
+        capportMode,
+        extraHosts,
+        applyRsc: Boolean(body.applyRsc),
+        createBackup: Boolean(body.createBackup),
+        tlsFingerprint: deployResult.tlsFingerprint || body.tlsFingerprint || ''
+      });
+      return sendJson(res, 200, { ...deployResult, mikrotik: savedMikrotik });
+    }
+
+    // POST /api/profiles/:id/generate-brand — generate logo.svg, prand-title.svg, icon.png and save to profile assets
+    if (method === 'POST' && action === 'generate-brand' && parts.length === 4) {
+      const body = await readJsonBody(req);
+      const profile = store.get(id);
+      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
+      const generated = generateBrandAssets({
+        networkName: body.networkName || effective.general.networkName,
+        tagline: body.tagline || '',
+        primaryColor: body.primaryColor || effective.theme.primaryColor,
+        backgroundColor: body.backgroundColor || effective.theme.backgroundColor,
+        icon: body.icon || 'wifi'
+      });
+      for (const [filename, buf] of Object.entries(generated.files)) {
+        store.writeAsset(id, filename, buf);
+      }
+      const updated = store.get(id);
+      return sendJson(res, 200, {
+        ok: true,
+        assets: updated.assets,
+        logoSvg: generated.logoSvg,
+        titleSvg: generated.titleSvg
+      });
+    }
+
+    // POST /api/profiles/:id/vouchers — parse CSV and build A4 print sheet
+    if (method === 'POST' && action === 'vouchers' && parts.length === 4) {
+      const body = await readJsonBody(req);
+      const profile = store.get(id);
+      const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
+      const vouchers = parseVoucherCsv(body.csv || '', {
+        plan: body.plan,
+        quota: body.quota,
+        price: body.price,
+        dnsName: body.dnsName || 'http://login.meganet.local/login',
+        qrMode: body.qrMode || 'url',
+        voucherPasswordMode: effective.features && effective.features.voucherPasswordMode
+      });
+      if (!vouchers.length) {
+        return sendJson(res, 400, { error: 'لا توجد كروت صالحة للطباعة' });
+      }
+      const html = generatePrintSheetHtml(vouchers, effective, {
+        footerNote: body.footerNote,
+        format: body.format || 'a4'
+      });
+      return sendJson(res, 200, { ok: true, count: vouchers.length, vouchers, html });
     }
 
     return sendJson(res, 404, { error: 'not found' });
@@ -477,6 +803,10 @@ const server = http.createServer(async (req, res) => {
     // (if present) to be the loopback admin origin. `no-cors` fetches still
     // send Origin, so this closes the cross-site local-API tampering.
     if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const secFetchSite = req.headers['sec-fetch-site'];
+      if (secFetchSite && secFetchSite === 'cross-site') {
+        return sendJson(res, 403, { error: 'cross-origin request rejected' });
+      }
       const origin = req.headers.origin;
       if (origin) {
         try {
@@ -502,6 +832,10 @@ const server = http.createServer(async (req, res) => {
     const status = err.statusCode || 500;
     try { sendJson(res, status, { error: err.message }); } catch { res.end(); }
   }
+});
+
+server.on('close', () => {
+  stopPreview();
 });
 
 function startServer(port = 0) {

@@ -4,7 +4,9 @@ module.exports = {
   testMatch: ['**/*.test.js'],
   collectCoverageFrom: [
     'src/js/modules/**/*.js',
-    '!src/js/**/*.test.js'
+    'scripts/**/*.js',
+    '!src/js/**/*.test.js',
+    '!scripts/preview.mjs'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   moduleNameMapper: {

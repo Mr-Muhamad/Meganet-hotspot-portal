@@ -21,7 +21,7 @@
                 <circle cx="12" cy="7" r="4"/>
               </svg>
               <div class="stat-card__label" data-i18n="username">Username</div>
-              <div class="stat-card__value">$(username-esc)</div>
+              <div class="stat-card__value" id="stat-username">$(username-esc)</div>
             </div>
 
             <div class="stat-card">
@@ -82,6 +82,26 @@
         i18n.init();
         ui.initTheme();
         ui.initLang();
+
+        // Decode username and mac from URL-encoded RouterOS values
+        var userEls = document.querySelectorAll('#stat-username, #tech-username');
+        userEls.forEach(function(el) {
+          var raw = el.textContent.trim();
+          try {
+            el.textContent = decodeURIComponent(raw);
+          } catch (e) {
+            el.textContent = raw.replace(/%3A/gi, ':');
+          }
+        });
+        var macEls = document.querySelectorAll('#stat-mac, #tech-mac');
+        macEls.forEach(function(el) {
+          var raw = el.textContent.trim();
+          try {
+            el.textContent = decodeURIComponent(raw);
+          } catch (e) {
+            el.textContent = raw.replace(/%3A/gi, ':');
+          }
+        });
 
         // Auto-redirect countdown. Guard against an un-substituted token
         // (local preview / cached page): navigating to the literal

@@ -70,14 +70,14 @@
             {% if config.features.loginMode == 'both' %}
             <!-- Mode Tabs -->
             <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
-              <button type="button" class="auth-tab auth-tab--active" role="tab" aria-selected="true" data-mode="voucher" data-i18n="voucher_tab">Voucher</button>
-              <button type="button" class="auth-tab" role="tab" aria-selected="false" data-mode="normal" data-i18n="normal_tab">Normal</button>
+              <button type="button" class="auth-tab auth-tab--active" role="tab" aria-selected="true" data-mode="voucher" data-i18n="voucher_tab">{{ i18n.voucher_tab or 'Voucher' }}</button>
+              <button type="button" class="auth-tab" role="tab" aria-selected="false" data-mode="normal" data-i18n="normal_tab">{{ i18n.normal_tab or 'Normal' }}</button>
             </div>
             {% endif %}
 
             <!-- Normal credentials -->
             <div class="form-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
-              <label class="form-label" for="username" data-i18n="username_label">Username</label>
+              <label class="form-label" for="username" data-i18n="username_label">{{ i18n.username_label or 'Username' }}</label>
               <div class="input-wrapper">
                 <input class="form-input" type="text" id="username" name="username"
                        value="$(username-esc)"
@@ -187,12 +187,12 @@
           </form>
         </div>
         <div class="card-footer login-card-footer">
-          <a href="./plans.html" class="plans-link" data-i18n="plans_link">
+          <a href="./plans.html" class="plans-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="plans-link__icon">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
             </svg>
-            <span data-i18n="plans_link">View subscription plans</span>
+            <span data-i18n="plans_link">{{ i18n.plans_link or 'View subscription plans' }}</span>
           </a>
           <div class="footer__device-info">
             <span class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" title="Click to copy IP">
@@ -203,8 +203,6 @@
             </span>
           </div>
         </div>
-      </div>
-
       </div>
 
 {% endblock %}
@@ -227,14 +225,20 @@
         auth.init();
         {% if config.features.loginMode == 'voucher_only' %}
         var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
-        if (voucherPanel) voucherPanel.style.display = 'block';
+        if (voucherPanel) {
+          voucherPanel.hidden = false;
+          voucherPanel.style.removeProperty('display');
+        }
         var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
-        normalPanels.forEach(p => p.style.display = 'none');
+        normalPanels.forEach(p => { p.hidden = true; });
         {% elif config.features.loginMode == 'normal_only' %}
         var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
-        if (voucherPanel) voucherPanel.style.display = 'none';
+        if (voucherPanel) { voucherPanel.hidden = true; }
         var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
-        normalPanels.forEach(p => p.style.display = 'block');
+        normalPanels.forEach(p => {
+          p.hidden = false;
+          p.style.removeProperty('display');
+        });
         {% endif %}
 
         // Decode footer MAC address if present on login page

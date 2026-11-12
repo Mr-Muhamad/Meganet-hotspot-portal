@@ -13,6 +13,7 @@
     "qrScanner": "readonly",
     "rateLimiter": "readonly",
     "hexMD5": "readonly",
+    "hex_md5": "readonly",
     "doLogin": "readonly",
     "jsQR": "readonly",
     "Hotspot": "writable"

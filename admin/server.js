@@ -167,8 +167,8 @@ function readBody(req, limitMb = 10) {
   });
 }
 
-function readJsonBody(req) {
-  return readBody(req).then((buf) => {
+function readJsonBody(req, limitMb = 10) {
+  return readBody(req, limitMb).then((buf) => {
     if (!buf.length) return {};
     try {
       return JSON.parse(buf.toString('utf8'));

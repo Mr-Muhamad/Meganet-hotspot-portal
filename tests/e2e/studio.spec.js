@@ -70,6 +70,14 @@ test('Admin Studio persists per-profile MikroTik router settings across reload w
   }).toBe('dark');
   await expect(page.frameLocator('#simFrame').locator('html')).toHaveAttribute('data-theme', 'dark');
 
+  // Switch theme back to Auto -> clears hotspot_theme cookie and uses profile defaultTheme (dark)
+  await page.selectOption('#sim-theme', 'auto');
+  await expect.poll(async () => {
+    const cookies = await page.context().cookies();
+    return cookies.find((c) => c.name === 'hotspot_theme')?.value || '';
+  }).toBe('');
+  await expect(page.frameLocator('#simFrame').locator('html')).toHaveAttribute('data-theme', 'dark');
+
   // Switch device size presets (412px wide mobile, 768px tablet) alongside zoom + expand
   await page.selectOption('#sim-device', 'wide');
   await expect(page.locator('#simBezel')).toHaveCSS('width', '412px');
@@ -78,6 +86,13 @@ test('Admin Studio persists per-profile MikroTik router settings across reload w
   await page.selectOption('#sim-device', 'tablet');
   await expect(page.locator('#simBezel')).toHaveCSS('width', '768px');
   await expect(page.locator('#simBezel')).toHaveClass(/tablet/);
+  await expect.poll(async () => {
+    const vp = page.locator('.sim-viewport');
+    return vp.evaluate((el) => el.scrollWidth > el.clientWidth);
+  }).toBe(true);
+  await expect.poll(async () => {
+    return page.frameLocator('#simFrame').locator('html').evaluate(() => window.innerWidth);
+  }).toBeGreaterThan(700);
 
   await page.click('#simZoomOut');
   await page.click('#simZoomOut');

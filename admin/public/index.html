@@ -74,7 +74,7 @@
   .sim-page-btn.active { border-color: var(--acc); color: var(--acc); font-weight: 700; }
   .sim-row { display: flex; gap: 6px; align-items: center; }
   .sim-row select { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; min-width: 0; }
-  .sim-viewport { flex: 1; display: flex; align-items: flex-start; padding: 14px; overflow: auto; background: #070a12; min-height: 0; }
+  .sim-viewport { flex: 1; display: flex; align-items: flex-start; padding: 14px; overflow: auto; background: #070a12; min-height: 0; direction: ltr; }
   #simStageWrap { position: relative; flex-shrink: 0; margin: 0 auto; }
   #simStage { position: absolute; top: 0; left: 0; transform-origin: top left; }
   .phone-bezel { width: 340px; height: 640px; background: #000; border: 7px solid #26324a; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
@@ -379,7 +379,7 @@ async function selectProfile(id, skipDirtyCheck) {
     renderProfileList();
     renderTabs();
     renderTab();
-    if (state.sim.open) refreshSimulator(false);
+    if (state.sim.open) refreshSimulator(true);
   } catch (e) { toast(e.message, true); }
 }
 

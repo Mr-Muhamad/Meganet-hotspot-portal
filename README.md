@@ -390,12 +390,11 @@ The build produces every page twice: English at the root of `dist/` and Arabic u
 
 ### Walled Garden
 
-Unauthenticated clients can only reach hosts you allow. The portal itself needs **no external CSS/JS/font/CDN hosts**, but its pre-login pages do link out to two HTTPS hosts — the QR scanner (`laksa19.github.io`) and WhatsApp support (`wa.me`). Both must be in the **layer-3** list to work before login:
+Unauthenticated clients can only reach hosts you allow. The portal itself needs **no external CSS/JS/font/CDN hosts** (and the built-in `jsQR` card scanner runs locally with no walled-garden entry), while two optional pre-login features call out over HTTPS — WhatsApp support (`wa.me`) and an optional external `features.qrScannerUrl` override. Both must be in the **layer-3** list to work before login:
 
 ```routeros
 # layer 3 — required for HTTPS destinations
-/ip hotspot walled-garden ip add dst-host=laksa19.github.io action=accept
-/ip hotspot walled-garden ip add dst-host=wa.me action=accept
+/ip hotspot walled-garden ip add dst-host=wa.me action=accept comment="meganet-portal"
 ```
 
 The layer-7 `/ip hotspot walled-garden` only matches plain HTTP and will not unblock HTTPS sites. See [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features) for the full pattern.
@@ -684,7 +683,7 @@ SVG source code for assets is stored as text files in the `docs/` directory:
 - `docs/logo.txt` — Primary logo SVG source (shield + WiFi arcs, currentColor)
 - `docs/favicon.txt` — Favicon SVG source (minimal WiFi icon, #3b82f6 blue)
 
-To create image assets, copy the SVG code from these files and save as `.svg` files in the `img/` directory.
+To create image assets, copy the SVG code from these files and save as `.svg` files in `src/assets/` (or generate custom brand assets directly with Studio's SVG Logo Maker).
 
 ---
 

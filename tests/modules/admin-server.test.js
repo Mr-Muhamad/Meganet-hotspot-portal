@@ -280,6 +280,37 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
     expect(mkDisk).not.toContain('"password"');
   });
 
+  test('export → import gracefully handles null or non-object mikrotik bundles', async () => {
+    const cleanSlug = 'no-mk-' + Date.now().toString(36);
+    const created = await api('POST', '/profiles', { slug: cleanSlug, name: 'بدون راوتر', preset: 'cafe' });
+    expect(created.status).toBe(201);
+
+    const bundleRes = await request('GET', base + '/api/profiles/' + cleanSlug + '/export');
+    expect(bundleRes.status).toBe(200);
+    expect(bundleRes.json.mikrotik).toBeNull();
+
+    const importedNullSlug = 'imp-null-' + Date.now().toString(36);
+    const impNull = await api('POST', '/profiles/import', {
+      slug: importedNullSlug,
+      name: 'مستورد بدون راوتر',
+      bundle: bundleRes.json
+    });
+    expect(impNull.status).toBe(201);
+    expect(impNull.json.profile.mikrotik).toBeNull();
+    expect(fs.existsSync(path.join(ADMIN_TMP, 'profiles', importedNullSlug, 'mikrotik.json'))).toBe(false);
+
+    const invalidMkBundle = JSON.parse(JSON.stringify(bundleRes.json));
+    invalidMkBundle.mikrotik = 'invalid-string-value';
+    const importedInvalidSlug = 'imp-badmk-' + Date.now().toString(36);
+    const impInvalid = await api('POST', '/profiles/import', {
+      slug: importedInvalidSlug,
+      name: 'مستورد غير صالح',
+      bundle: invalidMkBundle
+    });
+    expect(impInvalid.status).toBe(201);
+    expect(impInvalid.json.profile.mikrotik).toBeNull();
+  });
+
   test('custom preset deletion works', async () => {
     const del = await api('DELETE', '/presets/custom:teststyle');
     expect(del.status).toBe(200);

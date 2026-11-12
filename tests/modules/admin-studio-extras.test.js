@@ -417,12 +417,18 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(htmlRes.status).toBe(200);
     const html = htmlRes.text;
 
-    // Package 1: Simulator, Zoom/Resize & WCAG Contrast Badge
+    // Package 1: Simulator, Zoom/Resize, Theme Switcher, Device Presets & WCAG Contrast Badge
     expect(html).toContain('id="simulatorPanel"');
     expect(html).toContain('id="simFrame"');
     expect(html).toContain('id="simZoomIn"');
     expect(html).toContain('id="simZoomOut"');
     expect(html).toContain('id="simResizer"');
+    expect(html).toContain('id="sim-theme"');
+    expect(html).toContain('id="sim-device"');
+    expect(html).toContain('id="simBezel"');
+    expect(html).toContain('setSimTheme');
+    expect(html).toContain('setSimDevice');
+    expect(html).toContain('SIM_DEVICES');
     expect(html).toContain('id="wcag-badge"');
     expect(html).toContain('computeWcag');
 

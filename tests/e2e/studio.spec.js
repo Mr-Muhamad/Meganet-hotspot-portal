@@ -48,17 +48,62 @@ test('Admin Studio persists per-profile MikroTik router settings across reload w
   await expect(page.locator('#v-qr-svg svg')).toBeVisible();
   await expect(page.locator('#v-print-format')).toHaveCount(0);
 
-  // Open simulator and verify zoom + expand controls
+  // Open simulator and verify zoom, expand, theme switcher (hotspot_theme cookie), and device presets
   await page.click('#simToggleBtn');
   await expect(page.locator('#simulatorPanel')).toHaveClass(/open/);
   await expect(page.locator('#simZoomLabel')).toHaveText('100%');
+  await expect(page.locator('#simBezel')).toHaveCSS('width', '340px');
+
+  // Switch theme to Light -> syncs hotspot_theme cookie and updates iframe html[data-theme]
+  await page.selectOption('#sim-theme', 'light');
+  await expect.poll(async () => {
+    const cookies = await page.context().cookies();
+    return cookies.find((c) => c.name === 'hotspot_theme')?.value || '';
+  }).toBe('light');
+  await expect(page.frameLocator('#simFrame').locator('html')).toHaveAttribute('data-theme', 'light');
+
+  // Switch theme to Dark -> syncs hotspot_theme cookie and updates iframe html[data-theme]
+  await page.selectOption('#sim-theme', 'dark');
+  await expect.poll(async () => {
+    const cookies = await page.context().cookies();
+    return cookies.find((c) => c.name === 'hotspot_theme')?.value || '';
+  }).toBe('dark');
+  await expect(page.frameLocator('#simFrame').locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  // Switch device size presets (412px wide mobile, 768px tablet) alongside zoom + expand
+  await page.selectOption('#sim-device', 'wide');
+  await expect(page.locator('#simBezel')).toHaveCSS('width', '412px');
+  await expect(page.locator('#simStageWrap')).toHaveCSS('width', '412px');
+
+  await page.selectOption('#sim-device', 'tablet');
+  await expect(page.locator('#simBezel')).toHaveCSS('width', '768px');
+  await expect(page.locator('#simBezel')).toHaveClass(/tablet/);
+
+  await page.click('#simZoomOut');
+  await page.click('#simZoomOut');
+  await expect(page.locator('#simZoomLabel')).toHaveText('80%');
+  await expect(page.locator('#simStageWrap')).toHaveCSS('width', `${Math.round(768 * 0.8)}px`);
+
+  await page.selectOption('#sim-device', 'mobile');
+  await expect(page.locator('#simBezel')).toHaveCSS('width', '340px');
+  await expect(page.locator('#simStageWrap')).toHaveCSS('width', `${Math.round(340 * 0.8)}px`);
+
   await page.click('#simZoomIn');
-  await expect(page.locator('#simZoomLabel')).toHaveText('110%');
-  await page.click('#simZoomOut');
-  await page.click('#simZoomOut');
-  await expect(page.locator('#simZoomLabel')).toHaveText('90%');
+  await page.click('#simZoomIn');
+  await expect(page.locator('#simZoomLabel')).toHaveText('100%');
+
   await page.click('#simExpandBtn');
   await expect(page.locator('#simulatorPanel')).toHaveClass(/expanded/);
+
+  // Drag resizer handle to resize panel and verify expanded class clears cleanly
+  const resizerBox = await page.locator('#simResizer').boundingBox();
+  expect(resizerBox).not.toBeNull();
+  await page.mouse.move(resizerBox.x + resizerBox.width / 2, resizerBox.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(resizerBox.x - 100, resizerBox.y + 100);
+  await page.mouse.up();
+  await expect(page.locator('#simulatorPanel')).not.toHaveClass(/expanded/);
+
   await page.click('#simToggleBtn');
 
   // Switch to MikroTik tab, edit non-secret router settings + secret password, and save

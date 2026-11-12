@@ -23,7 +23,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
   <strong>Login modes: voucher &middot; normal &middot; both — Light</strong>
 </p>
 
-**Latest release: [v2.7.0](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system + place presets + client wording overrides, a standalone desktop studio application (**Meganet Hotspot Studio `.exe`**), and a local web portal generator (`npm run admin`).
+**Latest release: [v2.7.1](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — shared static portal bundles (`portal.css` & `portal-*.js`, cutting `dist/` weight by >50% to ~686 KB total), field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system + 12 place presets + client wording overrides, and **Meganet Hotspot Studio** (`.exe` / `npm run admin`) with live split-screen simulator (zoom `50%–150%`, resize handle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), SVG logo maker, QR login tester, RouterOS v7 `.rsc` / Option 114 generator, `/tool/fetch` direct deploy, and per-profile `mikrotik.json` persistence.
 
 ---
 
@@ -42,7 +42,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 - **Mobile-first responsive design** — optimized for 360px+ viewports
 - **Captive portal browser compatible** — iOS CNA, macOS CNA (900×572), Android, Windows
 - **XSS-safe MikroTik variable handling** — all `$(var)` injected values are escaped
-- **Under 150KB per page** — no external dependencies, no CDN calls
+- **~20–43 KB per HTML page** — shared same-host bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) keep `dist/` around ~686 KB total with zero external dependencies and zero CDN calls
 - **WCAG AA accessible** — semantic HTML, proper contrast, focus indicators
 - **System font stack** — zero font downloads, instant rendering
 - **Inline SVG icons** — no icon font, no external requests
@@ -51,16 +51,12 @@ A modern, lightweight captive portal template system designed for MikroTik route
 
 ## Architecture
 
-### Multi-Page Static Template Model
+### Multi-Page Template & Shared-Bundle Model
 
-The portal uses a **multi-page architecture** where each page is a self-contained HTML file with inline CSS and JavaScript. This is a deliberate design constraint imposed by the **iOS Captive Network Assistant (CNA)** — a restricted WebView that:
+The portal uses a **multi-page architecture** tailored for **iOS Captive Network Assistant (CNA)**, macOS CNA (~900×572px), Android, and Windows captive portal browsers — with **zero external requests** (no CDNs, no external fonts, no third-party scripts):
 
-- Blocks external stylesheet `<link>` tags in many iOS versions
-- Blocks external `<script src>` tags inconsistently
-- Has a fixed viewport of approximately 900×572px on macOS
-- Enforces strict CSP-like restrictions on resource loading
-
-By inlining all CSS and JS, every page renders correctly in any captive portal browser without external resource dependencies.
+- **Critical pre-paint inline layer (`base.html`)**: the pre-paint theme script (`hotspot_theme` cookie / `theme.defaultTheme`), config-derived CSS custom properties (`--color-*`, `--radius-*` from `scripts/color-utils.js`), inline SVG brand logo/title, and global handler stubs remain inline in every HTML page so first paint never flashes or breaks.
+- **Shared same-host static bundles**: static styles and JS modules are compiled once into `portal.css`, `portal-core.js`, `portal-login.js` (login page only), and `portal-status.js` (status page only), alongside vendored `md5.js` (CHAP) and lazy-loaded `jsQR.js` (omitted when `enableQRScanner: false`). Serving them from the router's own hotspot directory cuts `dist/` size by more than half (~686 KB total, ~20–43 KB per HTML page) while fitting comfortably inside MikroTik 1 MB flash budgets.
 
 ### Page Flow
 
@@ -80,15 +76,15 @@ redirect.html → login.html → alogin.html → $(link-redirect)
 - `expired.html` — Service suspended page
 - `plans.html` — Subscription plans rendered from `config.json`
 
-### Why Inline CSS/JS
+### Design Constraints & Bundle Split
 
-| Constraint | Impact |
+| Constraint | Design Choice |
 |---|---|
-| iOS CNA blocks `<link>` | CSS must be inline |
-| iOS CNA blocks `<script src>` | JS must be inline |
-| macOS CNA fixed viewport | Layout must adapt to 900×572 |
-| No caching in CNA | Each page must be self-sufficient |
-| LAN speed is fast | Inline bloat is negligible (~90–140KB per page) |
+| Zero external internet before login | All assets live on the router itself (no CDNs/fonts) |
+| Instant pre-paint theming in CNA | Theme init + config CSS tokens + SVG brand stay inline in `<head>` |
+| Router flash memory (~1 MB) | Shared `portal.css` & `portal-*.js` bundles eliminate 14× duplication |
+| macOS CNA fixed viewport | Layout adapts cleanly to 900×572 and 340px–768px viewports |
+| Conditional heavy scanner | `jsQR.js` (~127 KB) lazy-loads on scan & is omitted when disabled |
 
 ---
 
@@ -97,27 +93,31 @@ redirect.html → login.html → alogin.html → $(link-redirect)
 ```
 Meganet-New-hotspot/
 ├── config.json             # ★ Portal settings: branding, theme, plans, support, features
-├── build.js                # Build script: Nunjucks + CSS/JS bundling + minify → dist/
+├── build.js                # Build script: Nunjucks + shared CSS/JS bundles + minify → dist/
 ├── md5.js                  # MD5 for CHAP authentication (copied to dist/)
+├── admin/                  # ★ Local Studio server, .rsc/deploy/QR/SVG helpers & Web UI
+├── desktop/                # Electron desktop wrapper (Meganet Hotspot Studio)
 ├── src/
 │   ├── templates/          # Nunjucks templates (base.html + index, login, status,
 │   │                       #   logout, error, expired, plans, alogin)
 │   ├── css/                # CSS modules (variables, theme, reset, layout,
-│   │                       #   components, utilities, media) — inlined at build
-│   ├── js/modules/         # IIFE modules (util, auth, ui, i18n, status,
-│   │                       #   rate-limiter) — inlined at build
+│   │                       #   components, utilities, media) → bundled into portal.css
+│   ├── js/modules/         # JS modules (util, i18n, rate-limiter, ui, auth,
+│   │                       #   qr-scanner, status) → bundled into portal-*.js
 │   ├── i18n/               # en.json / ar.json translation dictionaries
 │   ├── static/             # RouterOS files copied verbatim (never minified):
-│   │                       #   redirect.html, errors.txt
+│   │                       #   redirect.html, errors.txt, jsQR.js
 │   └── assets/             # logo.svg, prand-title.svg, icon.png, support photos
 ├── dist/                   # ★ Build output — upload this directory to the router
 │   ├── *.html              # English pages
 │   ├── ar/                 # Arabic (RTL) pages
+│   ├── portal.css          # Shared minified stylesheet
+│   ├── portal-*.js         # Shared bundles (portal-core.js, portal-login.js, portal-status.js)
 │   ├── assets/             # Static assets
-│   ├── md5.js              # CHAP hashing
+│   ├── md5.js / jsQR.js    # CHAP hashing & lazy-loaded QR decoder
 │   ├── errors.txt          # RouterOS localized error messages
 │   └── redirect.html       # MikroTik intercept page
-└── docs/                   # SVG sources (logo.txt, favicon.txt)
+└── docs/                   # SVG sources (logo.txt, favicon.txt) & screenshots
 ```
 
 ---
@@ -127,9 +127,9 @@ Meganet-New-hotspot/
 ### Standalone Executable (No Node.js Required)
 For network operators and technicians who want to customize and export portals without setting up developer tools:
 - Grab the standalone executable from [`dist-app/`](dist-app/) or the [Releases](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases) page:
-  - **Portable (`Meganet Hotspot Studio-Portable-2.7.0.exe`)**: Single-file executable, zero installation required, runs directly from USB.
-  - **Installer (`Meganet Hotspot Studio-Setup-2.7.0.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
-- Features: visual preset selection (restaurant, gym, cafe, hotel, clinic...), real-time branding/dictionary overrides, brand asset upload, and one-click **Build & Download** of the ready-to-upload router ZIP.
+  - **Portable (`Meganet Hotspot Studio-Portable-2.7.1.exe`)**: Single-file executable, zero installation required, runs directly from USB.
+  - **Installer (`Meganet Hotspot Studio-Setup-2.7.1.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
+- Features: 12 built-in place presets + custom presets, live split-screen simulator (zoom `50%–150%`, drag resizer, expand toggle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), live WCAG 2.1 contrast badge, SVG Logo & Brand Identity Maker, Portal QR Login Tester, RouterOS v7 `.rsc` / Option 114 generator, direct `/tool/fetch` router deploy with per-profile `mikrotik.json` persistence (no passwords written to disk), batch build all, 1 MB flash meter, and one-click **Build & Download** ZIP export.
 
 ### Developer Commands
 ```bash
@@ -195,6 +195,7 @@ The resulting layout must be:
 ```
 hotspot-portal/
 ├── login.html  status.html  alogin.html  logout.html  …   (English, root)
+├── portal.css  portal-core.js  portal-login.js  portal-status.js
 ├── redirect.html  error.html  errors.txt  md5.js  jsQR.js  api.json
 ├── ar/                                                   (Arabic mirror)
 │   ├── login.html  status.html  …  errors.txt
@@ -444,7 +445,7 @@ These `$(variable)` placeholders are injected by RouterOS at runtime:
 
 | Platform | Browser | Status | Notes |
 |---|---|---|---|
-| iOS | Captive Network Assistant | **Full** | Inline CSS/JS required |
+| iOS | Captive Network Assistant | **Full** | Zero external requests; critical theme/tokens inline + same-host `portal.css`/`portal-*.js` |
 | macOS | Captive Network Assistant | **Full** | 900×572px viewport |
 | Android | Chrome Custom Tab | **Full** | Standard behavior |
 | Android | Samsung Internet | **Full** | Standard behavior |
@@ -475,16 +476,18 @@ The rate limiter is a UX guard only — real brute-force protection must be serv
 | Metric | Value |
 |---|---|
 | First Paint | < 1s on LAN |
-| Page Weight (login.html) | ~131KB worst case (includes the full i18n dictionary) |
-| Page Weight (status.html) | ~110KB |
+| Page Weight (`login.html` / `ar/login.html`) | ~35 KB / ~42 KB (HTML + inline tokens + i18n JSON) |
+| Page Weight (`status.html` / `ar/status.html`) | ~27 KB / ~34 KB |
+| Shared Bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) | ~47 KB CSS · ~51 KB JS total (cached across pages) |
+| Total `dist/` Size | ~686 KB raw (incl. optional `jsQR.js` ~127 KB & assets) |
 | External Dependencies | Zero runtime; 2 same-host vendored scripts (`md5.js` CHAP, `jsQR.js` lazy-loaded scan) |
 | Font Downloads | Zero (system font stack) |
 | Icon Requests | Zero (inline SVG) |
-| CSS Requests | Zero (inline `<style>`) |
-| JS Requests | 1 (`md5.js` for CHAP only) |
-| Total Render Blocking | None |
+| CSS Requests | 1 same-host (`portal.css`) + inline config theme tokens |
+| JS Requests | 2–3 same-host (`portal-core.js`, page bundle `portal-login.js`/`portal-status.js`, `md5.js` for CHAP) |
+| Total Render Blocking | Minimal (local LAN same-host bundles) |
 
-All pages are designed to render instantly on low-power devices over WiFi LAN connections. The inline architecture eliminates all network round-trips for assets.
+All pages are designed to render instantly on low-power devices over WiFi LAN connections. Shared same-host bundles keep every HTML page compact while making zero external requests.
 
 ---
 
@@ -566,7 +569,7 @@ Nothing leaves the browser. All persistence is preferences and counters:
 **Symptom**: iOS CNA shows the portal but tapping "Cancel" doesn't dismiss it, or the page reloads.
 
 **Fix**:
-1. Ensure all CSS and JS is inline (no external `<link>` or `<script src>`)
+1. Ensure all same-host CSS/JS bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) are uploaded in the hotspot directory with zero external URLs
 2. Verify `redirect.html` returns a proper HTTP redirect
 3. Check that `$(link-redirect)` resolves to a reachable URL
 4. Test with `captive.apple.com` in walled garden
@@ -650,23 +653,24 @@ npm run admin           # local portal generator UI → http://127.0.0.1:8899
 
 `npm run admin` opens a **local-only** web UI for producing client portals without
 touching config files by hand. It binds to `127.0.0.1` and refuses every
-non-loopback connection.
+non-loopback connection (also enforcing a loopback `Host` header against DNS rebinding).
 
 - **Profiles**: each client (café, hotel, clinic, …) is an isolated profile;
-  profiles can be created, duplicated, renamed, deleted
-- **Tabs**: General · Theme (colors, preset, radius, default theme, canvas) ·
-  Features · Plans · Support · Announcements · Words (i18n overrides) · Files
-  (brand assets upload)
-- **Validation**: every save runs the real config schema; invalid values are
-  shown inline and never persisted
-- **Build & Download**: applies the profile to a temporary workspace, runs the
-  real build, serves `dist/` as a zip, then restores the repo byte-identical
-- **Preview**: launches the local preview server for the built portal
+  profiles can be created, duplicated, renamed, deleted, filtered by search, batch-built (`Build All`), and exported/imported as JSON bundles (including non-secret `mikrotik` router settings, strictly excluding `password`)
+- **Tabs**: General · Theme (12 presets, custom presets, colors, radius, live WCAG 2.1 contrast badge) ·
+  Features · Plans · Support · Announcements · Words & RADIUS Errors · QR Login Tester (`مختبر QR الدخول`) ·
+  Assets & SVG Logo Maker (`logo.svg` + `prand-title.svg` + `icon.png`, `<canvas>` auto-crop/compress, SVGO XSS sanitization) ·
+  MikroTik (`.rsc` generator with Option 114 & Walled Garden, dry-run preview, REST API + `/tool/fetch` one-click router deploy, TOFU TLS fingerprint pinning, per-profile `mikrotik.json` persistence without passwords)
+- **Live Split-Screen Simulator**: real-time preview with page selector, scenario switcher (`normal`/`error`/`trial`/`chap`), language toggle (`hotspot_lang`), Dark/Light theme switcher (`hotspot_theme` cookie), device viewport presets (`340px` narrow mobile, `412px` wide mobile, `768px` tablet), zoom (`50%–150%`), drag resizer handle, and expand toggle (`⛶`)
+- **Validation & Flash Meter**: every save runs the real config schema; invalid values are
+  shown inline and never persisted; builds display ZIP/raw size and 1 MB router flash budget usage
+- **Build & Download**: runs inside an isolated temp staging directory (`admin/lib/workspace.js`), builds `dist/` + `hotspot-setup.rsc`, serves it as a zip, and leaves the repo untouched
+- **Preview**: launches the local preview server (`scripts/preview.mjs`) for the built portal
 - Client data lives in `.admin/profiles/` (gitignored)
 
 Key invariants:
 
-- All CSS/JS is inlined per page (iOS CNA compatibility) — pages make **zero** external requests
+- Shared same-host static bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) + inline critical pre-paint theme script and CSS tokens — pages make **zero** external requests
 - Files in `src/static/` are copied **verbatim** — keep MikroTik `$(if …)` blocks out of `<script>` content there; minifiers would break them
 - MikroTik `$(variables)` must survive minification — verified by `npm run validate` plus the build
 - Every page inherits `base.html`: config-driven theme, header/footer, support and install modals, i18n data

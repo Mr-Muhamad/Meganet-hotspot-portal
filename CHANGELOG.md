@@ -12,11 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Admin Studio Upgrades**:
   - **ISO/IEC 18004 QR Login Tester** (`admin/lib/qr-generator.js`, `مختبر QR الدخول`): standalone Versions `1..10` ECC-L QR generator for testing portal `jsQR` auto-login codes.
-  - **Resizable & Zoomable Live Simulator (`50%–150%`)**: drag handle resizer, zoom in/out/reset (`1:1`), wide expand toggle (`⛶`), full scrollable phone bezel, and synchronized `hotspot_lang` cookie switching.
+  - **Resizable & Zoomable Live Simulator (`50%–150%`)**: drag handle resizer, zoom in/out/reset (`1:1`), wide expand toggle (`⛶`), Dark/Light theme switcher (syncing `hotspot_theme` cookie), device viewport presets (`340px` narrow mobile, `412px` wide mobile, `768px` tablet), and synchronized `hotspot_lang` cookie switching.
   - **Brand Logo & Asset Studio** (`admin/lib/logo-maker.js`, `scripts/svg-utils.js`): generates `logo.svg`, `prand-title.svg`, and `icon.png`, with SVGO + XSS sanitization on uploaded `.svg` assets.
   - **RouterOS v7 `.rsc` & One-Click Upload** (`admin/lib/mikrotik.js`, `/api/mikrotik/test`, `/api/profiles/:id/rsc`, `/api/profiles/:id/deploy`): RFC 8910 CAPPORT Option 114 (`https` | `http` | `off`), Walled Garden rules, dry-run preview, flash storage preflight, optional pre-deploy backup, lossless binary/large asset upload via `/tool/fetch`, and TOFU `tlsFingerprint` pinning.
-  - **Per-profile MikroTik settings persistence** (`mikrotik.json`, `PUT /api/profiles/:id/mikrotik`): remembers non-secret router host, port, protocol, profile name, DHCP server, CAPPORT mode, and TLS fingerprint across sessions without ever writing passwords to disk.
-- **Playwright Studio E2E (`tests/e2e/studio.spec.js`)** & **Unit/API coverage (`tests/modules/admin-studio-extras.test.js`)**.
+  - **Per-profile MikroTik settings persistence** (`mikrotik.json`, `PUT /api/profiles/:id/mikrotik`): remembers non-secret router host, port, protocol, profile name, DHCP server, CAPPORT mode, and TLS fingerprint across sessions without ever writing passwords to disk; included in `GET /api/profiles/:id/export` and `POST /api/profiles/import` bundles (strictly excluding `password`).
+- **Playwright Studio E2E (`tests/e2e/studio.spec.js`)** & **Unit/API coverage (`tests/modules/admin-studio-extras.test.js`, `tests/modules/admin-server.test.js`)**.
 
 ### Fixed
 - **Admin Studio UI `<script>` syntax regression**: removed an orphan `return card;` statement in `admin/public/index.html` that broke client script initialization.
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Desktop build no longer ships client data or test artifacts** — `electron-builder.yml` excludes `.admin/**`, `config.json`, `coverage/**`, `*.zip`, `tests/**`, etc.; `config.example.json` stays (the admin server reads it when creating new-profile templates)
 - **Windows desktop icon & CI workflow**: added `build/icon.ico` + GitHub Actions CI pipeline.
 - **`npm run watch` works again** — `chokidar` was referenced by `build.js` but never declared; added as a devDependency
-- **Docs corrected** — page-weight claims (~40KB) updated to the actual ~90–140KB; the CNA "all inline" rule now documents the two same-host vendored scripts (`md5.js`, lazy-loaded `jsQR.js`)
+- **Docs synchronized (`README.md`, `README.ar.md`, `CHANGELOG.md`)**: updated architecture, file layout, and performance metrics to reflect the v2.7.1 shared `portal.css` & `portal-*.js` bundles (~20–43 KB per HTML page, ~686 KB total `dist/`), `v2.7.1` Windows executables, Studio live simulator controls, per-profile `mikrotik.json` export/import, `.rsc`/Option 114, `/tool/fetch` deploy, SVG logo maker, and QR login tester.
 
 ### Accepted
 - **13 `npm audit` advisories, accepted (build-time tooling only)** — all flagged packages are dev/build-only (`electron-builder` chain, `jest`, `html-minifier@4`, transitive `minimatch`), never shipped into `dist/` or the portal runtime. Installed `minimatch` copies (3.1.5 / 5.1.9 / 9.0.9 / 10.2.6) are all above the patched floors; npm's range-level report is noisy. `npm audit fix --force` would downgrade `electron-builder` 26→25 (a breaking change) with no actual security gain — intentionally not applied. Revisit if the toolchain is upgraded

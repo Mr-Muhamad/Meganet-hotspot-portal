@@ -212,19 +212,72 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
     expect(build.json.ok).toBe(true);
   });
 
-  test('export → import roundtrip preserves config, announcements and assets', async () => {
+  test('export → import roundtrip preserves config, announcements, non-secret mikrotik settings and assets (excluding password)', async () => {
+    const mkSave = await api('PUT', '/profiles/' + SLUG + '/mikrotik', {
+      mikrotik: {
+        host: '10.99.0.1',
+        protocol: 'https',
+        port: 8443,
+        username: 'netadmin',
+        password: 'top-secret-password',
+        targetDir: 'flash/cafe-portal',
+        htmlDir: 'flash/cafe-portal',
+        dnsName: 'wifi.cafe.local',
+        profileName: 'cafe-hs-prof',
+        dhcpServer: 'dhcp-cafe',
+        capportMode: 'http',
+        extraHosts: ['pay.cafe.local'],
+        applyRsc: true,
+        createBackup: true,
+        tlsFingerprint: 'AA:BB:CC:DD:EE'
+      }
+    });
+    expect(mkSave.status).toBe(200);
+
     const bundleRes = await request('GET', base + '/api/profiles/' + SLUG + '/export');
     expect(bundleRes.status).toBe(200);
     const bundle = bundleRes.json;
     expect(bundle.config).toBeDefined();
     expect(bundle.announcements).not.toBeNull();
+    expect(bundle.mikrotik).toBeDefined();
+    expect(bundle.mikrotik.host).toBe('10.99.0.1');
+    expect(bundle.mikrotik.dnsName).toBe('wifi.cafe.local');
+    expect(bundle.mikrotik.dhcpServer).toBe('dhcp-cafe');
+    expect(bundle.mikrotik.capportMode).toBe('http');
+    expect(bundle.mikrotik.extraHosts).toEqual(['pay.cafe.local']);
+    expect(bundle.mikrotik.tlsFingerprint).toBe('AA:BB:CC:DD:EE');
+    expect(bundle.mikrotik.password).toBeUndefined();
+    expect(bundleRes.text).not.toContain('top-secret-password');
+    expect(bundleRes.text).not.toContain('"password"');
+
+    // Also verify import strips any password even if injected into an import bundle
+    const craftedBundle = JSON.parse(JSON.stringify(bundle));
+    craftedBundle.mikrotik.password = 'leaked-import-secret';
 
     const slug2 = 'roundtrip-' + Date.now().toString(36);
-    const imp = await api('POST', '/profiles/import', { slug: slug2, name: 'مستورد', bundle });
+    const imp = await api('POST', '/profiles/import', { slug: slug2, name: 'مستورد', bundle: craftedBundle });
     expect(imp.status).toBe(201);
+    expect(imp.json.profile.mikrotik.password).toBeUndefined();
+
     const got = await api('GET', '/profiles/' + slug2);
     expect(got.json.profile.config.general.networkName).toBe(bundle.config.general.networkName);
     expect(got.json.profile.announcements.message_ar).toEqual(bundle.announcements.message_ar);
+    expect(got.json.profile.mikrotik.host).toBe('10.99.0.1');
+    expect(got.json.profile.mikrotik.protocol).toBe('https');
+    expect(got.json.profile.mikrotik.port).toBe(8443);
+    expect(got.json.profile.mikrotik.dnsName).toBe('wifi.cafe.local');
+    expect(got.json.profile.mikrotik.profileName).toBe('cafe-hs-prof');
+    expect(got.json.profile.mikrotik.dhcpServer).toBe('dhcp-cafe');
+    expect(got.json.profile.mikrotik.capportMode).toBe('http');
+    expect(got.json.profile.mikrotik.extraHosts).toEqual(['pay.cafe.local']);
+    expect(got.json.profile.mikrotik.applyRsc).toBe(true);
+    expect(got.json.profile.mikrotik.createBackup).toBe(true);
+    expect(got.json.profile.mikrotik.tlsFingerprint).toBe('AA:BB:CC:DD:EE');
+    expect(got.json.profile.mikrotik.password).toBeUndefined();
+
+    const mkDisk = fs.readFileSync(path.join(ADMIN_TMP, 'profiles', slug2, 'mikrotik.json'), 'utf8');
+    expect(mkDisk).not.toContain('leaked-import-secret');
+    expect(mkDisk).not.toContain('"password"');
   });
 
   test('custom preset deletion works', async () => {

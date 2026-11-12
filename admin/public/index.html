@@ -60,7 +60,7 @@
   .workspace-body { flex: 1; display: flex; min-height: 0; height: 100%; overflow: hidden; }
   .content { flex: 1; height: 100%; overflow-y: auto; padding: 20px; min-width: 0; }
   /* Split-Screen Live Simulator */
-  #simulatorPanel { position: relative; width: 400px; min-width: 280px; max-width: 820px; height: 100%; background: var(--panel); border-right: 1px solid var(--line); display: none; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+  #simulatorPanel { position: relative; width: 400px; min-width: 280px; max-width: 860px; height: 100%; background: var(--panel); border-right: 1px solid var(--line); display: none; flex-direction: column; flex-shrink: 0; overflow: hidden; }
   #simulatorPanel.open { display: flex; }
   #simulatorPanel.expanded { width: 640px !important; }
   #simResizer { position: absolute; top: 0; right: 0; bottom: 0; width: 7px; cursor: ew-resize; z-index: 20; transition: background .15s; }
@@ -73,12 +73,14 @@
   .sim-page-btn { background: var(--panel); border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
   .sim-page-btn.active { border-color: var(--acc); color: var(--acc); font-weight: 700; }
   .sim-row { display: flex; gap: 6px; align-items: center; }
-  .sim-row select { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
-  .sim-viewport { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 14px; overflow: auto; background: #070a12; min-height: 0; }
+  .sim-row select { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; min-width: 0; }
+  .sim-viewport { flex: 1; display: flex; align-items: flex-start; padding: 14px; overflow: auto; background: #070a12; min-height: 0; }
   #simStageWrap { position: relative; flex-shrink: 0; margin: 0 auto; }
-  #simStage { transform-origin: top center; }
+  #simStage { position: absolute; top: 0; left: 0; transform-origin: top left; }
   .phone-bezel { width: 340px; height: 640px; background: #000; border: 7px solid #26324a; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+  .phone-bezel.tablet { border-radius: 18px; }
   .phone-notch { height: 18px; background: #111827; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .phone-bezel.tablet .phone-notch { height: 12px; }
   .phone-notch::after { content: ""; width: 64px; height: 5px; border-radius: 99px; background: #26324a; }
   #simFrame { flex: 1; width: 100%; height: 100%; border: none; background: #020617; }
   .file-picker-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
@@ -193,11 +195,23 @@
             <option value="en">Language: English (LTR)</option>
           </select>
         </div>
+        <div class="sim-row">
+          <select id="sim-theme" aria-label="ثيم المعاينة" onchange="setSimTheme(this.value)">
+            <option value="auto">الثيم: افتراضي البروفايل</option>
+            <option value="dark">الثيم: داكن (Dark)</option>
+            <option value="light">الثيم: نهاري (Light)</option>
+          </select>
+          <select id="sim-device" aria-label="حجم شاشة المعاينة" onchange="setSimDevice(this.value)">
+            <option value="mobile">الشاشة: موبايل ضيق (340px)</option>
+            <option value="wide">الشاشة: موبايل عريض (412px)</option>
+            <option value="tablet">الشاشة: تابلت (768px)</option>
+          </select>
+        </div>
       </div>
       <div class="sim-viewport">
         <div id="simStageWrap">
           <div id="simStage">
-            <div class="phone-bezel">
+            <div class="phone-bezel" id="simBezel">
               <div class="phone-notch"></div>
               <iframe id="simFrame" title="معاينة البوابة"></iframe>
             </div>
@@ -229,9 +243,17 @@ const state = {
     page: 'login',
     scenario: 'normal',
     lang: 'ar',
+    theme: 'auto',
+    device: 'mobile',
     zoom: 100,
     expanded: false
   }
+};
+
+const SIM_DEVICES = {
+  mobile: { id: 'mobile', label: 'موبايل ضيق (340px)', width: 340, height: 640 },
+  wide: { id: 'wide', label: 'موبايل عريض (412px)', width: 412, height: 732 },
+  tablet: { id: 'tablet', label: 'تابلت (768px)', width: 768, height: 900 }
 };
 
 const SIM_PAGES = [
@@ -1993,17 +2015,47 @@ async function toggleSimulator() {
   }
 }
 
+function getSimDevice() {
+  return SIM_DEVICES[state.sim.device] || SIM_DEVICES.mobile;
+}
+
 function applySimZoom() {
+  const dev = getSimDevice();
   const z = (state.sim.zoom || 100) / 100;
   const stage = $('#simStage');
   const wrap = $('#simStageWrap');
+  const bezel = $('#simBezel');
   const label = $('#simZoomLabel');
-  if (stage) stage.style.transform = `scale(${z})`;
+  if (bezel) {
+    bezel.style.width = dev.width + 'px';
+    bezel.style.height = dev.height + 'px';
+    bezel.classList.toggle('tablet', dev.id === 'tablet');
+  }
+  if (stage) {
+    stage.style.width = dev.width + 'px';
+    stage.style.height = dev.height + 'px';
+    stage.style.transform = `scale(${z})`;
+  }
   if (wrap) {
-    wrap.style.width = Math.round(340 * z) + 'px';
-    wrap.style.height = Math.round(640 * z) + 'px';
+    wrap.style.width = Math.round(dev.width * z) + 'px';
+    wrap.style.height = Math.round(dev.height * z) + 'px';
   }
   if (label) label.textContent = (state.sim.zoom || 100) + '%';
+}
+
+function setSimDevice(deviceId) {
+  state.sim.device = SIM_DEVICES[deviceId] ? deviceId : 'mobile';
+  const sel = $('#sim-device');
+  if (sel && sel.value !== state.sim.device) sel.value = state.sim.device;
+  applySimZoom();
+}
+
+function setSimTheme(theme) {
+  const next = (theme === 'dark' || theme === 'light') ? theme : 'auto';
+  state.sim.theme = next;
+  const sel = $('#sim-theme');
+  if (sel && sel.value !== next) sel.value = next;
+  updateSimulatorFrame();
 }
 
 function setSimZoom(pct) {
@@ -2044,7 +2096,7 @@ function toggleSimExpand() {
   });
   window.addEventListener('mousemove', (e) => {
     if (!dragging) return;
-    const nextW = Math.max(280, Math.min(820, Math.round(startW + (e.clientX - startX))));
+    const nextW = Math.max(280, Math.min(860, Math.round(startW + (e.clientX - startX))));
     panel.style.width = nextW + 'px';
   });
   window.addEventListener('mouseup', () => {
@@ -2072,9 +2124,16 @@ function updateSimulatorFrame() {
   if (!state.sim.baseUrl) return;
   const lang = $('#sim-lang')?.value || state.sim.lang || 'ar';
   const scenario = $('#sim-scenario')?.value || state.sim.scenario || 'normal';
+  const theme = $('#sim-theme')?.value || state.sim.theme || 'auto';
   state.sim.lang = lang;
   state.sim.scenario = scenario;
+  state.sim.theme = theme;
   document.cookie = 'hotspot_lang=' + encodeURIComponent(lang) + '; path=/; max-age=31536000; SameSite=Lax';
+  if (theme === 'dark' || theme === 'light') {
+    document.cookie = 'hotspot_theme=' + encodeURIComponent(theme) + '; path=/; max-age=31536000; SameSite=Lax';
+  } else {
+    document.cookie = 'hotspot_theme=; path=/; max-age=0; SameSite=Lax';
+  }
   const prefix = (lang === 'ar') ? '/ar/' : '/';
   const url = `${state.sim.baseUrl}${prefix}${state.sim.page}.html?scenario=${encodeURIComponent(scenario)}&_t=${Date.now()}`;
   const frame = $('#simFrame');

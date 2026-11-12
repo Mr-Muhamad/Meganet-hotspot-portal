@@ -418,14 +418,19 @@ async function handleApi(req, res, url, method) {
       return sendJson(res, 200, { ok: true });
     }
 
-    // GET /api/profiles/:id/export — full bundle (config + announcements + assets b64)
+    // GET /api/profiles/:id/export — full bundle (config + announcements + non-secret mikrotik + assets b64)
     if (method === 'GET' && parts[0] === 'api' && parts[1] === 'profiles' && parts[3] === 'export' && parts.length === 4) {
       const profile = store.get(parts[2]);
       const assets = profile.assets.map(a => ({
         name: a.name,
         dataBase64: fs.readFileSync(path.join(store.profilesDir, profile.id, 'assets', a.name)).toString('base64')
       }));
-      const bundle = { name: profile.name, config: profile.config, announcements: profile.announcements, assets };
+      let mikrotik = null;
+      if (profile.mikrotik && typeof profile.mikrotik === 'object' && !Array.isArray(profile.mikrotik)) {
+        mikrotik = { ...profile.mikrotik };
+        delete mikrotik.password;
+      }
+      const bundle = { name: profile.name, config: profile.config, announcements: profile.announcements, mikrotik, assets };
       const payload = JSON.stringify(bundle, null, 2);
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
@@ -446,6 +451,11 @@ async function handleApi(req, res, url, method) {
       }
       const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
       if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
+      if (bundle.mikrotik && typeof bundle.mikrotik === 'object' && !Array.isArray(bundle.mikrotik)) {
+        const mkPayload = { ...bundle.mikrotik };
+        delete mkPayload.password;
+        store.saveMikrotikSettings(profile.id, mkPayload);
+      }
       for (const asset of bundle.assets || []) {
         store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
       }

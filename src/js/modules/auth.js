@@ -95,6 +95,11 @@ var auth = {
           if (voucherInput.value !== val) {
             voucherInput.value = val;
           }
+          if (val !== auth._getStoredVoucher()) {
+            var voucherForm = document.getElementById('login-form');
+            if (voucherForm) voucherForm.removeAttribute('data-scanned-password');
+            auth._removeStorageItem('hotspot_last_voucher_pw');
+          }
           auth._syncVoucherClearBtn();
 
           // No auto-submit on typing: codes are VARIABLE length (min is only a
@@ -554,6 +559,10 @@ var auth = {
     if (!err || err.indexOf('$(') !== -1) return false;
     var patterns = [
       'invalid username or password',
+      'invalid password',
+      'invalid username',
+      'invalid calling-station-id',
+      'mac address is not yours',
       'not found',
       'account expired',
       'user expired',
@@ -676,6 +685,8 @@ var auth = {
         voucherInput.focus();
       }
       if (clearBtn) clearBtn.hidden = true;
+      var form = document.getElementById('login-form');
+      if (form) form.removeAttribute('data-scanned-password');
       auth._fallbackVoucherDisplay = '';
       auth._clearStoredVoucher();
     } catch (err) {
@@ -762,6 +773,7 @@ var auth = {
         var passVal = passwordInput ? passwordInput.value.trim() : '';
         if (!userVal || !passVal) {
           e.preventDefault();
+          if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
           auth.showNormalCredentialsError();
           return;
         }
@@ -779,6 +791,7 @@ var auth = {
         var voucherMinLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
         if (voucherMinLength && voucherInput.value.trim().length < voucherMinLength) {
           e.preventDefault();
+          if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
           auth.showVoucherMinLengthError(voucherMinLength);
           return;
         }
@@ -797,6 +810,7 @@ var auth = {
 
         if (limitStatus && limitStatus.blocked) {
           e.preventDefault();
+          if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
           auth.handleRateLimit(limitStatus);
           return;
         }

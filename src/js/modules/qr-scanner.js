@@ -425,10 +425,17 @@ var qrScanner = {
       // it for onFormSubmit (which prefers it over copying the code) and
       // clear it right after: beginAutoLogin's instant path submits
       // synchronously, so the attribute is consumed within this call, and a
-      // later scan without a password must not inherit this one.
+      // later scan without a password must clear any previously stashed one.
       var form = document.getElementById('login-form');
-      if (route.password && form) {
-        form.setAttribute('data-scanned-password', route.password);
+      if (form) {
+        if (route.password) {
+          form.setAttribute('data-scanned-password', route.password);
+        } else {
+          form.removeAttribute('data-scanned-password');
+        }
+      }
+      if (!route.password && typeof auth !== 'undefined' && auth._removeStorageItem) {
+        auth._removeStorageItem('hotspot_last_voucher_pw');
       }
       var hasVoucherInput = !!document.getElementById('voucher');
       var hasNormalInputs = !!(document.getElementById('username') && document.getElementById('password'));
@@ -441,7 +448,7 @@ var qrScanner = {
         }
         auth.beginAutoLogin(route.code, true);
       }
-      if (route.password && form) {
+      if (form) {
         form.removeAttribute('data-scanned-password');
       }
     } catch (err) {

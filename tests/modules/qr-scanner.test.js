@@ -330,5 +330,28 @@ describe('Hotspot.qrScanner', () => {
       localStorage.removeItem('hotspot_last_voucher');
       beginSpy.mockRestore();
     });
+
+    test('_handleResult clears stale data-scanned-password and hotspot_last_voucher_pw when scanning a bare voucher without password', () => {
+      const form = document.getElementById('login-form');
+      form.setAttribute('data-scanned-password', '54052307');
+      localStorage.setItem('hotspot_last_voucher_pw', '54052307');
+
+      let seenAttrDuringAutoLogin = 'unset';
+      let seenStoredPwDuringAutoLogin = 'unset';
+      const authSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {
+        seenAttrDuringAutoLogin = form.getAttribute('data-scanned-password');
+        seenStoredPwDuringAutoLogin = localStorage.getItem('hotspot_last_voucher_pw');
+      });
+
+      qrScanner._handleResult('=09408628');
+
+      expect(authSpy).toHaveBeenCalledWith('09408628', true);
+      expect(seenAttrDuringAutoLogin).toBeNull();
+      expect(seenStoredPwDuringAutoLogin).toBeNull();
+      expect(form.hasAttribute('data-scanned-password')).toBe(false);
+
+      authSpy.mockRestore();
+      localStorage.removeItem('hotspot_last_voucher_pw');
+    });
   });
 });

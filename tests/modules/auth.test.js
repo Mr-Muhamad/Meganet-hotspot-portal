@@ -644,5 +644,36 @@ describe('Hotspot.auth', () => {
       expect(mockSubmit).toHaveBeenCalled();
       delete global.i18n;
     });
+
+    test('_isPermanentCredentialError detects RADIUS/RouterOS password and MAC-binding errors', () => {
+      const errEl = document.createElement('div');
+      errEl.id = 'errorMessage';
+      document.body.appendChild(errEl);
+
+      ['invalid password', 'invalid username', 'invalid Calling-Station-Id', 'MAC address is not yours'].forEach((msg) => {
+        errEl.textContent = msg;
+        expect(auth._isPermanentCredentialError()).toBe(true);
+      });
+
+      errEl.textContent = '$(error)';
+      expect(auth._isPermanentCredentialError()).toBe(false);
+    });
+
+    test('clearVoucher removes stale data-scanned-password from form', () => {
+      mockForm.setAttribute('data-scanned-password', '54052307');
+      mockVoucher.value = '09408628';
+      auth.clearVoucher();
+      expect(mockForm.hasAttribute('data-scanned-password')).toBe(false);
+      expect(mockVoucher.value).toBe('');
+    });
+
+    test('onFormSubmit stops immediate propagation when blocking short voucher', () => {
+      mockForm.setAttribute('data-voucher-min-length', '6');
+      mockVoucher.value = '123';
+      const event = { preventDefault: jest.fn(), stopImmediatePropagation: jest.fn() };
+      auth.onFormSubmit(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(event.stopImmediatePropagation).toHaveBeenCalled();
+    });
   });
 });

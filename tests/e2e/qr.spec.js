@@ -172,3 +172,42 @@ test('a plain voucher link (?voucher=X) keeps copying the code as the password',
   expect(body).toContain('username=1234567890');
   expect(body).toContain('password=1234567890');
 });
+
+test('scanning a bare voucher (=CODE) after a mikhmon link-card error reload never reuses stale password', async ({ page }) => {
+  await page.route('**/login.html**', async (route) => {
+    const req = route.request();
+    if (req.method() === 'GET' && req.url().includes('err=invalid_pw')) {
+      const cleanUrl = req.url().replace(/[?&]err=invalid_pw/, '');
+      const response = await route.fetch({ url: cleanUrl });
+      let html = await response.text();
+      html = html.replace('$(error)', 'invalid password');
+      await route.fulfill({ response, body: html });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto(`${DEFAULT}/ar/login.html`);
+
+  // Step 1: Scan mikhmon credential link (card 1)
+  const req1 = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.evaluate(() => window.Hotspot.qrScanner._handleResult('http://wifi.lan/login?username=54052307&password=54052307'))
+  ]).then(([req]) => req);
+  expect(req1.postData()).toContain('username=54052307');
+  expect(req1.postData()).toContain('password=54052307');
+
+  // Step 2: Simulate router returning login page with "invalid password" error
+  await page.goto(`${DEFAULT}/ar/login.html?err=invalid_pw`);
+  await page.waitForTimeout(300);
+
+  // Step 3: Scan bare voucher card (=09408628) — must NOT reuse 54052307
+  const req2 = await Promise.all([
+    page.waitForRequest((req) => req.method() === 'POST'),
+    page.evaluate(() => window.Hotspot.qrScanner._handleResult('=09408628'))
+  ]).then(([req]) => req);
+  const body2 = req2.postData();
+  expect(body2).toContain('username=09408628');
+  expect(body2).toContain('password=09408628');
+  expect(body2).not.toContain('password=54052307');
+});

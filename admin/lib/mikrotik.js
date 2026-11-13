@@ -198,7 +198,7 @@ function generateRscScript(config = {}, options = {}) {
     `:local dstPath "${escapeRos(htmlDir)}/api.json"`,
     ':if ([:len [/file/find where name="flash"]] > 0) do={',
     '  :set srcPath "flash/hotspot/api.json"',
-    `  :set dstPath "flash/${escapeRos(htmlDir)}/api.json"`,
+    `  :set dstPath "flash/${escapeRos(String(htmlDir || 'hotspot').replace(/^flash\//i, ''))}/api.json"`,
     '}',
     ':if (($srcPath != $dstPath) && ([:len [/file/find where name=$srcPath]] > 0)) do={',
     '  /file/set [find where name=$srcPath] name=$dstPath',
@@ -590,7 +590,8 @@ async function deployToRouter(files, connection = {}) {
     try {
       for (const f of fetchFiles) {
         const remoteName = `${targetDir}/${f.cleanRel}`;
-        const pullUrl = `http://${studioHost}:${pullServer.port}/${pullServer.token}/${f.cleanRel}`;
+        const encodedRel = f.cleanRel.split('/').map(encodeURIComponent).join('/');
+        const pullUrl = `http://${studioHost}:${pullServer.port}/${pullServer.token}/${encodedRel}`;
         try {
           await rosRestRequest(conn, 'POST', '/tool/fetch', {
             url: pullUrl,

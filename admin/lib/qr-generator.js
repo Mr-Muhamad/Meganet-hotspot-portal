@@ -395,7 +395,8 @@ function escapeXml(s) {
  */
 function generateQrSvg(text, options = {}) {
   const { size, matrix } = encodeQrMatrix(text);
-  const margin = options.margin != null ? Number(options.margin) : 2;
+  const parsedMargin = Number(options.margin);
+  const margin = (options.margin != null && Number.isFinite(parsedMargin) && parsedMargin >= 0) ? parsedMargin : 2;
   const fg = options.color || '#020617';
   const bg = options.background || '#ffffff';
   const total = size + margin * 2;

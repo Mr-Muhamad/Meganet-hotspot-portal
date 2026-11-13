@@ -243,6 +243,7 @@ async function startPreview(port, distDir) {
       cwd: REPO_ROOT,
       stdio: 'ignore',
       detached: false,
+      windowsHide: true,
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PREVIEW_DIST_DIR: targetDist }
     }
   );
@@ -258,10 +259,11 @@ async function startPreview(port, distDir) {
   });
 
   // Wait until preview server is bound and answering HTTP requests
-  for (let i = 0; i < 20; i++) {
+  let ready = false;
+  for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, 100));
     if (!previewChild) break;
-    const ready = await new Promise((resolve) => {
+    ready = await new Promise((resolve) => {
       const probe = http.request({ hostname: '127.0.0.1', port, path: '/index.html', method: 'HEAD', timeout: 300 }, (r) => {
         r.resume();
         resolve(r.statusCode === 200 || r.statusCode === 302 || r.statusCode === 404);
@@ -271,6 +273,10 @@ async function startPreview(port, distDir) {
       probe.end();
     });
     if (ready) break;
+  }
+  if (!previewChild || !ready) {
+    stopPreview();
+    throw httpError(500, 'preview server failed to start');
   }
 
   return port;
@@ -288,6 +294,22 @@ function stopPreview() {
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
+
+function extractRscBuildOptions(profile, overrides = {}) {
+  const mk = (profile && profile.mikrotik && typeof profile.mikrotik === 'object') ? profile.mikrotik : {};
+  const id = profile && profile.id ? profile.id : 'meganet';
+  const htmlDir = String(overrides.htmlDir || mk.htmlDir || mk.targetDir || 'hotspot').trim() || 'hotspot';
+  return {
+    customPresetsPath: CUSTOM_PRESETS_FILE,
+    profileName: String(overrides.profileName || mk.profileName || `${id}-hs-profile`).trim() || `${id}-hs-profile`,
+    htmlDir,
+    dnsName: String(overrides.dnsName || mk.dnsName || 'login.meganet.local').trim() || 'login.meganet.local',
+    dhcpServer: overrides.dhcpServer !== undefined ? String(overrides.dhcpServer || '').trim() : String(mk.dhcpServer || '').trim(),
+    capportMode: overrides.capportMode || mk.capportMode || 'https',
+    extraHosts: overrides.extraHosts !== undefined ? overrides.extraHosts : (mk.extraHosts || []),
+    sslCertificate: String(overrides.sslCertificate || mk.sslCertificate || '').trim()
+  };
+}
 
 async function handleApi(req, res, url, method) {
   try {
@@ -363,7 +385,7 @@ async function handleApi(req, res, url, method) {
         const r = await workspace.runBuildCycle(
           { ...p, config: effective, dir: path.join(store.profilesDir, item.id) },
           zipPath,
-          { customPresetsPath: CUSTOM_PRESETS_FILE }
+          extractRscBuildOptions(p)
         );
         built.push({
           id: item.id,
@@ -450,14 +472,19 @@ async function handleApi(req, res, url, method) {
         return sendJson(res, 422, { error: 'bundle config validation failed', validationErrors: validation.errors });
       }
       const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
-      if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
-      if (bundle.mikrotik && typeof bundle.mikrotik === 'object' && !Array.isArray(bundle.mikrotik)) {
-        const mkPayload = { ...bundle.mikrotik };
-        delete mkPayload.password;
-        store.saveMikrotikSettings(profile.id, mkPayload);
-      }
-      for (const asset of bundle.assets || []) {
-        store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
+      try {
+        if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
+        if (bundle.mikrotik && typeof bundle.mikrotik === 'object' && !Array.isArray(bundle.mikrotik)) {
+          const mkPayload = { ...bundle.mikrotik };
+          delete mkPayload.password;
+          store.saveMikrotikSettings(profile.id, mkPayload);
+        }
+        for (const asset of bundle.assets || []) {
+          store.writeAsset(profile.id, asset.name, Buffer.from(asset.dataBase64 || '', 'base64'));
+        }
+      } catch (err) {
+        try { store.remove(profile.id); } catch { /* rollback best-effort */ }
+        throw err;
       }
       return sendJson(res, 201, { profile: store.get(profile.id) });
     }
@@ -605,7 +632,9 @@ async function handleApi(req, res, url, method) {
 
     // DELETE /api/profiles/:id/assets/:file
     if (method === 'DELETE' && action === 'assets' && parts.length === 5) {
-      store.deleteAsset(id, parts[4]);
+      let assetName;
+      try { assetName = decodeURIComponent(parts[4]); } catch { return sendJson(res, 400, { error: 'invalid asset filename' }); }
+      store.deleteAsset(id, assetName);
       return sendJson(res, 200, { ok: true });
     }
 
@@ -620,7 +649,7 @@ async function handleApi(req, res, url, method) {
       const result = await workspace.runBuildCycle(
         { ...profile, config: effective, dir: path.join(store.profilesDir, id) },
         zipPath,
-        { customPresetsPath: CUSTOM_PRESETS_FILE }
+        extractRscBuildOptions(profile)
       );
       return sendJson(res, 200, {
         ok: true,
@@ -638,18 +667,17 @@ async function handleApi(req, res, url, method) {
     if (method === 'GET' && action === 'rsc' && parts.length === 4) {
       const profile = store.get(id);
       const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
-      const extraHosts = (url.searchParams.get('extraHosts') || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const plan = previewRscPlan(effective, {
-        profileName: url.searchParams.get('profileName') || `${id}-hs-profile`,
-        htmlDir: url.searchParams.get('htmlDir') || 'hotspot',
-        dnsName: url.searchParams.get('dnsName') || 'login.meganet.local',
-        dhcpServer: url.searchParams.get('dhcpServer') || '',
-        capportMode: url.searchParams.get('capportMode') || 'https',
-        extraHosts
+      const extraHostsParam = url.searchParams.get('extraHosts');
+      const rscOpts = extractRscBuildOptions(profile, {
+        profileName: url.searchParams.get('profileName') || undefined,
+        htmlDir: url.searchParams.get('htmlDir') || undefined,
+        dnsName: url.searchParams.get('dnsName') || undefined,
+        dhcpServer: url.searchParams.has('dhcpServer') ? url.searchParams.get('dhcpServer') : undefined,
+        capportMode: url.searchParams.get('capportMode') || undefined,
+        extraHosts: extraHostsParam !== null ? extraHostsParam.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+        sslCertificate: url.searchParams.get('sslCertificate') || undefined
       });
+      const plan = previewRscPlan(effective, rscOpts);
       const rsc = plan.rsc;
       const filename = `${id}-hotspot-setup.rsc`;
       if (url.searchParams.get('download') === '1') {
@@ -668,27 +696,22 @@ async function handleApi(req, res, url, method) {
       const body = await readJsonBody(req);
       const profile = store.get(id);
       const effective = resolveEffectiveConfig(profile.config, loadCustomPresets());
-      const targetDir = String(body.targetDir || 'hotspot').trim() || 'hotspot';
-      const htmlDir = String(body.htmlDir || targetDir).trim() || targetDir;
-      const dnsName = String(body.dnsName || 'login.meganet.local').trim() || 'login.meganet.local';
-      const profileName = String(body.profileName || `${id}-hs-profile`).trim() || `${id}-hs-profile`;
-      const dhcpServer = String(body.dhcpServer || '').trim();
-      const capportMode = body.capportMode || 'https';
-      const extraHosts = body.extraHosts || [];
+      const mkSaved = (profile.mikrotik && typeof profile.mikrotik === 'object') ? profile.mikrotik : {};
+      const targetDir = String(body.targetDir || mkSaved.targetDir || 'hotspot').trim() || 'hotspot';
+      const rscOpts = extractRscBuildOptions(profile, {
+        htmlDir: body.htmlDir || targetDir,
+        dnsName: body.dnsName,
+        profileName: body.profileName,
+        dhcpServer: body.dhcpServer,
+        capportMode: body.capportMode,
+        extraHosts: body.extraHosts,
+        sslCertificate: body.sslCertificate
+      });
       const zipPath = path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`);
       const built = await workspace.runBuildCycle(
         { ...profile, config: effective, dir: path.join(store.profilesDir, id) },
         zipPath,
-        {
-          collectBuffers: true,
-          customPresetsPath: CUSTOM_PRESETS_FILE,
-          profileName,
-          htmlDir,
-          dnsName,
-          dhcpServer,
-          capportMode,
-          extraHosts
-        }
+        { collectBuffers: true, ...rscOpts }
       );
       const deployResult = await deployToRouter(built.files, {
         host: body.host,
@@ -709,12 +732,12 @@ async function handleApi(req, res, url, method) {
         protocol: body.protocol,
         username: body.username,
         targetDir,
-        htmlDir,
-        dnsName,
-        profileName,
-        dhcpServer,
-        capportMode,
-        extraHosts,
+        htmlDir: rscOpts.htmlDir,
+        dnsName: rscOpts.dnsName,
+        profileName: rscOpts.profileName,
+        dhcpServer: rscOpts.dhcpServer,
+        capportMode: rscOpts.capportMode,
+        extraHosts: rscOpts.extraHosts,
         applyRsc: Boolean(body.applyRsc),
         createBackup: Boolean(body.createBackup),
         tlsFingerprint: deployResult.tlsFingerprint || body.tlsFingerprint || ''
@@ -839,8 +862,13 @@ server.on('close', () => {
 });
 
 function startServer(port = 0) {
-  return new Promise((resolve) => {
-    server.listen(port, '127.0.0.1', () => resolve(server.address().port));
+  return new Promise((resolve, reject) => {
+    const onError = (err) => reject(err);
+    server.once('error', onError);
+    server.listen(port, '127.0.0.1', () => {
+      server.removeListener('error', onError);
+      resolve(server.address().port);
+    });
   });
 }
 

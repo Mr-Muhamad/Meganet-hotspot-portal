@@ -13,6 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const zlib = require('zlib');
 
 const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-studio-extras-'));
 process.env.ADMIN_DATA_DIR = ADMIN_TMP;
@@ -49,10 +50,11 @@ function request(method, url, body) {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
+        const raw = Buffer.concat(chunks);
+        const text = raw.toString('utf8');
         let json = null;
         try { json = JSON.parse(text); } catch { /* raw */ }
-        resolve({ status: res.statusCode, headers: res.headers, json, text });
+        resolve({ status: res.statusCode, headers: res.headers, json, text, raw });
       });
     });
     req.on('error', reject);
@@ -585,5 +587,109 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     } finally {
       mockRouter.close();
     }
+  });
+
+  test('Studio regression guards: flash/ deduplication, NaN QR margin, saved mikrotik ZIP inheritance, encoded asset delete & import rollback', async () => {
+    function readZipTextEntry(zipBuf, filename) {
+      let off = zipBuf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+      expect(off).toBeGreaterThanOrEqual(0);
+      const cdOffset = zipBuf.readUInt32LE(off + 16);
+      const total = zipBuf.readUInt16LE(off + 10);
+      let cur = cdOffset;
+      for (let i = 0; i < total; i++) {
+        expect(zipBuf.readUInt32LE(cur)).toBe(0x02014b50);
+        const method = zipBuf.readUInt16LE(cur + 10);
+        const compSize = zipBuf.readUInt32LE(cur + 20);
+        const nameLen = zipBuf.readUInt16LE(cur + 28);
+        const extraLen = zipBuf.readUInt16LE(cur + 30);
+        const commentLen = zipBuf.readUInt16LE(cur + 32);
+        const lfhOffset = zipBuf.readUInt32LE(cur + 42);
+        const name = zipBuf.slice(cur + 46, cur + 46 + nameLen).toString('utf8');
+        if (name === filename || name.endsWith('/' + filename) || name.endsWith('-' + filename)) {
+          const lfhNameLen = zipBuf.readUInt16LE(lfhOffset + 26);
+          const lfhExtraLen = zipBuf.readUInt16LE(lfhOffset + 28);
+          const dataStart = lfhOffset + 30 + lfhNameLen + lfhExtraLen;
+          const raw = zipBuf.slice(dataStart, dataStart + compSize);
+          return (method === 8 ? zlib.inflateRawSync(raw) : raw).toString('utf8');
+        }
+        cur += 46 + nameLen + extraLen + commentLen;
+      }
+      return null;
+    }
+
+    const rscNoDoubleFlash = generateRscScript({}, {
+      slug: SLUG,
+      dnsName: 'cafe.local',
+      htmlDir: 'flash/cafe-portal',
+      profileName: 'cafe-prof',
+      dhcpServer: 'dhcp-cafe',
+      capportMode: 'http'
+    });
+    expect(rscNoDoubleFlash).not.toContain('flash/flash/');
+    expect(rscNoDoubleFlash).toContain('flash/cafe-portal/api.json');
+
+    const safeMarginSvg = generateQrSvg('WIFI:T:nopass;S:Cafe;;', { margin: Number.NaN });
+    expect(safeMarginSvg).not.toContain('NaN');
+    const negMarginSvg = generateQrSvg('WIFI:T:nopass;S:Cafe;;', { margin: -3 });
+    expect(negMarginSvg).toContain('viewBox="0 0 ');
+
+    await request('PUT', `${base}/api/profiles/${SLUG}/mikrotik`, {
+      mikrotik: {
+        dnsName: 'saved-cafe.local',
+        htmlDir: 'flash/saved-cafe',
+        targetDir: 'flash/saved-cafe',
+        profileName: 'saved-cafe-prof',
+        dhcpServer: 'dhcp-saved',
+        capportMode: 'http',
+        extraHosts: ['cdn.cafe.test']
+      }
+    });
+
+    const inheritedRsc = await request('GET', `${base}/api/profiles/${SLUG}/rsc`);
+    expect(inheritedRsc.status).toBe(200);
+    expect(inheritedRsc.json.rsc).toContain("value=\"'http://saved-cafe.local/api.json'\"");
+    expect(inheritedRsc.json.rsc).toContain('name="saved-cafe-prof"');
+    expect(inheritedRsc.json.rsc).toContain('name="dhcp-saved"');
+    expect(inheritedRsc.json.rsc).not.toContain('flash/flash/');
+
+    const buildOne = await request('POST', `${base}/api/profiles/${SLUG}/build`, {});
+    expect(buildOne.status).toBe(200);
+    const singleZip = await httpGetBuffer(`${base}${buildOne.json.downloadUrl}`);
+    const singleRsc = readZipTextEntry(singleZip, 'hotspot-setup.rsc');
+    expect(singleRsc).toContain("value=\"'http://saved-cafe.local/api.json'\"");
+    expect(singleRsc).toContain('name="dhcp-saved"');
+
+    const buildAll = await request('POST', `${base}/api/profiles/build-all`, {});
+    expect(buildAll.status).toBe(200);
+    const builtEntry = buildAll.json.built.find((b) => b.id === SLUG);
+    expect(builtEntry).toBeDefined();
+    const allZip = await httpGetBuffer(`${base}${builtEntry.downloadUrl}`);
+    const allRsc = readZipTextEntry(allZip, 'hotspot-setup.rsc');
+    expect(allRsc).toContain("value=\"'http://saved-cafe.local/api.json'\"");
+
+    const upSpaced = await request('POST', `${base}/api/profiles/${SLUG}/assets`, {
+      filename: 'my badge.svg',
+      dataBase64: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>').toString('base64')
+    });
+    expect(upSpaced.status).toBe(200);
+
+    const delSpaced = await request('DELETE', `${base}/api/profiles/${SLUG}/assets/my%20badge.svg`);
+    expect(delSpaced.status).toBe(200);
+    const delMalformed = await request('DELETE', `${base}/api/profiles/${SLUG}/assets/%E0%A4%A`);
+    expect(delMalformed.status).toBe(400);
+
+    const rollbackSlug = 'rollback-broken-import';
+    const exportRes = await request('GET', `${base}/api/profiles/${SLUG}/export`);
+    expect(exportRes.status).toBe(200);
+    const brokenBundle = {
+      ...exportRes.json,
+      assets: [{ name: '../evil.txt', dataBase64: Buffer.from('bad').toString('base64') }]
+    };
+    const importFail = await request('POST', `${base}/api/profiles/import`, {
+      slug: rollbackSlug,
+      bundle: brokenBundle
+    });
+    expect(importFail.status).toBe(400);
+    expect(fs.existsSync(path.join(ADMIN_TMP, 'profiles', rollbackSlug))).toBe(false);
   });
 });

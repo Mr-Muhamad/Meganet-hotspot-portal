@@ -128,6 +128,22 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Electron suppresses beforeunload dialogs unless handled via will-prevent-unload.
+  mainWindow.webContents.on('will-prevent-unload', (event) => {
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question',
+      buttons: ['تجاهل التعديلات وإغلاق', 'البقاء في التطبيق'],
+      defaultId: 1,
+      cancelId: 1,
+      title: 'تعديلات غير محفوظة',
+      message: 'لديك تعديلات غير محفوظة في الاستوديو.',
+      detail: 'هل تريد إغلاق التطبيق وتجاهل هذه التعديلات؟'
+    });
+    if (choice === 0) {
+      event.preventDefault();
+    }
+  });
 }
 
 function cleanupServerAndPreview() {

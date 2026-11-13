@@ -167,7 +167,7 @@
     <span class="badge dirty" id="dirtyBadge" title="توجد تعديلات غير محفوظة (Ctrl+S للحفظ)">● تعديلات غير محفوظة</span>
     <span class="badge" id="profileMeta"></span>
     <button class="btn ghost" onclick="saveConfig()" id="saveBtn" title="حفظ (Ctrl+S)">حفظ</button>
-    <button class="btn primary" onclick="buildAndDownload()">بناء وتحميل zip</button>
+    <button class="btn primary" id="buildZipBtn" onclick="buildAndDownload()">بناء وتحميل zip</button>
     <button class="btn ghost" onclick="toggleSimulator()" id="simToggleBtn">📱 المحاكي المدمج</button>
     <button class="btn ghost" onclick="togglePreview()" id="previewBtn">معاينة خارجية</button>
   </header>
@@ -696,7 +696,9 @@ function applyDrafts(c) {
     if (d.features.qrScannerUrl) c.features.qrScannerUrl = d.features.qrScannerUrl;
     else delete c.features.qrScannerUrl;
     const min = d.features.voucherMinLength;
-    if (min === '') delete c.features.voucherMinLength; else c.features.voucherMinLength = parseInt(min, 10);
+    const minParsed = parseInt(min, 10);
+    if (min === '' || !Number.isFinite(minParsed)) delete c.features.voucherMinLength;
+    else c.features.voucherMinLength = minParsed;
     c.features.enableLanguageToggle = d.features.enableLanguageToggle;
     c.features.enableClonePrevention = d.features.enableClonePrevention;
     c.features.enableSmartAssistant = d.features.enableSmartAssistant;
@@ -756,7 +758,7 @@ function renderTab() {
     case 'plans': el.appendChild(formPlans(c)); break;
     case 'support': el.appendChild(formSupport(c)); break;
     case 'announcements': el.appendChild(formAnnouncements()); break;
-    case 'words': el.appendChild(formWords()); break;
+    case 'words': el.appendChild(formWords(c)); break;
     case 'qrtest': el.appendChild(formQrTester(c)); break;
     case 'assets': el.appendChild(formAssets()); break;
     case 'mikrotik': el.appendChild(formMikrotik(c)); break;
@@ -816,19 +818,18 @@ function formGeneral(c) {
 function formTheme(c) {
   const t = c.theme || {};
 
-  // Presets Gallery Showcase
+  const presets = (state.meta && state.meta.presets) ? state.meta.presets : [];
   const galleryCard = document.createElement('div');
   galleryCard.className = 'card';
   galleryCard.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
-      '<h3 style="margin:0;font-size:15px;color:var(--text)">🎨 شخصيات القوالب والبريسيتات الجاهزة (12 شخصية)</h3>' +
+      '<h3 style="margin:0;font-size:15px;color:var(--text)">🎨 شخصيات القوالب والبريسيتات الجاهزة (' + presets.length + ' شخصية)</h3>' +
       '<span style="font-size:12px;color:var(--muted)">اضغط على أي شخصية لمعاينتها وتطبيق ألوانها وحوافها فوراً</span>' +
     '</div>';
 
   const pGrid = document.createElement('div');
   pGrid.className = 'preset-grid';
 
-  const presets = (state.meta && state.meta.presets) ? state.meta.presets : [];
   for (const p of presets) {
     const isAct = (t.preset === p.id);
     const pEl = document.createElement('div');
@@ -985,6 +986,7 @@ function applyPresetToInputs(presetId) {
     ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
   }
   markDirty(true);
+  scheduleSimulatorAutoRefresh();
   toast('تم تطبيق بريسيت: ' + p.label);
 }
 
@@ -996,7 +998,8 @@ async function saveCurrentAsPreset() {
   if (!id) return;
   try {
     captureDraft(state.tab);
-    await saveConfig(true);
+    const saved = await saveConfig();
+    if (!saved) return;
     const data = await api('/presets', {
       method: 'POST',
       body: JSON.stringify({ slug: state.current.id, id, label: state.current.name + ' — شخصية مخصصة' })
@@ -1215,7 +1218,7 @@ function removeAgent(i) {
 // Announcements
 // ---------------------------------------------------------------------------
 function formAnnouncements() {
-  const a = state.current.announcements || { active: false, type: 'promo', message_en: [], message_ar: [] };
+  const a = state.drafts.announcements || state.current.announcements || { active: false, type: 'promo', message_en: [], message_ar: [] };
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>بانر الإعلان</h3>';
@@ -1244,11 +1247,24 @@ function formAnnouncements() {
 // ---------------------------------------------------------------------------
 // Words (i18n overrides) + RADIUS Error Translations UI
 // ---------------------------------------------------------------------------
-function formWords() {
+function formWords(c) {
   const wrap = document.createElement('div');
+  const cfg = c || JSON.parse(JSON.stringify(state.current.config));
 
-  state.current.config.i18nOverrides = state.current.config.i18nOverrides || {};
-  const ov = state.current.config.i18nOverrides;
+  cfg.i18nOverrides = cfg.i18nOverrides || {};
+  const ov = cfg.i18nOverrides;
+  const syncWordsDraft = () => {
+    const clean = {};
+    for (const [k, v] of Object.entries(ov)) {
+      if (k.startsWith('_')) continue;
+      if (typeof v === 'object') {
+        if ((v.en && v.en.trim()) || (v.ar && v.ar.trim())) clean[k] = { en: v.en || '', ar: v.ar || '' };
+      } else if (String(v || '').trim()) {
+        clean[k] = v;
+      }
+    }
+    state.drafts.words = clean;
+  };
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة (i18nOverrides)</h3>' +
@@ -1274,20 +1290,23 @@ function formWords() {
         '<div class="field"><label>عربية</label><input class="w-ar" value="' + esc(ar) + '"></div>' +
         '</div><button class="rowbtn" style="margin-top:8px">إزالة</button>';
       const del = row.querySelector('.rowbtn');
-      del.onclick = () => { delete ov[key]; markDirty(true); renderWords(); };
+      del.onclick = () => { delete ov[key]; syncWordsDraft(); markDirty(true); renderWords(); scheduleSimulatorAutoRefresh(); };
       row.querySelector('.w-key').onchange = (e) => {
         const nk = e.target.value;
-        ov[nk] = ov[key]; delete ov[key]; markDirty(true); renderWords();
+        if (nk === key) return;
+        ov[nk] = ov[key]; delete ov[key]; syncWordsDraft(); markDirty(true); renderWords();
       };
       row.querySelector('.w-en').oninput = (e) => {
         const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: ov[key] || '' };
         currentPair.en = e.target.value;
         ov[key] = currentPair;
+        syncWordsDraft();
       };
       row.querySelector('.w-ar').oninput = (e) => {
         const currentPair = typeof ov[key] === 'object' ? ov[key] : { en: ov[key] || '', ar: ov[key] || '' };
         currentPair.ar = e.target.value;
         ov[key] = currentPair;
+        syncWordsDraft();
       };
       output.appendChild(row);
     }
@@ -1301,6 +1320,7 @@ function formWords() {
   add.onclick = () => {
     const firstFree = state.meta.knownKeys.find(k => !(k in ov));
     ov[firstFree || 'login_button'] = { en: '', ar: '' };
+    syncWordsDraft();
     markDirty(true);
     renderWords();
   };
@@ -1308,8 +1328,15 @@ function formWords() {
   wrap.appendChild(card);
 
   // --- RADIUS & MikroTik Server Error Translations Card ---
-  state.current.config.radiusErrorTranslations = state.current.config.radiusErrorTranslations || {};
-  const radMap = state.current.config.radiusErrorTranslations;
+  cfg.radiusErrorTranslations = cfg.radiusErrorTranslations || {};
+  const radMap = cfg.radiusErrorTranslations;
+  const syncRadiusDraft = () => {
+    const clean = {};
+    for (const [k, v] of Object.entries(radMap)) {
+      if (!k.startsWith('_') && String(v || '').trim()) clean[k] = String(v).trim();
+    }
+    state.drafts.radiusErrors = clean;
+  };
   const radCard = document.createElement('div');
   radCard.className = 'card';
   radCard.innerHTML =
@@ -1339,19 +1366,23 @@ function formWords() {
         '<button class="rowbtn" style="margin-top:8px">حذف الترجمة</button>';
       row.querySelector('.rowbtn').onclick = () => {
         delete radMap[errKey];
+        syncRadiusDraft();
         markDirty(true);
         renderRadiusErrors();
+        scheduleSimulatorAutoRefresh();
       };
       row.querySelector('.r-key').onchange = (e) => {
         const nk = e.target.value.trim();
         if (!nk || nk === errKey) return;
         radMap[nk] = radMap[errKey];
         delete radMap[errKey];
+        syncRadiusDraft();
         markDirty(true);
         renderRadiusErrors();
       };
       row.querySelector('.r-val').oninput = (e) => {
         radMap[errKey] = e.target.value;
+        syncRadiusDraft();
       };
       radList.appendChild(row);
     });
@@ -1368,8 +1399,14 @@ function formWords() {
   addRadBtn.className = 'btn ghost';
   addRadBtn.textContent = '＋ إضافة ترجمة خطأ RADIUS';
   addRadBtn.onclick = () => {
-    const newKey = 'custom error ' + (Object.keys(radMap).length + 1);
+    let idx = Object.keys(radMap).filter(k => !k.startsWith('_')).length + 1;
+    let newKey = 'custom error ' + idx;
+    while (newKey in radMap) {
+      idx += 1;
+      newKey = 'custom error ' + idx;
+    }
     radMap[newKey] = 'رسالة خطأ مخصصة للمشترك.';
+    syncRadiusDraft();
     markDirty(true);
     renderRadiusErrors();
   };
@@ -1379,9 +1416,10 @@ function formWords() {
   resetRadBtn.textContent = '↺ استعادة الترجمات الافتراضية';
   resetRadBtn.onclick = () => {
     if (state.meta && state.meta.template && state.meta.template.radiusErrorTranslations) {
-      state.current.config.radiusErrorTranslations = JSON.parse(JSON.stringify(state.meta.template.radiusErrorTranslations));
+      state.drafts.radiusErrors = JSON.parse(JSON.stringify(state.meta.template.radiusErrorTranslations));
       markDirty(true);
       renderTab();
+      scheduleSimulatorAutoRefresh();
     }
   };
 
@@ -1405,10 +1443,11 @@ function formQrTester(c) {
     '<h3>🔍 مختبر رمز QR لتسجيل الدخول (Portal QR Login Tester)</h3>' +
     '<div class="planshint">اختبر مسح رمز الـ QR بكاميرا الهاتف للتأكد من توافق رابط الدخول أو كود الكرت مع ماسح القالب (<code>jsQR</code>) وإعدادات كلمة المرور الحالية.</div>';
 
+  const defaultDns = (state.current.mikrotik && state.current.mikrotik.dnsName) ? state.current.mikrotik.dnsName : 'login.meganet.local';
   const testerGrid = document.createElement('div');
   testerGrid.className = 'grid';
   testerGrid.appendChild(field('كود الكرت التجريبي', '<input id="v-test-code" data-ignore-dirty="1" value="88442299">'));
-  testerGrid.appendChild(field('رابط صفحة الدخول بالراوتر', '<input id="v-test-dns" data-ignore-dirty="1" dir="ltr" value="http://login.meganet.local/login">'));
+  testerGrid.appendChild(field('رابط صفحة الدخول بالراوتر', '<input id="v-test-dns" data-ignore-dirty="1" dir="ltr" value="http://' + esc(defaultDns) + '/login">'));
   testerGrid.appendChild(field('صيغة رمز الـ QR',
     '<select id="v-test-mode" data-ignore-dirty="1">' +
     '<option value="url">رابط دخول تلقائي (كود + كلمة مرور)</option>' +
@@ -1540,11 +1579,13 @@ function formAssets() {
 async function generateBrandIdentity() {
   if (!state.current) return;
   try {
-    const networkName = $('#lm-name')?.value || state.current.config.general.networkName;
+    const drafted = JSON.parse(JSON.stringify(state.current.config));
+    applyDrafts(drafted);
+    const networkName = $('#lm-name')?.value || drafted.general.networkName;
     const tagline = $('#lm-tagline')?.value || '';
     const icon = $('#lm-icon')?.value || 'wifi';
-    const primaryColor = $('#lm-color')?.value || state.current.config.theme.primaryColor;
-    const backgroundColor = state.current.config.theme.backgroundColor || '#020617';
+    const primaryColor = $('#lm-color')?.value || drafted.theme.primaryColor;
+    const backgroundColor = drafted.theme.backgroundColor || '#020617';
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/generate-brand', {
       method: 'POST',
       body: JSON.stringify({ networkName, tagline, icon, primaryColor, backgroundColor })
@@ -1552,6 +1593,7 @@ async function generateBrandIdentity() {
     state.current.assets = data.assets;
     toast('تم توليد وحفظ logo.svg و prand-title.svg و icon.png');
     renderTab();
+    await refreshAssetsInPlace();
     const prev = $('#lm-preview');
     if (prev) {
       prev.style.display = 'flex';
@@ -1825,17 +1867,22 @@ function formMikrotik(c) {
     refreshRscPreview();
     ['mk-dns', 'mk-htmldir', 'mk-profname', 'mk-dhcp-server', 'mk-capport-mode', 'mk-extra-wg'].forEach((id) => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('change', () => {
+      if (!el) return;
+      const syncRsc = () => {
         state.mikrotikDirty = true;
         markDirty(true);
         syncMikrotikDraft();
+      };
+      el.addEventListener('input', syncRsc);
+      el.addEventListener('change', () => {
+        syncRsc();
         refreshRscPreview();
       });
     });
     ['mk-host', 'mk-proto', 'mk-port', 'mk-user', 'mk-target-dir', 'mk-tls-fp', 'mk-create-backup', 'mk-apply-rsc'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener('change', () => {
+      const onMkEdit = () => {
         if (id === 'mk-proto') {
           if ($('#mk-port')) {
             const curPort = Number($('#mk-port').value);
@@ -1854,7 +1901,9 @@ function formMikrotik(c) {
         state.mikrotikDirty = true;
         markDirty(true);
         syncMikrotikDraft();
-      });
+      };
+      el.addEventListener('input', onMkEdit);
+      el.addEventListener('change', onMkEdit);
     });
   }, 0);
   return wrap;
@@ -1893,12 +1942,12 @@ function updateTlsBadge(fp) {
     : '🔓 لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
 }
 
-async function saveMikrotikSettings(silent = false) {
+async function saveMikrotikSettings(silent = false, overrideMikrotik = null) {
   if (!state.current) return null;
   const btn = $('#mk-save-btn');
   if (!silent && btn) { btn.disabled = true; btn.textContent = '⏳ جاري الحفظ…'; }
   try {
-    const mikrotik = collectMikrotikSettings();
+    const mikrotik = overrideMikrotik || ($('#mk-host') ? collectMikrotikSettings() : (state.current.mikrotik || {}));
     const res = await api('/profiles/' + encodeURIComponent(state.current.id) + '/mikrotik', {
       method: 'PUT',
       body: JSON.stringify({ mikrotik })
@@ -1994,14 +2043,22 @@ async function testMikrotikConnection() {
     if (info.dhcpServers && info.dhcpServers.length && $('#mk-dhcp-server') && !$('#mk-dhcp-server').value) {
       $('#mk-dhcp-server').value = info.dhcpServers[0].name;
     }
+    const slugDefaultProf = (state.current && state.current.id ? state.current.id : 'meganet') + '-hs-profile';
+    const isEmptyOrDefault = (el, defaults) => !el.value.trim() || defaults.includes(el.value.trim());
     if (info.hotspotProfiles && info.hotspotProfiles.length && $('#mk-profname')) {
-      $('#mk-profname').value = info.hotspotProfiles[0].name;
-      if (info.hotspotProfiles[0].dnsName && $('#mk-dns')) {
+      if (isEmptyOrDefault($('#mk-profname'), [slugDefaultProf, 'hsprof1'])) {
+        $('#mk-profname').value = info.hotspotProfiles[0].name;
+      }
+      if (info.hotspotProfiles[0].dnsName && $('#mk-dns') && isEmptyOrDefault($('#mk-dns'), ['login.meganet.local'])) {
         $('#mk-dns').value = info.hotspotProfiles[0].dnsName;
       }
       if (info.hotspotProfiles[0].htmlDirectory) {
-        if ($('#mk-htmldir')) $('#mk-htmldir').value = info.hotspotProfiles[0].htmlDirectory;
-        if ($('#mk-target-dir')) $('#mk-target-dir').value = info.hotspotProfiles[0].htmlDirectory;
+        if ($('#mk-htmldir') && isEmptyOrDefault($('#mk-htmldir'), ['hotspot'])) {
+          $('#mk-htmldir').value = info.hotspotProfiles[0].htmlDirectory;
+        }
+        if ($('#mk-target-dir') && isEmptyOrDefault($('#mk-target-dir'), ['hotspot'])) {
+          $('#mk-target-dir').value = info.hotspotProfiles[0].htmlDirectory;
+        }
       }
     } else if (info.hasFlashPrefix && $('#mk-target-dir') && $('#mk-target-dir').value === 'hotspot') {
       $('#mk-target-dir').value = 'flash/hotspot';
@@ -2096,6 +2153,9 @@ function collectConfig() {
 async function saveConfig() {
   if (!state.current) { toast('اختر بريفايل أولاً', true); return false; }
   try {
+    const pendingMikrotik = state.mikrotikDirty
+      ? ($('#mk-host') ? collectMikrotikSettings() : (state.current.mikrotik || null))
+      : null;
     const config = collectConfig();
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/config', {
       method: 'PUT',
@@ -2111,8 +2171,8 @@ async function saveConfig() {
       state.current.announcements = state.drafts.announcements;
     }
 
-    if (state.mikrotikDirty) {
-      await saveMikrotikSettings(true);
+    if (pendingMikrotik) {
+      await saveMikrotikSettings(true, pendingMikrotik);
     }
 
     state.drafts = {};
@@ -2164,7 +2224,7 @@ async function buildAndDownload() {
   if (!state.current) return toast('اختر بريفايل أولاً', true);
   if (state.buildBusy) return;
   state.buildBusy = true;
-  const btn = $('.btn.primary');
+  const btn = $('#buildZipBtn') || $('.btn.primary');
   btn.disabled = true; btn.textContent = 'جاري البناء…';
   try {
     const saved = await saveConfig();
@@ -2443,8 +2503,13 @@ async function deleteProfile(id) {
   try {
     await api('/profiles/' + encodeURIComponent(id), { method: 'DELETE' });
     state.current = null;
+    state.drafts = {};
+    state.mikrotikDirty = false;
     markDirty(false);
     $('#profileTitle').textContent = 'اختر بريفايل';
+    $('#profileMeta').textContent = '';
+    $('#tabs').innerHTML = '';
+    if ($('#bundleMeter')) $('#bundleMeter').className = '';
     $('#content').innerHTML = '';
     await loadProfiles();
   } catch (e) { toast(e.message, true); }
@@ -2472,7 +2537,8 @@ async function importProfile() {
     if (!f) return;
     try {
       const bundle = JSON.parse(await f.text());
-      const defaultSlug = (bundle.name || 'imported').replace(/\s+/g, '-').toLowerCase().slice(0, 40);
+      const asciiSlug = (bundle.name || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+      const defaultSlug = /^[a-z0-9]/.test(asciiSlug) ? asciiSlug : ('imported-' + Date.now().toString(36));
       const slug = await studioPrompt('معرّف البروفايل المستورد:', defaultSlug, { title: 'استيراد بروفايل', confirmLabel: 'استيراد' });
       if (!slug) return;
       const data = await api('/profiles/import', {

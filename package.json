@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "test:a11y": "jest --testPathPattern=tests/a11y",
     "test:watch": "jest --watch",
-    "lint": "eslint \"src/js/**/*.js\" \"admin/**/*.js\" \"scripts/**/*.js\" build.js",
+    "lint": "eslint \"src/js/**/*.js\" \"admin/**/*.js\" \"scripts/**/*.js\" \"desktop/main.js\" build.js",
     "validate": "node scripts/validate-templates.js",
     "preview": "node scripts/preview.mjs",
     "preview:open": "node scripts/preview.mjs --open",

@@ -72,7 +72,9 @@ var util = {
    * @returns {string} Formatted uptime string
    */
   formatUptime: function(seconds) {
-    if (!seconds || seconds < 0) return '0s';
+    var lang = (typeof document !== 'undefined' && document.documentElement && document.documentElement.getAttribute('lang')) || 'en';
+    var isAr = lang === 'ar';
+    if (!seconds || seconds < 0) return isAr ? '0 ث' : '0s';
     seconds = Math.floor(seconds);
     var w = Math.floor(seconds / 604800);
     var d = Math.floor((seconds % 604800) / 86400);
@@ -80,11 +82,11 @@ var util = {
     var m = Math.floor((seconds % 3600) / 60);
     var s = seconds % 60;
     var parts = [];
-    if (w > 0) parts.push(w + 'w');
-    if (d > 0) parts.push(d + 'd');
-    if (h > 0) parts.push(h + 'h');
-    if (m > 0) parts.push(m + 'm');
-    if (s > 0 || parts.length === 0) parts.push(s + 's');
+    if (w > 0) parts.push(w + (isAr ? ' أسبوع' : 'w'));
+    if (d > 0) parts.push(d + (isAr ? ' يوم' : 'd'));
+    if (h > 0) parts.push(h + (isAr ? ' س' : 'h'));
+    if (m > 0) parts.push(m + (isAr ? ' د' : 'm'));
+    if (s > 0 || parts.length === 0) parts.push(s + (isAr ? ' ث' : 's'));
     return parts.join(' ');
   },
 

@@ -48,6 +48,7 @@
               MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
             </button>
           </div>
+          <p id="mac-random-hint" class="mac-random-hint" hidden data-i18n="mac_random_warning">{{ i18n.mac_random_warning }}</p>
         </div>
       </div>
 {% endblock %}
@@ -60,6 +61,17 @@
         i18n.init();
         ui.initTheme();
         ui.initLang();
+
+        // Clear saved voucher & credentials when account/card is expired so returning to login does not retry it
+        try { sessionStorage.removeItem('hotspot_last_voucher'); } catch (e) {}
+        try { localStorage.removeItem('hotspot_last_voucher'); } catch (e) {}
+        try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_last_voucher', '', -1); } catch (e) {}
+        try { sessionStorage.removeItem('hotspot_last_voucher_pw'); } catch (e) {}
+        try { localStorage.removeItem('hotspot_last_voucher_pw'); } catch (e) {}
+        try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_last_voucher_pw', '', -1); } catch (e) {}
+        try { sessionStorage.removeItem('hotspot_password'); } catch (e) {}
+        try { localStorage.removeItem('hotspot_password'); } catch (e) {}
+        try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_password', '', -1); } catch (e) {}
 
         // Decode footer MAC address if present
         var footerMac = document.getElementById('footer-mac-display');
@@ -85,6 +97,8 @@
               if (isRandom) {
                 typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
                 typeDisplay.classList.add('mac-type-display--random');
+                var macHint = document.getElementById('mac-random-hint');
+                if (macHint) macHint.hidden = false;
               } else {
                 typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
                 typeDisplay.classList.add('mac-type-display--device');

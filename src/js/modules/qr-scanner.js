@@ -115,9 +115,6 @@ var qrScanner = {
         if (typeof window.history !== 'undefined' && window.history.replaceState) {
           window.history.replaceState({}, '', clean);
         }
-      } else if (!this._isStrippedWebView() && btn) {
-        // If user navigated into Chrome directly, pulse button briefly to guide eye
-        btn.classList.add('qr-scan-btn--attn');
       }
     } catch (err) {
       console.error('QR page load error:', err);
@@ -315,6 +312,9 @@ var qrScanner = {
     var self = this;
     this._loadDecoder(function() {
       if (typeof jsQR === 'undefined') {
+        document.querySelectorAll('#qr-file-input, #qr-gallery-input').forEach(function(input) {
+          input.value = '';
+        });
         util.showToast(i18n.t('qr_scan_unavailable'), 'error');
         return;
       }
@@ -330,16 +330,35 @@ var qrScanner = {
       };
 
       var tryScales = function(source, w, h, release) {
-        var scales = [1, 0.5];
-        for (var i = 0; i < scales.length; i++) {
-          var scale = scales[i] * Math.min(1, 1200 / Math.max(w, h));
-          var cw = Math.max(1, Math.round(w * scale));
-          var ch = Math.max(1, Math.round(h * scale));
+        var maxDim = Math.max(w, h);
+        // Escalating passes: fast 1200px & 600px first; if a dense link card
+        // occupies a small fraction of a 12MP camera frame, retry at 2200px and
+        // a native-resolution center crop before giving up.
+        var attempts = [
+          { cap: 1200, crop: 1 },
+          { cap: 600, crop: 1 }
+        ];
+        if (maxDim > 1200) {
+          attempts.push({ cap: 2200, crop: 1 });
+        }
+        if (w > 800 && h > 800) {
+          attempts.push({ cap: 1600, crop: 0.55 });
+        }
+
+        for (var i = 0; i < attempts.length; i++) {
+          var cfg = attempts[i];
+          var sw = Math.max(1, Math.round(w * cfg.crop));
+          var sh = Math.max(1, Math.round(h * cfg.crop));
+          var sx = Math.round((w - sw) / 2);
+          var sy = Math.round((h - sh) / 2);
+          var scale = Math.min(1, cfg.cap / Math.max(sw, sh));
+          var cw = Math.max(1, Math.round(sw * scale));
+          var ch = Math.max(1, Math.round(sh * scale));
           var canvas = document.createElement('canvas');
           canvas.width = cw;
           canvas.height = ch;
           var ctx = canvas.getContext('2d');
-          ctx.drawImage(source, 0, 0, cw, ch);
+          ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
           var imageData = ctx.getImageData(0, 0, cw, ch);
           var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
           if (code && code.data) {
@@ -411,7 +430,17 @@ var qrScanner = {
       if (route.password && form) {
         form.setAttribute('data-scanned-password', route.password);
       }
-      auth.beginAutoLogin(route.code, true);
+      var hasVoucherInput = !!document.getElementById('voucher');
+      var hasNormalInputs = !!(document.getElementById('username') && document.getElementById('password'));
+      if (!hasVoucherInput && hasNormalInputs) {
+        auth.beginAutoLogin(route.code, true, 'normal', route.password || route.code);
+      } else {
+        var voucherTab = document.querySelector('.auth-tab[data-mode="voucher"]');
+        if (voucherTab && !voucherTab.classList.contains('auth-tab--active')) {
+          voucherTab.click();
+        }
+        auth.beginAutoLogin(route.code, true);
+      }
       if (route.password && form) {
         form.removeAttribute('data-scanned-password');
       }

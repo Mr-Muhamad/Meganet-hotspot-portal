@@ -296,5 +296,39 @@ describe('Hotspot.qrScanner', () => {
       qrScanner._handleResult('https://untrusted-site.com/bad');
       expect(global.util.showToast).toHaveBeenCalledWith('qr_scan_failed', 'error');
     });
+
+    test('_handleResult switches to voucher tab when normal tab is active and uses normal mode if voucher input absent', () => {
+      const authSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {});
+      document.body.innerHTML += `
+        <button class="auth-tab" data-mode="voucher"></button>
+        <input id="voucher" type="tel">
+      `;
+      const voucherTab = document.querySelector('.auth-tab[data-mode="voucher"]');
+      const tabClickSpy = jest.spyOn(voucherTab, 'click');
+
+      qrScanner._handleResult('09408628');
+      expect(tabClickSpy).toHaveBeenCalled();
+      expect(authSpy).toHaveBeenCalledWith('09408628', true);
+
+      document.getElementById('voucher').remove();
+      document.body.innerHTML += '<input id="username"><input id="password">';
+      qrScanner._handleResult('http://wifi.lan/login?username=54052307&password=secret');
+      expect(authSpy).toHaveBeenCalledWith('54052307', true, 'normal', 'secret');
+      authSpy.mockRestore();
+    });
+
+    test('auth.triggerAutoLogin skips saved-voucher countdown when ?qrscan= is present', () => {
+      localStorage.setItem('hotspot_last_voucher', '54052307');
+      document.body.innerHTML = '<form id="login-form"><div id="alerts"></div><input id="voucher"></form>';
+      window.history.pushState({}, '', '/ar/login?qrscan=camera');
+      const beginSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {});
+
+      auth.triggerAutoLogin();
+      expect(beginSpy).not.toHaveBeenCalled();
+
+      window.history.pushState({}, '', '/ar/login');
+      localStorage.removeItem('hotspot_last_voucher');
+      beginSpy.mockRestore();
+    });
   });
 });

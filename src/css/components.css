@@ -2,13 +2,13 @@
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  padding: var(--space-md);
   border: 1px solid var(--color-border);
 }
 
 .card-header {
   text-align: center;
-  margin-bottom: var(--space-lg);
+  margin-bottom: 12px;
 }
 
 .card-header__brand {
@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .card-header__logo {
@@ -26,18 +26,13 @@
 }
 
 .card-header__logo-svg {
-  height: 48px;
+  height: 60px;
   width: auto;
-  max-width: 260px;
+  max-width: 100%;
   display: block;
 }
 
-[dir="ltr"] .card-header__logo-svg .text-luxury {
-  opacity: 1;
-}
-
-[dir="rtl"] .card-header__logo-svg .text-ar {
-  display: block;
+.card-header__logo-svg .text-luxury {
   opacity: 1;
 }
 
@@ -56,18 +51,22 @@
   margin-bottom: var(--space-xs);
 }
 
+.card-header__title:last-child {
+  margin-bottom: 0;
+}
+
 .card-header__subtitle {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
 .card-body {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 12px;
 }
 
 .card-footer {
   text-align: center;
-  padding-top: var(--space-md);
+  padding-top: 12px;
   border-top: 1px solid var(--color-border);
 }
 
@@ -231,6 +230,133 @@
   height: 20px;
 }
 
+/* Voucher Input Chunking & Clear Action */
+#voucher {
+  padding-inline: 2.75rem;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+#voucher::placeholder {
+  letter-spacing: normal;
+  font-weight: var(--font-weight-normal);
+}
+
+.input-clear {
+  position: absolute;
+  inset-inline-end: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.input-clear:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.input-clear[hidden] {
+  display: none !important;
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.form-input--shake {
+  animation: input-shake 0.25s ease-in-out 2;
+  border-color: var(--color-warning) !important;
+}
+
+.input-lang-hint {
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  background: var(--color-warning-alpha-10);
+  border: 1px solid var(--color-warning-alpha-30);
+  border-radius: var(--radius-md);
+  line-height: var(--line-height-normal);
+  text-align: center;
+}
+
+.input-lang-hint[hidden],
+.mac-random-hint[hidden],
+.logout-confirm-bar[hidden] {
+  display: none !important;
+}
+
+.mac-random-hint {
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  background: var(--color-warning-alpha-10);
+  border: 1px solid var(--color-warning-alpha-30);
+  border-radius: var(--radius-md);
+  line-height: var(--line-height-normal);
+  text-align: center;
+}
+
+.btn-danger {
+  background: var(--color-error);
+  color: #ffffff;
+  border: 1px solid var(--color-error);
+}
+
+.btn-danger:hover {
+  filter: brightness(0.92);
+}
+
+.logout-confirm-bar {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-error-alpha-10);
+  border: 1px solid var(--color-error-alpha-40);
+  text-align: center;
+}
+
+.logout-confirm-bar__text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.logout-confirm-bar__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.plans-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-bottom: var(--space-md);
+}
+
 /* Checkbox */
 .checkbox-group {
   display: flex;
@@ -350,7 +476,7 @@
 .auth-tabs {
   display: flex;
   gap: var(--space-xs);
-  margin-bottom: var(--space-md);
+  margin-bottom: 12px;
   background: var(--color-surface-hover); /* Darker container background */
   padding: var(--space-xs);
   border-radius: var(--radius-md);
@@ -359,7 +485,7 @@
 
 .auth-tab {
   flex: 1;
-  padding: var(--space-sm) var(--space-md);
+  padding: 6px 12px;
   border-radius: calc(var(--radius-md) - 2px);
   border: none;
   background: transparent;
@@ -565,8 +691,8 @@
   align-items: center;
   justify-content: center;
   z-index: 999;
-  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
-  animation: support-pulse 2s infinite;
+  transition: opacity var(--transition-fast), transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+  animation: support-pulse 2s 3;
 }
 
 .support-trigger:hover {
@@ -718,13 +844,13 @@
 .announcement-banner {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   background: var(--glass-banner);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--color-border);
@@ -753,15 +879,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .announcement-banner__icon {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
 }
 
 .announcement-banner__content {
@@ -770,9 +896,9 @@
 }
 
 .announcement-banner__text {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  line-height: 1.4;
+  line-height: 1.3;
   transition: opacity 0.3s ease;
   opacity: 1;
 }
@@ -786,9 +912,11 @@
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-xs);
+  min-width: 26px;
+  min-height: 26px;
+  width: 26px;
+  height: 26px;
+  padding: 2px;
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast), background var(--transition-fast);
   display: flex;
@@ -803,8 +931,8 @@
 }
 
 .announcement-banner__close-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 /* Warnings (Yellow/Orange Neon) — text/icon/bright tones are themed tokens so
@@ -812,7 +940,7 @@
 .announcement-banner--warning {
   border-color: var(--color-warning-alpha-50);
   box-shadow: 0 4px 20px var(--color-warning-alpha-15);
-  animation: announcement-pulse-warning 2s infinite alternate ease-in-out;
+  animation: announcement-pulse-warning 2s 3 alternate ease-in-out;
 }
 .announcement-banner--warning .announcement-banner__icon-wrapper {
   background: var(--color-warning-alpha-15);
@@ -826,7 +954,7 @@
 .announcement-banner--promo {
   border-color: var(--color-primary-alpha-50);
   box-shadow: 0 4px 20px var(--color-primary-alpha-15);
-  animation: announcement-pulse-promo 2s infinite alternate ease-in-out;
+  animation: announcement-pulse-promo 2s 3 alternate ease-in-out;
 }
 .announcement-banner--promo .announcement-banner__icon-wrapper {
   background: var(--color-primary-alpha-15);
@@ -840,7 +968,7 @@
 .announcement-banner--info {
   border-color: var(--color-info-alpha-50, var(--color-primary-alpha-50));
   box-shadow: 0 4px 20px var(--color-info-alpha-15, var(--color-primary-alpha-15));
-  animation: announcement-pulse-info 2s infinite alternate ease-in-out;
+  animation: announcement-pulse-info 2s 3 alternate ease-in-out;
 }
 .announcement-banner--info .announcement-banner__icon-wrapper {
   background: var(--color-info-alpha-15, var(--color-primary-alpha-15));

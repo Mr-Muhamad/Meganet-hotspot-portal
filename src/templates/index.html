@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% if lang == 'en' %}WiFi Portal{% else %}بوابة الواي فاي{% endif %}</title>
   <script>
-    // Route to the portal language matching explicit cookie or browser preference,
-    // defaulting to the Arabic portal (primary audience).
+    // Route to the portal language matching explicit cookie, defaulting
+    // unconditionally to the Arabic portal unless the user toggled English.
     (function() {
       var saved = '';
       try {
@@ -15,13 +15,6 @@
       } catch (err) { /* cookie unavailable */ }
 
       var goEnglish = saved === 'en';
-      if (saved !== 'en' && saved !== 'ar') {
-        var lang = 'ar';
-        try {
-          lang = (navigator.language || navigator.userLanguage || 'ar').toLowerCase();
-        } catch (err) { /* detection unavailable */ }
-        goEnglish = lang.indexOf('en') === 0;
-      }
 
       var qs = window.location.search || '';
       {% if lang == 'ar' %}

@@ -31,6 +31,16 @@
               <span data-i18n="technical_support">{{ i18n.technical_support }}</span>
             </button>
           </div>
+
+          <div class="footer__device-info" style="margin-top: var(--space-md);">
+            <button type="button" class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}">
+              IP: <strong class="device-chip__value"><bdi dir="ltr">$(ip)</bdi></strong>
+            </button>
+            <button type="button" class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}">
+              MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
+            </button>
+          </div>
+          <p id="mac-random-hint" class="mac-random-hint" hidden data-i18n="mac_random_warning">{{ i18n.mac_random_warning }}</p>
         </div>
       </div>
 {% endblock %}
@@ -50,6 +60,39 @@
         ui.initTheme();
         ui.initLang();
         ui.translateRouterError();
+
+        // Decode footer MAC address if present
+        var footerMac = document.getElementById('footer-mac-display');
+        if (footerMac) {
+          var footerMacTarget = (footerMac.querySelector && footerMac.querySelector('bdi')) || footerMac;
+          var rawMacText = footerMacTarget.textContent.trim();
+          var decodedMac = '';
+          try {
+            decodedMac = decodeURIComponent(rawMacText);
+          } catch (e) {
+            decodedMac = rawMacText.replace(/%3A/gi, ':');
+          }
+          footerMacTarget.textContent = decodedMac;
+
+          var cleanMac = decodedMac.replace(/[:-]/g, '');
+          if (cleanMac.length >= 2) {
+            var secondChar = cleanMac.charAt(1).toUpperCase();
+            var isRandom = ['2', '6', 'A', 'E'].indexOf(secondChar) !== -1;
+            var typeDisplay = document.getElementById('mac-type-display');
+            if (typeDisplay) {
+              var lang = document.documentElement.getAttribute('lang') || 'en';
+              if (isRandom) {
+                typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
+                typeDisplay.classList.add('mac-type-display--random');
+                var macHint = document.getElementById('mac-random-hint');
+                if (macHint) macHint.hidden = false;
+              } else {
+                typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
+                typeDisplay.classList.add('mac-type-display--device');
+              }
+            }
+          }
+        }
       } catch (err) {
         console.error('Error page init error:', err);
       }

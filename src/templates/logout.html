@@ -107,6 +107,9 @@
           }
         });
 
+        // Keep saved voucher & credentials across explicit logout so returning via
+        // browser or WebView can auto-reconnect without re-typing the card.
+
         // Auto-redirect countdown (20s). Guard against an un-substituted token
         // (local preview / cached page): navigating to the literal
         // '$(link-login)' would 404.

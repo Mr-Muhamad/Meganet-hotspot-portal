@@ -8,6 +8,18 @@ var auth = {
       var passwordInput = document.getElementById('password');
       var usernameInput = document.getElementById('username');
       var rememberCheckbox = document.getElementById('remember-me');
+      var hasInitError = auth._hasRouterError();
+      var clearOnPermanentErr = hasInitError && auth._isPermanentCredentialError();
+      var routerSubmittedUser = (usernameInput && usernameInput.value && usernameInput.value.indexOf('$(') === -1)
+        ? usernameInput.value.trim()
+        : '';
+      var preClearVoucher = auth._getStoredVoucher();
+      auth._fallbackVoucherDisplay = routerSubmittedUser || preClearVoucher || '';
+
+      if (clearOnPermanentErr) {
+        auth._clearStoredVoucher();
+        auth._clearStoredPassword();
+      }
 
       if (passwordInput) {
         passwordInput.addEventListener('keyup', function(e) {
@@ -15,18 +27,13 @@ var auth = {
         });
 
         passwordInput.addEventListener('input', function(e) {
-          var val = passwordInput.value;
-          
-          // Convert Eastern Arabic/Persian numerals to Western Arabic (English) numerals
-          var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
-          var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-          for (var i = 0; i < 10; i++) {
-            val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
+          var converted = auth.convertArabicNumerals(passwordInput.value);
+          var val = converted.replace(/[^\x20-\x7E]/g, '');
+
+          if (converted.replace(/\s+/g, '') !== val.replace(/\s+/g, '')) {
+            auth.showInputSanitizedHint(passwordInput);
           }
-          
-          // Remove all non-ASCII/non-standard printable characters (allows all standard keyboard characters, blocks Arabic/Persian)
-          val = val.replace(/[^\x20-\x7E]/g, '');
-          
+
           if (passwordInput.value !== val) {
             passwordInput.value = val;
           }
@@ -34,27 +41,29 @@ var auth = {
       }
 
       if (usernameInput) {
-        var savedUsername = util.getCookie('hotspot_username');
-        if (savedUsername && usernameInput) {
+        if (usernameInput.value && usernameInput.value.indexOf('$(') !== -1) {
+          usernameInput.value = '';
+        }
+        var savedUsername = auth._getStoredUsername();
+        if (savedUsername && !usernameInput.value) {
           usernameInput.value = savedUsername;
           if (rememberCheckbox) {
             rememberCheckbox.checked = true;
           }
         }
+        var savedPassword = !clearOnPermanentErr ? auth._getStoredPassword() : null;
+        if (savedPassword && passwordInput && !passwordInput.value) {
+          passwordInput.value = savedPassword;
+        }
 
         usernameInput.addEventListener('input', function(e) {
-          var val = usernameInput.value;
-          
-          // Convert Eastern Arabic/Persian numerals to Western Arabic (English) numerals
-          var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
-          var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-          for (var i = 0; i < 10; i++) {
-            val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
+          var converted = auth.convertArabicNumerals(usernameInput.value);
+          var val = converted.replace(/[^a-zA-Z0-9_@.-]/g, '');
+
+          if (converted.replace(/\s+/g, '') !== val) {
+            auth.showInputSanitizedHint(usernameInput);
           }
-          
-          // Allow only English alphanumeric characters and _ @ . -
-          val = val.replace(/[^a-zA-Z0-9_@.-]/g, '');
-          
+
           if (usernameInput.value !== val) {
             usernameInput.value = val;
           }
@@ -78,10 +87,15 @@ var auth = {
       var voucherInput = document.getElementById('voucher');
       if (voucherInput) {
         voucherInput.addEventListener('input', function() {
-          var val = auth.normalizeVoucherText(voucherInput.value, auth.getVoucherFormat());
+          var converted = auth.convertArabicNumerals(voucherInput.value);
+          var val = auth.normalizeVoucherText(converted, auth.getVoucherFormat());
+          if (converted.replace(/\s+/g, '') !== val) {
+            auth.showInputSanitizedHint(voucherInput);
+          }
           if (voucherInput.value !== val) {
             voucherInput.value = val;
           }
+          auth._syncVoucherClearBtn();
 
           // No auto-submit on typing: codes are VARIABLE length (min is only a
           // floor), so the portal cannot know the code is complete — submitting
@@ -95,6 +109,7 @@ var auth = {
           setTimeout(function() {
             var val = auth.normalizeVoucherText(voucherInput.value, auth.getVoucherFormat());
             voucherInput.value = val;
+            auth._syncVoucherClearBtn();
             var lenForm = document.getElementById('login-form');
             var minLen = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
             if (val && (!minLen || val.length >= minLen)) {
@@ -102,6 +117,21 @@ var auth = {
             }
           }, 50);
         });
+      }
+
+      // Pardon transient system/session errors in rate limiter (stored secrets were already cleared above)
+      if (hasInitError) {
+        var initErrorEl = document.getElementById('errorMessage') || document.getElementById('error-message');
+        var lowerErr = (initErrorEl ? initErrorEl.textContent.trim() : '').toLowerCase();
+        var isSystemOrSessionErr = lowerErr.indexOf('not responding') !== -1 ||
+          lowerErr.indexOf('already logged in') !== -1 ||
+          lowerErr.indexOf('simultaneous') !== -1 ||
+          lowerErr.indexOf('shutting down') !== -1 ||
+          lowerErr.indexOf('no more sessions') !== -1 ||
+          lowerErr.indexOf('internal error') !== -1;
+        if (isSystemOrSessionErr && typeof rateLimiter !== 'undefined' && rateLimiter.reset) {
+          rateLimiter.reset('device');
+        }
       }
 
 
@@ -158,6 +188,7 @@ var auth = {
 
         if (voucherInput) {
           voucherInput.value = voucherParam;
+          auth._syncVoucherClearBtn();
         }
         if (usernameInput) {
           usernameInput.value = voucherParam;
@@ -189,6 +220,16 @@ var auth = {
         if (initLimitStatus.blocked) {
           auth.handleRateLimit(initLimitStatus);
         }
+      }
+
+      if (typeof window !== 'undefined' && window.addEventListener && !auth._pageshowBound) {
+        auth._pageshowBound = true;
+        window.addEventListener('pageshow', function(ev) {
+          if (ev && ev.persisted) {
+            auth.setLoadingState(false);
+            auth.triggerAutoLogin();
+          }
+        });
       }
     } catch (err) {
       console.error('Auth init error:', err);
@@ -376,9 +417,14 @@ var auth = {
         form.requestSubmit();
       } else if (typeof doLogin === 'function') {
         // Legacy browsers: form.submit() bypasses submit listeners, so run the
-        // handler's work by hand — copy the voucher, then CHAP-hash — first.
-        var voucherInput = document.getElementById('voucher');
-        auth.applyVoucherCredentials(voucherInput ? (voucherInput.value || '') : '');
+        // handler's work by hand before CHAP-hashing.
+        var fallbackMode = auth._detectActiveMode();
+        if (fallbackMode === 'voucher') {
+          var voucherInput = document.getElementById('voucher');
+          auth.applyVoucherCredentials(voucherInput ? (voucherInput.value || '') : '');
+        } else if (fallbackMode === 'normal') {
+          auth.rememberUsername();
+        }
         if (doLogin()) form.submit();
       } else {
         form.submit();
@@ -464,39 +510,238 @@ var auth = {
     }
   },
 
+  _getStorageItem: function(key) {
+    var val = null;
+    try { if (typeof sessionStorage !== 'undefined') val = sessionStorage.getItem(key); } catch (e) {}
+    if (!val) {
+      try { if (typeof localStorage !== 'undefined') val = localStorage.getItem(key); } catch (e2) {}
+    }
+    if (!val && typeof util !== 'undefined' && util.getCookie) {
+      try { val = util.getCookie(key); } catch (e3) {}
+    }
+    return val || null;
+  },
+
+  _setStorageItem: function(key, value, days) {
+    try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value); } catch (e1) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(key, value); } catch (e2) {}
+    try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie(key, value, days || 30); } catch (e3) {}
+  },
+
+  _removeStorageItem: function(key) {
+    try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key); } catch (e1) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem(key); } catch (e2) {}
+    try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie(key, '', -1); } catch (e3) {}
+  },
+
+  _hasRouterError: function() {
+    var errorMsg = document.getElementById('errorMessage') || document.getElementById('error-message');
+    if (!errorMsg) return false;
+    var txt = errorMsg.textContent.trim();
+    return txt !== '' && txt.indexOf('$(') === -1;
+  },
+
+  /**
+   * Distinguish permanent credential/quota rejections from transient session or
+   * server hiccups so temporary errors do not wipe saved vouchers/passwords.
+   * Reads data-raw-error when available so pre-translated Arabic errors still match.
+   */
+  _isPermanentCredentialError: function() {
+    var errorMsg = document.getElementById('errorMessage') || document.getElementById('error-message');
+    if (!errorMsg) return false;
+    var raw = errorMsg.getAttribute('data-raw-error') || errorMsg.textContent || '';
+    var err = String(raw).trim().toLowerCase();
+    if (!err || err.indexOf('$(') !== -1) return false;
+    var patterns = [
+      'invalid username or password',
+      'not found',
+      'account expired',
+      'user expired',
+      'uptime limit',
+      'traffic limit',
+      'transfer limit',
+      'byte limit',
+      'credit limit',
+      'no valid profile',
+      'not allowed to log in from this mac'
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      if (err.indexOf(patterns[i]) !== -1) return true;
+    }
+    return false;
+  },
+
+  _detectActiveMode: function() {
+    var activeTab = document.querySelector('.auth-tab--active');
+    if (activeTab) {
+      return activeTab.getAttribute('data-mode') || 'voucher';
+    }
+    var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
+    var normalPanel = document.querySelector('[data-mode-panel="normal"]');
+    if (voucherPanel && (voucherPanel.hidden || voucherPanel.style.display === 'none')) {
+      if (normalPanel && !normalPanel.hidden && normalPanel.style.display !== 'none') {
+        return 'normal';
+      }
+    }
+    var voucherInput = document.getElementById('voucher');
+    var usernameInput = document.getElementById('username');
+    if (voucherInput && voucherInput.offsetWidth > 0) return 'voucher';
+    if (usernameInput && usernameInput.offsetWidth > 0) return 'normal';
+    return 'voucher';
+  },
+
   saveMode: function(mode) {
     try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('hotspot_mode', mode);
-      }
+      auth._setStorageItem('hotspot_mode', mode, 30);
     } catch (err) {
       console.error('Save mode error:', err);
     }
   },
 
+  _getSavedMode: function() {
+    return auth._getStorageItem('hotspot_mode');
+  },
+
+  _langHintTimer: null,
+
+  convertArabicNumerals: function(text) {
+    var val = String(text || '');
+    var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
+    var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+    for (var i = 0; i < 10; i++) {
+      val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
+    }
+    return val;
+  },
+
+  _syncVoucherClearBtn: function() {
+    var voucherInput = document.getElementById('voucher');
+    var clearBtn = document.getElementById('voucher-clear');
+    if (clearBtn) {
+      clearBtn.hidden = !(voucherInput && voucherInput.value && voucherInput.value.length > 0);
+    }
+  },
+
+  _getStoredVoucher: function() {
+    return auth._getStorageItem('hotspot_last_voucher');
+  },
+
+  _saveStoredVoucher: function(voucherValue) {
+    auth._setStorageItem('hotspot_last_voucher', voucherValue, 30);
+  },
+
+  _getStoredVoucherPassword: function() {
+    return auth._getStorageItem('hotspot_last_voucher_pw');
+  },
+
+  _saveStoredVoucherPassword: function(passwordValue) {
+    auth._setStorageItem('hotspot_last_voucher_pw', passwordValue, 30);
+  },
+
+  _clearStoredVoucher: function() {
+    auth._removeStorageItem('hotspot_last_voucher');
+    auth._removeStorageItem('hotspot_last_voucher_pw');
+  },
+
+  _getStoredUsername: function() {
+    return auth._getStorageItem('hotspot_username');
+  },
+
+  _saveStoredUsername: function(usernameValue) {
+    auth._setStorageItem('hotspot_username', usernameValue, 30);
+  },
+
+  _clearStoredUsername: function() {
+    auth._removeStorageItem('hotspot_username');
+  },
+
+  _getStoredPassword: function() {
+    return auth._getStorageItem('hotspot_password');
+  },
+
+  _saveStoredPassword: function(passwordValue) {
+    auth._setStorageItem('hotspot_password', passwordValue, 30);
+  },
+
+  _clearStoredPassword: function() {
+    auth._removeStorageItem('hotspot_password');
+  },
+
+  clearVoucher: function() {
+    try {
+      var voucherInput = document.getElementById('voucher');
+      var clearBtn = document.getElementById('voucher-clear');
+      if (voucherInput) {
+        voucherInput.value = '';
+        voucherInput.focus();
+      }
+      if (clearBtn) clearBtn.hidden = true;
+      auth._fallbackVoucherDisplay = '';
+      auth._clearStoredVoucher();
+    } catch (err) {
+      console.error('Clear voucher error:', err);
+    }
+  },
+
+  showInputSanitizedHint: function(inputEl) {
+    try {
+      if (inputEl && inputEl.classList) {
+        inputEl.classList.remove('form-input--shake');
+        void inputEl.offsetWidth;
+        inputEl.classList.add('form-input--shake');
+      }
+      var hintEl = document.getElementById('input-lang-hint');
+      if (hintEl) {
+        var msg = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('keyboard_lang_hint') : '';
+        if (msg && msg !== 'keyboard_lang_hint') hintEl.textContent = msg;
+        hintEl.hidden = false;
+        if (auth._langHintTimer) clearTimeout(auth._langHintTimer);
+        auth._langHintTimer = setTimeout(function() {
+          hintEl.hidden = true;
+        }, 4000);
+      }
+    } catch (err) {
+      console.error('Show input hint error:', err);
+    }
+  },
+
   restoreSavedMode: function() {
     try {
-      var savedMode = null;
-      if (typeof localStorage !== 'undefined') {
-        savedMode = localStorage.getItem('hotspot_mode');
-      }
-
-      var mode = savedMode || 'voucher';
-      var tab = document.querySelector('[data-mode="' + mode + '"]');
+      var savedMode = auth._getSavedMode();
+      var tab = document.querySelector('[data-mode="' + (savedMode || 'voucher') + '"]');
       if (tab) {
         tab.click();
       }
 
+      var mode = auth._detectActiveMode();
+      var hasError = auth._hasRouterError();
+      var permanentErr = hasError && auth._isPermanentCredentialError();
       if (mode === 'voucher') {
-        var lastVoucher = null;
-        if (typeof sessionStorage !== 'undefined') {
-          lastVoucher = sessionStorage.getItem('hotspot_last_voucher');
-        }
+        var lastVoucher = !permanentErr
+          ? auth._getStoredVoucher()
+          : (auth._fallbackVoucherDisplay || null);
         if (lastVoucher) {
           var voucherInput = document.getElementById('voucher');
-          if (voucherInput) {
+          if (voucherInput && !voucherInput.value) {
             voucherInput.value = lastVoucher;
           }
+          var lastVoucherPw = !permanentErr ? auth._getStoredVoucherPassword() : null;
+          var form = document.getElementById('login-form');
+          if (lastVoucherPw && form && !form.getAttribute('data-scanned-password')) {
+            form.setAttribute('data-scanned-password', lastVoucherPw);
+          }
+        }
+        auth._syncVoucherClearBtn();
+      } else if (mode === 'normal') {
+        var usernameInput = document.getElementById('username');
+        var passwordInput = document.getElementById('password');
+        var savedUsername = auth._getStoredUsername();
+        if (savedUsername && usernameInput && !usernameInput.value) {
+          usernameInput.value = savedUsername;
+        }
+        var savedPassword = !permanentErr ? auth._getStoredPassword() : null;
+        if (savedPassword && passwordInput && !passwordInput.value) {
+          passwordInput.value = savedPassword;
         }
       }
     } catch (err) {
@@ -506,22 +751,10 @@ var auth = {
 
   onFormSubmit: function(e) {
     try {
-      var activeTab = document.querySelector('.auth-tab--active');
-      var mode = 'voucher'; // default fallback
+      var mode = auth._detectActiveMode();
       var usernameInput = document.getElementById('username');
       var passwordInput = document.getElementById('password');
       var voucherInput = document.getElementById('voucher');
-      
-      if (activeTab) {
-        mode = activeTab.getAttribute('data-mode');
-      } else {
-        // If tabs are hidden, detect mode by checking if voucher field is visible or username is hidden
-        if (voucherInput && voucherInput.offsetWidth > 0) {
-          mode = 'voucher';
-        } else if (usernameInput && usernameInput.offsetWidth > 0) {
-          mode = 'normal';
-        }
-      }
 
       // Empty normal credentials guard (must run before consuming rate-limit slots)
       if (mode === 'normal') {
@@ -574,6 +807,11 @@ var auth = {
           if (afterAttempt && !afterAttempt.blocked && afterAttempt.attemptsRemaining <= 2) {
             auth.showRateLimitWarning(afterAttempt.attemptsRemaining);
           }
+        } else {
+          var afterDevice = rateLimiter.check('device', 15);
+          if (afterDevice && !afterDevice.blocked && afterDevice.attemptsRemaining <= 2) {
+            auth.showRateLimitWarning(afterDevice.attemptsRemaining);
+          }
         }
       }
 
@@ -624,10 +862,15 @@ var auth = {
       }
 
       var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
-      if (preventClone && typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('hotspot_last_voucher', voucherValue);
-      } else if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('hotspot_last_voucher');
+      if (preventClone) {
+        auth._saveStoredVoucher(voucherValue);
+        if (scannedPassword) {
+          auth._saveStoredVoucherPassword(scannedPassword);
+        } else {
+          auth._removeStorageItem('hotspot_last_voucher_pw');
+        }
+      } else {
+        auth._clearStoredVoucher();
       }
     } catch (err) {
       console.error('Voucher credential copy error:', err);
@@ -732,13 +975,22 @@ var auth = {
   rememberUsername: function() {
     try {
       var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
       var rememberCheckbox = document.getElementById('remember-me');
+      var form = document.getElementById('login-form');
+      var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
 
       if (usernameInput && rememberCheckbox) {
-        if (rememberCheckbox.checked) {
-          util.setCookie('hotspot_username', usernameInput.value, 30);
+        if (rememberCheckbox.checked && usernameInput.value.trim()) {
+          auth._saveStoredUsername(usernameInput.value.trim());
+          if (preventClone && passwordInput && passwordInput.value) {
+            auth._saveStoredPassword(passwordInput.value);
+          } else {
+            auth._clearStoredPassword();
+          }
         } else {
-          util.setCookie('hotspot_username', '', -1);
+          auth._clearStoredUsername();
+          auth._clearStoredPassword();
         }
       }
     } catch (err) {
@@ -805,12 +1057,7 @@ var auth = {
    */
   normalizeVoucherText: function(text, format) {
     try {
-      var val = String(text || '');
-      var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
-      var persianNums = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-      for (var i = 0; i < 10; i++) {
-        val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
-      }
+      var val = auth.convertArabicNumerals(text);
       if (format === 'alphanumeric') {
         return val.replace(/[^a-zA-Z0-9_-]/g, '');
       }
@@ -824,19 +1071,42 @@ var auth = {
   },
 
   /**
-   * Fill the voucher field and start auto-login.
+   * Fill the credential fields and start auto-login.
    * If instant=true (e.g. from newly scanned QR), submit immediately in 0 seconds.
    * Otherwise (from saved cookie/localStorage), show a 3-second cancellable countdown.
-   * @param {string} voucherValue - the code to log in with
+   * @param {string} credentialValue - voucher code or username
    * @param {boolean} [instant=false] - whether to skip countdown and submit immediately
+   * @param {string} [mode='voucher'] - 'voucher' or 'normal'
+   * @param {string} [normalPassword=''] - password for 'normal' mode auto-login
    */
-  beginAutoLogin: function(voucherValue, instant) {
+  beginAutoLogin: function(credentialValue, instant, mode, normalPassword) {
     try {
-      var voucherInput = document.getElementById('voucher');
+      var activeMode = mode === 'normal' ? 'normal' : 'voucher';
       var form = document.getElementById('login-form');
-      if (!voucherInput || !form) return;
+      if (!form) return;
 
-      voucherInput.value = voucherValue;
+      var voucherInput = document.getElementById('voucher');
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+
+      if (activeMode === 'voucher') {
+        if (!voucherInput) return;
+        voucherInput.value = credentialValue;
+        auth._syncVoucherClearBtn();
+      } else {
+        if (!usernameInput || !passwordInput) return;
+        usernameInput.value = credentialValue;
+        passwordInput.value = normalPassword || '';
+      }
+
+      var applyCredentialsForSubmit = function() {
+        if (activeMode === 'normal') {
+          usernameInput.value = credentialValue;
+          passwordInput.value = normalPassword || '';
+        } else {
+          auth.applyVoucherCredentials(credentialValue);
+        }
+      };
 
       // Clear any running auto-login interval before starting a fresh one
       if (auth.autoLoginTimer) {
@@ -852,7 +1122,7 @@ var auth = {
 
       // Instant path: from real-time QR scan — skip wait time completely!
       if (instant) {
-        auth.applyVoucherCredentials(voucherValue);
+        applyCredentialsForSubmit();
         util.showToast(i18n.t('connecting') || 'Connecting...', 'info', 1500);
         auth.submitLoginForm(form);
         return;
@@ -910,7 +1180,7 @@ var auth = {
           if (alertEl) alertEl.remove();
 
           // Set form inputs and submit
-          auth.applyVoucherCredentials(voucherValue);
+          applyCredentialsForSubmit();
 
           // Submit form
           auth.submitLoginForm(form);
@@ -923,39 +1193,56 @@ var auth = {
 
   triggerAutoLogin: function() {
     try {
-      // Don't auto-login if there is an error message showing (to prevent infinite loops)
-      var errorMsg = document.getElementById('errorMessage') || document.getElementById('error-message');
-      if (errorMsg && errorMsg.textContent.trim() !== '') {
+      // Don't auto-login if there is a real router error message showing (ignore un-substituted $(error-esc))
+      if (auth._hasRouterError()) {
         return;
       }
 
-      // Check if the current tab mode is voucher
-      var activeTab = document.querySelector('.auth-tab--active');
-      var mode = activeTab ? activeTab.getAttribute('data-mode') : 'voucher';
-      if (mode !== 'voucher') return;
-
-      // Check if the current page has the form
-      var form = document.getElementById('login-form');
-
-      // Check if clone prevention is disabled via data-clone-prevention
-      var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
-
-      // Check if we have a saved voucher (sessionStorage: never survives a
-      // tab close, so a shared device cannot replay the previous code)
-      var lastVoucher = null;
-      if (preventClone && typeof sessionStorage !== 'undefined') {
-        lastVoucher = sessionStorage.getItem('hotspot_last_voucher');
-      } else if (!preventClone && typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('hotspot_last_voucher');
+      // Skip saved-credential auto-login when an explicit QR/URL login param
+      // or a WebView-to-browser QR scan escape marker is present
+      if (typeof window !== 'undefined' && window.location && window.location.search) {
+        var qs = new URLSearchParams(window.location.search);
+        if (qs.get('voucher') || qs.get('username') || qs.get('qrscan')) {
+          return;
+        }
       }
 
-      if (!lastVoucher) return;
+      var form = document.getElementById('login-form');
+      if (!form) return;
 
-      // Check if the current page has the voucher input and form
-      var voucherInput = document.getElementById('voucher');
-      if (!voucherInput || !form) return;
+      var preventClone = form.getAttribute('data-clone-prevention') !== 'false';
+      if (!preventClone) {
+        auth._clearStoredVoucher();
+        auth._clearStoredPassword();
+        return;
+      }
 
-      auth.beginAutoLogin(lastVoucher);
+      var mode = auth._detectActiveMode();
+
+      if (mode === 'voucher') {
+        var lastVoucher = auth._getStoredVoucher();
+        if (!lastVoucher) return;
+
+        var lastVoucherPw = auth._getStoredVoucherPassword();
+        if (lastVoucherPw && !form.getAttribute('data-scanned-password')) {
+          form.setAttribute('data-scanned-password', lastVoucherPw);
+        }
+
+        var voucherInput = document.getElementById('voucher');
+        if (!voucherInput) return;
+
+        auth.beginAutoLogin(lastVoucher, false, 'voucher');
+      } else if (mode === 'normal') {
+        var savedUser = auth._getStoredUsername();
+        var savedPass = auth._getStoredPassword();
+        if (!savedUser || !savedPass) return;
+
+        var usernameInput = document.getElementById('username');
+        var passwordInput = document.getElementById('password');
+        if (!usernameInput || !passwordInput) return;
+
+        auth.beginAutoLogin(savedUser, false, 'normal', savedPass);
+      }
     } catch (err) {
       console.error('Auto login error:', err);
     }

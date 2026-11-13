@@ -245,6 +245,13 @@
               <span data-i18n="refresh">{{ i18n.refresh }}</span>
             </button>
           </div>
+          <div id="logout-confirm-bar" class="logout-confirm-bar" hidden role="region" aria-live="polite">
+            <p class="logout-confirm-bar__text" data-i18n="logout_confirm_prompt">{{ i18n.logout_confirm_prompt }}</p>
+            <div class="logout-confirm-bar__actions">
+              <a href="$(link-logout)" class="btn btn-danger btn-sm" id="logout-confirm-yes" data-i18n="logout_confirm_yes">{{ i18n.logout_confirm_yes }}</a>
+              <button type="button" class="btn btn-secondary btn-sm" id="logout-confirm-cancel" data-i18n="cancel">{{ i18n.cancel }}</button>
+            </div>
+          </div>
 
           <!-- Plans & Pricing Link -->
           <div class="plans-link-compact">

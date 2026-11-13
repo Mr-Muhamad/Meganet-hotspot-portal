@@ -37,27 +37,11 @@
       transform-origin: left center;
       letter-spacing: 5px;
     }
-    .text-ar {
-      filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.45));
-      letter-spacing: 0;
-    }
-    :root:not([dir="rtl"]) .text-ar {
-      display: none;
-    }
-    :root[dir="rtl"] .text-en {
-      display: none;
-    }
-    :root[dir="rtl"] .text-ar {
-      display: block;
-      opacity: 1;
-    }
-    :root[data-theme="light"] .text-luxury,
-    :root[data-theme="light"] .text-ar {
+    :root[data-theme="light"] .text-luxury {
       filter: none;
     }
     @media (prefers-color-scheme: light) {
-      :root:not([data-theme="dark"]) .text-luxury,
-      :root:not([data-theme="dark"]) .text-ar {
+      :root:not([data-theme="dark"]) .text-luxury {
         filter: none;
       }
     }
@@ -185,6 +169,8 @@
     <!-- Layer 1: Base Text -->
     <text x="108" y="73" fill="currentColor">
       MEGA <tspan fill="#ff0080">NET</tspan>
+      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -2 1; 2 -1; 0 0; -4 0; 4 2; -2 -2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
+      <animate attributeName="opacity" calcMode="discrete" values="1; 0.6; 0.8; 1; 0.4; 0.7; 0.5; 1; 1" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
     </text>
 
     <!-- Layer 4: Horizontal Slice 1 (Shifted Left) -->
@@ -201,9 +187,5 @@
       <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; 15 0; -10 0; 0 0; 25 0; -20 0; 18 0; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
     </text>
     
-  </g>
-
-  <g class="text-ar" font-family="Cairo, Tajawal, Segoe UI, Tahoma, sans-serif" font-weight="900" font-size="40" text-rendering="geometricPrecision">
-    <text x="245" y="72" text-anchor="middle" direction="rtl" fill="currentColor">ميجا <tspan fill="#ff0080">نت</tspan></text>
   </g>
 </svg>

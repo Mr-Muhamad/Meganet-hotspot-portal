@@ -341,11 +341,11 @@
 /* Small devices (360px+) */
 @media (min-width: 360px) {
   .page-shell {
-    padding: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
   }
 
   .card {
-    padding: var(--space-lg);
+    padding: var(--space-md);
   }
 }
 
@@ -377,6 +377,15 @@
 @media (min-width: 768px) {
   :root {
     --max-width: 480px;
+  }
+
+  .page-shell {
+    padding: var(--space-lg);
+  }
+
+  .main-content {
+    justify-content: center;
+    padding: var(--space-lg) 0;
   }
 
   .status-grid {
@@ -733,7 +742,7 @@
 .login-card-footer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 12px;
   align-items: center;
   justify-content: center;
 }
@@ -752,21 +761,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
   width: 100%;
   border-top: 1px dashed var(--color-border);
-  padding-top: var(--space-sm);
+  padding-top: 6px;
 }
 .device-chip {
   cursor: pointer;
-  padding: 6px 10px;
-  min-height: 44px;
+  padding: 2px 6px;
+  min-height: 24px;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-family: inherit;
-  font-size: inherit;
+  font-size: clamp(9px, 2.5vw, 10.5px);
+  white-space: nowrap;
+  overflow: hidden;
   color: inherit;
   border-radius: var(--radius-sm);
   background: var(--color-surface-hover);
@@ -776,11 +788,14 @@
 .device-chip__value {
   color: var(--color-text);
   font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mac-type-display {
   font-size: 8px;
   font-weight: bold;
-  margin-inline-start: 2px;
+  margin-inline-start: 1px;
+  flex-shrink: 0;
 }
 /* JS sets one of these classes instead of inline style colors so the hues
    follow the theme tokens (warning amber / live emerald). */
@@ -1025,6 +1040,14 @@
 .qr-scan-btn--attn { animation: qr-scan-pulse 1.6s ease-out 3; }
 @media (prefers-reduced-motion: reduce) {
   .qr-scan-btn--attn { animation: none; }
+}
+
+@media (max-width: 640px) {
+  body:focus-within .support-trigger {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px) scale(0.9);
+  }
 }
 
 /* Field helper (voucher input) — quiet, muted, clearly tied to typing */

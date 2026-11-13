@@ -91,6 +91,10 @@
     <div id="selected-plan-summary" class="alert alert-info plans-selected-summary" style="display:none;" role="status"><span class="alert__text" id="selected-plan-summary-text"></span></div>
     <p class="text-muted text-sm text-center plans-cta-hint" data-i18n="plans_cta_hint">{{ i18n.plans_cta_hint }}</p>
     <button type="button" class="btn btn-primary btn-block plans-cta-btn" onclick="toggleSupportModal()" data-i18n="request_activation">{{ i18n.request_activation }}</button>
+    <button type="button" id="copy-plan-request-btn" class="btn btn-secondary btn-block plans-copy-btn" style="display: none;" onclick="if(window.Hotspot&&window.Hotspot.ui)window.Hotspot.ui.copySelectedPlan(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span data-i18n="copy_order_btn">{{ i18n.copy_order_btn }}</span>
+    </button>
     <a href="./login.html" class="btn btn-secondary btn-block plans-back-btn" data-i18n="back_to_login">{{ i18n.back_to_login }}</a>
   </div>
 </div>

@@ -24,16 +24,17 @@ test('a first-time visitor with an Arabic browser is redirected to the Arabic po
   }
 });
 
-test('a first-time visitor with an English browser stays on the English login', async ({ browser }) => {
+test('a first-time visitor with an English browser still defaults to the Arabic login', async ({ browser }) => {
   const context = await browser.newContext({ locale: 'en-US' });
   const page = await context.newPage();
   try {
     await page.goto(`${DEFAULT}/login.html`);
-    await expect(page).toHaveURL(`${DEFAULT}/login.html`);
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    // the choice is remembered for the next visit
+    await expect(page).toHaveURL(/\/ar\/login\.html/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    // the default Arabic choice is remembered for the next visit
     const cookies = await context.cookies();
-    expect(cookies.find((c) => c.name === 'hotspot_lang')?.value).toBe('en');
+    expect(cookies.find((c) => c.name === 'hotspot_lang')?.value).toBe('ar');
   } finally {
     await context.close();
   }

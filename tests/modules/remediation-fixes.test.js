@@ -110,7 +110,11 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       });
       expect(util.getCookie('foo.bar+baz')).toBe('right');
       expect(util.getCookie('foo.bar')).toBeNull();
-      if (prev) Object.defineProperty(document, 'cookie', prev);
+      if (prev) {
+        Object.defineProperty(document, 'cookie', prev);
+      } else {
+        delete document.cookie;
+      }
     });
 
     test('safeRedirect accepts delay 0, rejects javascript:/unexpanded $(var), and uses location.replace', () => {
@@ -455,6 +459,201 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(svg).toContain('.svg-motion-layer');
       expect(svg).toContain('.svg-static-layer');
       expect(svg).not.toContain('<feDropShadow');
+    });
+  });
+
+  describe('UX & Behavioral Improvements', () => {
+    const util = require('../../src/js/modules/util.js');
+    const auth = require('../../src/js/modules/auth.js');
+    const statusModule = require('../../src/js/modules/status.js');
+
+    beforeEach(() => {
+      global.util = util;
+      global.i18n = { t: (k) => k };
+      document.documentElement.setAttribute('lang', 'en');
+    });
+
+    test('statusModule.calculateRemainingQuota smart-scales >= 1 GB to GB while keeping MB below 1 GB', () => {
+      document.body.innerHTML =
+        '<div id="sessionCountdownSection" data-limit-bytes-total="5368709120" data-bytes-in="0" data-bytes-out="0" data-kb-base="1024" data-quota-format="MB">' +
+        '<div id="session-countdown"></div><div id="quota-remaining-progress-fill"></div><div id="quota-remaining-percentage"></div>' +
+        '</div>';
+      statusModule.calculateRemainingQuota();
+      expect(document.getElementById('session-countdown').textContent).toBe('5 GB');
+
+      document.documentElement.setAttribute('lang', 'ar');
+      statusModule.calculateRemainingQuota();
+      expect(document.getElementById('session-countdown').textContent).toBe('5 جيجا');
+    });
+
+    test('statusModule.formatEstimate caps estimates above 99 hours realistically', () => {
+      expect(statusModule.formatEstimate(250, false)).toBe('99+ hrs');
+      expect(statusModule.formatEstimate(250, true)).toBe('+99 ساعة');
+    });
+
+    test('auth.clearVoucher empties #voucher and hides #voucher-clear', () => {
+      document.body.innerHTML = '<input id="voucher" value="123456"><button id="voucher-clear"></button>';
+      sessionStorage.setItem('hotspot_last_voucher', '123456');
+      auth.clearVoucher();
+      expect(document.getElementById('voucher').value).toBe('');
+      expect(document.getElementById('voucher-clear').hidden).toBe(true);
+      expect(sessionStorage.getItem('hotspot_last_voucher')).toBeNull();
+    });
+
+    test('auth._saveStoredVoucher, _getStoredVoucher cookie fallback, and _clearStoredVoucher', () => {
+      auth._clearStoredVoucher();
+      auth._saveStoredVoucher('987654');
+      expect(sessionStorage.getItem('hotspot_last_voucher')).toBe('987654');
+      expect(localStorage.getItem('hotspot_last_voucher')).toBe('987654');
+      expect(util.getCookie('hotspot_last_voucher')).toBe('987654');
+
+      // Simulate WebView where sessionStorage/localStorage were wiped but cookie survived
+      sessionStorage.removeItem('hotspot_last_voucher');
+      localStorage.removeItem('hotspot_last_voucher');
+      expect(auth._getStoredVoucher()).toBe('987654');
+
+      auth._clearStoredVoucher();
+      expect(auth._getStoredVoucher()).toBeNull();
+      expect(util.getCookie('hotspot_last_voucher')).toBeNull();
+    });
+
+    test('expired.html clears stored credentials while logout.html preserves them for auto-login', () => {
+      const expiredTpl = fs.readFileSync(path.join(ROOT, 'src/templates/expired.html'), 'utf8');
+      const logoutTpl = fs.readFileSync(path.join(ROOT, 'src/templates/logout.html'), 'utf8');
+      expect(expiredTpl).toContain("sessionStorage.removeItem('hotspot_last_voucher')");
+      expect(expiredTpl).toContain("localStorage.removeItem('hotspot_last_voucher')");
+      expect(expiredTpl).toContain("util.setCookie('hotspot_last_voucher', '', -1)");
+      expect(expiredTpl).toContain("util.setCookie('hotspot_last_voucher_pw', '', -1)");
+      expect(expiredTpl).toContain("util.setCookie('hotspot_password', '', -1)");
+
+      expect(logoutTpl).not.toContain("removeItem('hotspot_last_voucher')");
+      expect(logoutTpl).not.toContain("setCookie('hotspot_last_voucher'");
+      expect(logoutTpl).not.toContain("setCookie('hotspot_password'");
+    });
+
+    test('auth.init preserves stored voucher on transient errors and clears on permanent credential errors', () => {
+      auth._clearStoredVoucher();
+      auth._saveStoredVoucher('778899');
+      document.body.innerHTML =
+        '<div id="alerts"><span id="errorMessage">no more sessions are allowed for user 778899</span></div>' +
+        '<form id="login-form"><input id="voucher" value=""><input id="username"><input id="password"></form>';
+
+      auth.init();
+      expect(auth._getStoredVoucher()).toBe('778899');
+      expect(document.getElementById('voucher').value).toBe('778899');
+
+      // Permanent invalid credential error clears stored voucher, but keeps code visible in #voucher
+      document.getElementById('errorMessage').textContent = 'invalid username or password';
+      document.getElementById('voucher').value = '';
+      auth.init();
+      expect(auth._getStoredVoucher()).toBeNull();
+      expect(document.getElementById('voucher').value).toBe('778899');
+    });
+
+    test('auth.triggerAutoLogin ignores un-substituted $(error-esc) token and blocks real router errors', () => {
+      jest.useFakeTimers();
+      auth._clearStoredVoucher();
+      auth._saveStoredVoucher('445566');
+      document.body.innerHTML =
+        '<div id="alerts"><span id="errorMessage">$(error-esc)</span></div>' +
+        '<form id="login-form"><input id="voucher" value=""><input id="username"><input id="password"></form>';
+
+      const submitSpy = jest.fn();
+      document.getElementById('login-form').requestSubmit = submitSpy;
+
+      auth.triggerAutoLogin();
+      expect(document.getElementById('auto-login-alert')).not.toBeNull();
+      jest.advanceTimersByTime(3100);
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+
+      // Now simulate a real RouterOS error message
+      submitSpy.mockClear();
+      document.getElementById('errorMessage').textContent = 'invalid username or password';
+      auth.triggerAutoLogin();
+      expect(document.getElementById('auto-login-alert')).toBeNull();
+      jest.advanceTimersByTime(3100);
+      expect(submitSpy).not.toHaveBeenCalled();
+
+      auth._clearStoredVoucher();
+      jest.useRealTimers();
+    });
+
+    test('normal mode rememberUsername stores username/password and triggerAutoLogin submits countdown', () => {
+      jest.useFakeTimers();
+      auth._clearStoredVoucher();
+      auth._clearStoredUsername();
+      auth._clearStoredPassword();
+
+      document.body.innerHTML =
+        '<div id="alerts"></div>' +
+        '<form id="login-form" data-clone-prevention="true">' +
+        '  <div class="auth-tabs"><button type="button" class="auth-tab auth-tab--active" data-mode="normal"></button></div>' +
+        '  <div data-mode-panel="voucher" hidden><input id="voucher"></div>' +
+        '  <div data-mode-panel="normal"><input id="username" value="ali99"><input id="password" value="pass1234"><input type="checkbox" id="remember-me" checked></div>' +
+        '</form>';
+
+      auth.rememberUsername();
+      expect(auth._getStoredUsername()).toBe('ali99');
+      expect(auth._getStoredPassword()).toBe('pass1234');
+
+      // Clear visible inputs and trigger auto-login from saved storage
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+      const submitSpy = jest.fn();
+      document.getElementById('login-form').requestSubmit = submitSpy;
+
+      auth.triggerAutoLogin();
+      expect(document.getElementById('username').value).toBe('ali99');
+      expect(document.getElementById('password').value).toBe('pass1234');
+      expect(document.getElementById('auto-login-alert')).not.toBeNull();
+
+      jest.advanceTimersByTime(3100);
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+
+      auth._clearStoredUsername();
+      auth._clearStoredPassword();
+      jest.useRealTimers();
+    });
+
+    test('mikhmon scanned password is preserved across applyVoucherCredentials and restored by triggerAutoLogin', () => {
+      jest.useFakeTimers();
+      auth._clearStoredVoucher();
+      document.body.innerHTML =
+        '<div id="alerts"></div>' +
+        '<form id="login-form" data-clone-prevention="true" data-scanned-password="qrSecret">' +
+        '  <input id="voucher" value="card01"><input id="username"><input id="password">' +
+        '</form>';
+
+      auth.applyVoucherCredentials('card01');
+      expect(auth._getStoredVoucher()).toBe('card01');
+      expect(auth._getStoredVoucherPassword()).toBe('qrSecret');
+
+      // Reload simulation without data-scanned-password attribute
+      const form = document.getElementById('login-form');
+      form.removeAttribute('data-scanned-password');
+      document.getElementById('voucher').value = '';
+      document.getElementById('password').value = '';
+      const submitSpy = jest.fn();
+      form.requestSubmit = submitSpy;
+
+      auth.triggerAutoLogin();
+      expect(form.getAttribute('data-scanned-password')).toBe('qrSecret');
+      jest.advanceTimersByTime(3100);
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+      expect(document.getElementById('username').value).toBe('card01');
+      expect(document.getElementById('password').value).toBe('qrSecret');
+
+      auth._clearStoredVoucher();
+      jest.useRealTimers();
+    });
+
+    test('util.formatUptime localizes units to Arabic when html lang="ar" and preserves English otherwise', () => {
+      document.documentElement.setAttribute('lang', 'en');
+      expect(util.formatUptime(3661)).toBe('1h 1m 1s');
+      document.documentElement.setAttribute('lang', 'ar');
+      expect(util.formatUptime(3661)).toBe('1 س 1 د 1 ث');
+      expect(util.formatUptime(0)).toBe('0 ث');
+      document.documentElement.setAttribute('lang', 'en');
     });
   });
 });

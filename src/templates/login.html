@@ -30,7 +30,6 @@
             </svg>
           </div>
           <h1 class="card-header__title" data-i18n="login_title">{{ i18n.login_title }}</h1>
-          <p class="card-header__subtitle" data-i18n="login_subtitle">{{ i18n.login_subtitle }}</p>
         </div>
 
         <div class="card-body">
@@ -144,6 +143,7 @@
                        autofocus
                        data-i18n-placeholder="voucher_placeholder"
                        placeholder="{{ i18n.voucher_placeholder }}">
+                <button type="button" class="input-clear" id="voucher-clear" hidden onclick="if(window.Hotspot&&window.Hotspot.auth)window.Hotspot.auth.clearVoucher()" data-i18n-aria="clear_input" aria-label="{{ i18n.clear_input }}" data-i18n-title="clear_input" title="{{ i18n.clear_input }}">&times;</button>
               </div>
               {% if config.features.enableQRScanner %}
                <div class="qr-buttons-row">
@@ -178,6 +178,8 @@
               {% endif %}
             </div>
 
+            <div id="input-lang-hint" class="input-lang-hint" role="status" aria-live="polite" hidden data-i18n="keyboard_lang_hint">{{ i18n.keyboard_lang_hint }}</div>
+
             <!-- Actions -->
             <div class="form-actions">
               <button type="submit" class="btn btn-primary btn-block" id="loginButton" data-i18n="login_button">{{ i18n.login_button }}</button>
@@ -200,6 +202,7 @@
               MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
             </button>
           </div>
+          <p id="mac-random-hint" class="mac-random-hint" hidden data-i18n="mac_random_warning">{{ i18n.mac_random_warning }}</p>
         </div>
       </div>
 
@@ -221,8 +224,7 @@
         ui.initTheme();
         ui.initLang();
 
-        // Dynamically override active panel on start based on config
-        auth.init();
+        // Dynamically override active panel on start based on config before auth.init()
         {% if config.features.loginMode == 'voucher_only' %}
         var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
         if (voucherPanel) {
@@ -240,6 +242,7 @@
           p.style.removeProperty('display');
         });
         {% endif %}
+        auth.init();
 
         // Decode footer MAC address if present on login page
         ui.loadAnnouncements();
@@ -266,6 +269,8 @@
               if (isRandom) {
                 typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
                 typeDisplay.classList.add('mac-type-display--random');
+                var macHint = document.getElementById('mac-random-hint');
+                if (macHint) macHint.hidden = false;
               } else {
                 typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
                 typeDisplay.classList.add('mac-type-display--device');

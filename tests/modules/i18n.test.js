@@ -122,10 +122,12 @@ describe('Hotspot.i18n', () => {
       // auth.js / ui.js resolve `util` as a free global at runtime — define it
       // so detectLang reaches the browser-language branch instead of its catch.
       global.util = util;
+      document.cookie = 'hotspot_lang=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       i18n.init();
     });
 
     afterEach(() => {
+      document.cookie = 'hotspot_lang=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       delete global.util;
     });
 
@@ -134,9 +136,9 @@ describe('Hotspot.i18n', () => {
       expect(['en', 'ar']).toContain(result);
     });
 
-    test('follows a supported browser language', () => {
+    test('defaults to Arabic even when browser language is English', () => {
       withBrowserLanguage('en-US');
-      expect(i18n.detectLang()).toBe('en');
+      expect(i18n.detectLang()).toBe('ar');
     });
 
     test('falls back to Arabic for an unsupported browser language', () => {
@@ -144,10 +146,10 @@ describe('Hotspot.i18n', () => {
       expect(i18n.detectLang()).toBe('ar');
     });
 
-    test('a saved cookie wins over the browser language', () => {
-      withBrowserLanguage('en-US');
-      document.cookie = 'hotspot_lang=ar; path=/';
-      expect(i18n.detectLang()).toBe('ar');
+    test('a saved cookie wins over default Arabic', () => {
+      withBrowserLanguage('ar-EG');
+      document.cookie = 'hotspot_lang=en; path=/';
+      expect(i18n.detectLang()).toBe('en');
     });
 
     test('falls back to Arabic when navigator access throws', () => {

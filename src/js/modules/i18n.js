@@ -143,21 +143,6 @@ var i18n = {
       var savedLang = util.getCookie('hotspot_lang');
       if (savedLang && i18n.isSupportedLang(savedLang)) return savedLang;
 
-      if (
-        typeof window !== 'undefined' &&
-        window.location &&
-        typeof window.location.pathname === 'string' &&
-        /(?:^|\/)ar(?:\/|$)/.test(window.location.pathname) &&
-        i18n.isSupportedLang('ar')
-      ) {
-        return 'ar';
-      }
-
-      var browserLang = navigator.language.split('-')[0];
-      if (i18n.isSupportedLang(browserLang)) {
-        return browserLang;
-      }
-
       if (i18n.isSupportedLang('ar')) return 'ar';
       if (i18n.isSupportedLang('en')) return 'en';
       return 'ar';

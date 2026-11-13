@@ -64,6 +64,29 @@ var statusModule = {
           pwaBanner.style.display = 'block';
         }
       }
+
+      // Two-step logout confirmation guard to prevent accidental disconnects
+      var logoutBtnEl = document.getElementById('logout-btn');
+      var confirmBar = document.getElementById('logout-confirm-bar');
+      var confirmYes = document.getElementById('logout-confirm-yes');
+      var confirmCancel = document.getElementById('logout-confirm-cancel');
+      if (logoutBtnEl && confirmBar) {
+        logoutBtnEl.addEventListener('click', function(e) {
+          if (confirmBar.hidden) {
+            e.preventDefault();
+            confirmBar.hidden = false;
+            var targetHref = logoutBtnEl.getAttribute('href');
+            if (confirmYes && targetHref) {
+              confirmYes.setAttribute('href', targetHref);
+            }
+          }
+        });
+        if (confirmCancel) {
+          confirmCancel.addEventListener('click', function() {
+            confirmBar.hidden = true;
+          });
+        }
+      }
     } catch (err) {
       console.error('Status init error:', err);
     }
@@ -106,10 +129,12 @@ var statusModule = {
         if (quotaValueEl) {
           if (limit > 0) {
             var format = quotaSection.getAttribute('data-quota-format') || 'MB';
+            var gbThreshold = kbBase * kbBase * kbBase;
             // kbBase fallback matches the shipped config default (1000,
-            // the commercial convention for voucher cards)
-            if (format.toUpperCase() === 'GB') {
-              var remainingGB = (remaining / (kbBase * kbBase * kbBase)).toFixed(2);
+            // the commercial convention for voucher cards). Smart-scale to GB
+            // once remaining reaches >= 1 GB so huge MB numbers stay readable.
+            if (format.toUpperCase() === 'GB' || remaining >= gbThreshold) {
+              var remainingGB = (remaining / gbThreshold).toFixed(2).replace(/\.00$/, '');
               var gbText = currentLang === 'ar' ? 'جيجا' : 'GB';
               quotaValueEl.textContent = remainingGB + ' ' + gbText;
             } else {
@@ -215,6 +240,9 @@ var statusModule = {
     }
     
     var hrs = Math.floor(totalMinutes / 60);
+    if (hrs > 99) {
+      return isAr ? '+99 ساعة' : '99+ hrs';
+    }
     var mins = totalMinutes % 60;
     
     if (hrs > 0) {

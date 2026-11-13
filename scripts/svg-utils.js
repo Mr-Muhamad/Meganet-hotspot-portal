@@ -47,7 +47,11 @@ function sanitizeSvg(svgString, options = {}) {
         name: 'preset-default',
         params: {
           overrides: {
-            removeViewBox: false
+            removeViewBox: false,
+            removeHiddenElems: false,
+            inlineStyles: false,
+            cleanupIds: false,
+            collapseGroups: false
           }
         }
       }
@@ -57,7 +61,8 @@ function sanitizeSvg(svgString, options = {}) {
         name: 'prefixIds',
         params: {
           prefix: idPrefix,
-          delim: '-'
+          delim: '-',
+          prefixClassNames: false
         }
       });
     }

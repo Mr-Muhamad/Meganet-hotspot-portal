@@ -2,7 +2,6 @@
   "en": {
     "status_active": "Active",
     "login_title": "Sign In",
-    "login_subtitle": "Enter your credentials to connect",
     "username_label": "Username",
     "username_placeholder": "Enter username",
     "password_label": "Password",
@@ -131,6 +130,13 @@
     "view_plans": "View Plans",
     "enter_new_voucher": "Enter New Voucher",
     "choose_plan": "Select",
-    "selected_plan_banner": "Selected plan: {name} — {price}. Direct phone call works before connecting."
+    "selected_plan_banner": "Selected plan: {name} — {price}. Direct phone call works before connecting.",
+    "clear_input": "Clear input",
+    "keyboard_lang_hint": "Unsupported characters ignored — please type in English or digits",
+    "mac_random_warning": "Randomized MAC is active on your phone; your session may drop if it changes. Disable 'Private Wi-Fi Address' in Wi-Fi settings.",
+    "logout_confirm_prompt": "Are you sure you want to log out now?",
+    "logout_confirm_yes": "Yes, log out",
+    "copy_order_btn": "Copy Plan Request",
+    "order_copied_toast": "Plan request copied!"
   }
 }

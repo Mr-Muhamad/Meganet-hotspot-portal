@@ -89,7 +89,8 @@ var ui = {
       // login attempt), DO NOT redirect via GET, as redirecting would lose $(error-esc).
       // Instead, keep the user on the current page and translate the error in-place.
       var errorEl = document.getElementById('errorMessage');
-      var hasError = errorEl && errorEl.textContent.trim().length > 0;
+      var errText = errorEl ? errorEl.textContent.trim() : '';
+      var hasError = errText.length > 0 && errText.indexOf('$(') === -1;
 
       if (redirectPath && !hasError) {
         window.location.replace(redirectPath + window.location.search);
@@ -341,11 +342,20 @@ var ui = {
           price: planPrice
         });
         summaryEl.style.display = 'flex';
+        if (typeof summaryEl.scrollIntoView === 'function') {
+          try { summaryEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (scrollErr) {}
+        }
       }
 
       var prefillMsg = (typeof i18n !== 'undefined')
         ? i18n.t('support_plan_prefill', { name: planName, quota: planQuota, price: planPrice })
         : (planName + ' - ' + planPrice);
+
+      this._selectedPlanText = prefillMsg;
+      var copyOrderBtn = document.getElementById('copy-plan-request-btn');
+      if (copyOrderBtn) {
+        copyOrderBtn.style.display = 'flex';
+      }
 
       var whatsappBtns = document.querySelectorAll('.support-whatsapp-btn');
       for (var j = 0; j < whatsappBtns.length; j++) {
@@ -358,6 +368,42 @@ var ui = {
       }
     } catch (err) {
       console.error('Select plan error:', err);
+    }
+  },
+
+  copySelectedPlan: function(btnEl) {
+    try {
+      var text = this._selectedPlanText;
+      if (!text) return;
+
+      var copyOk = function() {
+        var toastMsg = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('order_copied_toast') : 'Copied!';
+        if (typeof util !== 'undefined' && util.showToast) {
+          util.showToast(toastMsg, 'success', 2000);
+        }
+        if (btnEl) {
+          var span = btnEl.querySelector ? btnEl.querySelector('span') : null;
+          if (span && toastMsg && toastMsg !== 'order_copied_toast') {
+            var orig = span.textContent;
+            span.textContent = toastMsg;
+            setTimeout(function() { span.textContent = orig; }, 2000);
+          }
+        }
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).then(copyOk).catch(function() {
+          if (typeof window !== 'undefined' && typeof window.copyToClipboard === 'function') {
+            window.copyToClipboard(text, 'Plan');
+          }
+        });
+      } else if (typeof window !== 'undefined' && typeof window.copyToClipboard === 'function') {
+        window.copyToClipboard(text, 'Plan');
+      } else {
+        copyOk();
+      }
+    } catch (err) {
+      console.error('Copy selected plan error:', err);
     }
   },
 

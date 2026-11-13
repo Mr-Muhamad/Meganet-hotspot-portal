@@ -173,4 +173,61 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     }
   });
+
+  test('support modal grid auto-balances cleanly for 1, 2, and 3 support agents', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/login.html`);
+
+    await page.evaluate(() => window.toggleSupportModal());
+    await expect(page.locator('#supportModal')).toHaveClass(/support-modal--open/);
+
+    const measure = () => page.evaluate(() => {
+      const grid = document.querySelector('.support-grid-cards');
+      const gridRect = grid.getBoundingClientRect();
+      const cards = Array.from(grid.querySelectorAll('.support-person-card'));
+      return {
+        gridWidth: gridRect.width,
+        cards: cards.map((card) => {
+          const rect = card.getBoundingClientRect();
+          const btns = Array.from(card.querySelectorAll('.support-action-btn')).map((b) => {
+            const br = b.getBoundingClientRect();
+            return { top: br.top, left: br.left, right: br.right, width: br.width, height: br.height };
+          });
+          return { top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, btns };
+        })
+      };
+    });
+
+    // Case 1: 1 agent spans full grid width and lays out action buttons side-by-side
+    const one = await measure();
+    expect(one.cards.length).toBe(1);
+    expect(Math.abs(one.cards[0].width - one.gridWidth)).toBeLessThanOrEqual(2);
+    if (one.cards[0].btns.length >= 2) {
+      expect(Math.abs(one.cards[0].btns[0].top - one.cards[0].btns[1].top)).toBeLessThanOrEqual(4);
+    }
+
+    // Case 2: 2 agents share row 1 side-by-side at equal width
+    await page.evaluate(() => {
+      const grid = document.querySelector('.support-grid-cards');
+      const tpl = grid.querySelector('.support-person-card');
+      grid.appendChild(tpl.cloneNode(true));
+    });
+    const two = await measure();
+    expect(two.cards.length).toBe(2);
+    expect(Math.abs(two.cards[0].top - two.cards[1].top)).toBeLessThanOrEqual(4);
+    expect(Math.abs(two.cards[0].width - two.cards[1].width)).toBeLessThanOrEqual(4);
+    expect(two.cards[0].width).toBeLessThan(two.gridWidth * 0.6);
+
+    // Case 3: 3 agents keep first 2 paired and span the 3rd across full grid width
+    await page.evaluate(() => {
+      const grid = document.querySelector('.support-grid-cards');
+      const tpl = grid.querySelector('.support-person-card');
+      grid.appendChild(tpl.cloneNode(true));
+    });
+    const three = await measure();
+    expect(three.cards.length).toBe(3);
+    expect(Math.abs(three.cards[0].top - three.cards[1].top)).toBeLessThanOrEqual(4);
+    expect(three.cards[2].top).toBeGreaterThan(three.cards[0].bottom - 1);
+    expect(Math.abs(three.cards[2].width - three.gridWidth)).toBeLessThanOrEqual(2);
+  });
 });

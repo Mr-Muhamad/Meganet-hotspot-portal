@@ -230,4 +230,35 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     expect(three.cards[2].top).toBeGreaterThan(three.cards[0].bottom - 1);
     expect(Math.abs(three.cards[2].width - three.gridWidth)).toBeLessThanOrEqual(2);
   });
+
+  test('desktop viewport compacts header/card/footer vertical gaps and anchors support trigger near the portal', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${DEFAULT}/ar/login.html`);
+
+    const metrics = await page.evaluate(() => {
+      const box = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const header = box('.header');
+      const main = box('.main-content');
+      const card = box('.card');
+      const footer = box('.footer');
+      const support = box('.support-trigger');
+      return {
+        headerBottom: header.bottom,
+        mainTop: main.top,
+        cardTop: card.top,
+        cardBottom: card.bottom,
+        cardLeft: card.left,
+        footerTop: footer.top,
+        supportRight: support.right
+      };
+    });
+
+    // Header sits immediately above main content without a large empty void
+    expect(metrics.cardTop - metrics.headerBottom).toBeLessThanOrEqual(80);
+    // Footer sits tightly below the card instead of pushed to viewport bottom
+    expect(metrics.footerTop - metrics.cardBottom).toBeLessThanOrEqual(40);
+    // Floating support button stays anchored near the centered portal card (RTL end = left)
+    expect(metrics.cardLeft - metrics.supportRight).toBeGreaterThanOrEqual(16);
+    expect(metrics.cardLeft - metrics.supportRight).toBeLessThanOrEqual(120);
+  });
 });

@@ -376,16 +376,45 @@
 /* Large devices (768px+) */
 @media (min-width: 768px) {
   :root {
-    --max-width: 480px;
+    --max-width: 500px;
   }
 
   .page-shell {
     padding: var(--space-lg);
+    /* Group header + card + footer as a compact vertically centered shell
+       instead of stretching 100vh with huge empty gaps under the header.
+       flex: 0 1 auto + margin: auto stays top-aligned cleanly if content overflows. */
+    flex: 0 1 auto;
+    margin: auto;
+  }
+
+  .header {
+    border: 1px solid var(--color-primary-alpha-15);
+    border-radius: var(--radius-lg);
+    padding: 0 var(--space-md);
+  }
+
+  .header__name {
+    max-width: 240px;
   }
 
   .main-content {
-    justify-content: center;
-    padding: var(--space-lg) 0;
+    flex: 0 1 auto;
+    justify-content: flex-start;
+    padding: var(--space-md) 0;
+  }
+
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-md) var(--space-sm) 0;
+  }
+
+  .support-trigger {
+    inset-inline-end: max(24px, calc(50% - 326px));
+  }
+
+  body:has(.page-shell--wide) .support-trigger {
+    inset-inline-end: max(24px, calc(50% - 416px));
   }
 
   .status-grid {

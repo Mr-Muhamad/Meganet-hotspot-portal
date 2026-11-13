@@ -35,7 +35,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 - **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
 - **Paste Auto-Submit** — pasting a code submits instantly; typed codes submit via Connect/Enter (variable-length codes make typed auto-submit unsafe)
 - **Anti-Phishing & Safe QR Routing** — the portal never navigates to a foreign host because of a scanned payload; credential links are consumed in place and non-credential URLs are restricted to the portal itself
-- **1-Second Rapid `alogin.html` Redirect** — ultra-fast gateway handshake to the Internet
+- **3-Second `alogin.html` Redirect** — fast gateway handshake to the Internet (with manual Continue button)
 - **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates
 - **CHAP and PAP authentication** — with MD5 challenge-response support
 - **Arabic (RTL) and English (LTR) bilingual support** — with `dir="rtl"` and `lang="ar"`

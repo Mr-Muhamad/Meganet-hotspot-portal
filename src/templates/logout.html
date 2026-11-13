@@ -14,7 +14,7 @@
 
         <div class="card-body">
           <!-- Session Summary -->
-          <div class="status-grid" role="region" data-i18n-aria="session_summary_aria" aria-label="{{ i18n.session_summary_aria }}" data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1000{% endif %}">
+          <div class="status-grid" role="region" data-i18n-aria="session_summary_aria" aria-label="{{ i18n.session_summary_aria }}" data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase | e }}{% else %}1000{% endif %}">
             <div class="stat-card">
               <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>

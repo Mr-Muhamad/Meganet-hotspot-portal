@@ -1760,13 +1760,22 @@ function formMikrotik(c) {
     '</label>';
   depCard.appendChild(applyWrap);
 
+  const tlsFpWrap = field(
+    'بصمة شهادة TLS (SHA-256) — مطلوبة لـ HTTPS فقط',
+    '<input id="mk-tls-fp" data-ignore-dirty="1" dir="ltr" placeholder="AA:BB:CC:... (/certificate print detail)" value="' + esc(mk.tlsFingerprint || lastRouterFingerprint || '') + '">'
+  );
+  tlsFpWrap.id = 'mk-tls-fp-wrap';
+  tlsFpWrap.style.marginTop = '12px';
+  tlsFpWrap.style.display = mkProtocol === 'https' ? '' : 'none';
+  depCard.appendChild(tlsFpWrap);
+
   const tlsBadge = document.createElement('div');
   tlsBadge.id = 'mk-tls-badge';
   tlsBadge.className = 'planshint';
   tlsBadge.style.marginTop = '10px';
   tlsBadge.innerHTML = (mk.tlsFingerprint || lastRouterFingerprint)
-    ? '🔒 بصمة TLS المحفوظة: <code>' + esc(mk.tlsFingerprint || lastRouterFingerprint) + '</code>'
-    : '🔓 لا توجد بصمة TLS محفوظة بعد (سيتم ربطها عند أول اتصال HTTPS).';
+    ? '🔒 بصمة TLS المثبّتة: <code>' + esc(mk.tlsFingerprint || lastRouterFingerprint) + '</code>'
+    : '🔓 لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
   depCard.appendChild(tlsBadge);
 
   const depBtns = document.createElement('div');
@@ -1823,14 +1832,24 @@ function formMikrotik(c) {
         refreshRscPreview();
       });
     });
-    ['mk-host', 'mk-proto', 'mk-port', 'mk-user', 'mk-target-dir', 'mk-create-backup', 'mk-apply-rsc'].forEach((id) => {
+    ['mk-host', 'mk-proto', 'mk-port', 'mk-user', 'mk-target-dir', 'mk-tls-fp', 'mk-create-backup', 'mk-apply-rsc'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', () => {
-        if (id === 'mk-proto' && $('#mk-port')) {
-          const curPort = Number($('#mk-port').value);
-          if (el.value === 'https' && (!curPort || curPort === 80)) $('#mk-port').value = '443';
-          if (el.value === 'http' && (!curPort || curPort === 443)) $('#mk-port').value = '80';
+        if (id === 'mk-proto') {
+          if ($('#mk-port')) {
+            const curPort = Number($('#mk-port').value);
+            if (el.value === 'https' && (!curPort || curPort === 80)) $('#mk-port').value = '443';
+            if (el.value === 'http' && (!curPort || curPort === 443)) $('#mk-port').value = '80';
+          }
+          if ($('#mk-tls-fp-wrap')) {
+            $('#mk-tls-fp-wrap').style.display = el.value === 'https' ? '' : 'none';
+          }
+        }
+        if (id === 'mk-tls-fp') {
+          lastRouterFingerprint = el.value.trim().toUpperCase();
+          el.value = lastRouterFingerprint;
+          updateTlsBadge(lastRouterFingerprint);
         }
         state.mikrotikDirty = true;
         markDirty(true);
@@ -1857,7 +1876,7 @@ function collectMikrotikSettings() {
     extraHosts: rscOpts.extraHosts,
     applyRsc: Boolean($('#mk-apply-rsc')?.checked),
     createBackup: Boolean($('#mk-create-backup')?.checked),
-    tlsFingerprint: lastRouterFingerprint || ''
+    tlsFingerprint: ($('#mk-tls-fp')?.value?.trim() || lastRouterFingerprint || '').toUpperCase()
   };
 }
 
@@ -1870,8 +1889,8 @@ function updateTlsBadge(fp) {
   const badge = $('#mk-tls-badge');
   if (!badge) return;
   badge.innerHTML = fp
-    ? '🔒 بصمة TLS المحفوظة: <code>' + esc(fp) + '</code>'
-    : '🔓 لا توجد بصمة TLS محفوظة بعد (سيتم ربطها عند أول اتصال HTTPS).';
+    ? '🔒 بصمة TLS المثبّتة: <code>' + esc(fp) + '</code>'
+    : '🔓 لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
 }
 
 async function saveMikrotikSettings(silent = false) {
@@ -1888,6 +1907,7 @@ async function saveMikrotikSettings(silent = false) {
     state.mikrotikDirty = false;
     if (res.mikrotik && res.mikrotik.tlsFingerprint) {
       lastRouterFingerprint = res.mikrotik.tlsFingerprint;
+      if ($('#mk-tls-fp')) $('#mk-tls-fp').value = lastRouterFingerprint;
       updateTlsBadge(lastRouterFingerprint);
     }
     if (!silent) {
@@ -1954,18 +1974,20 @@ async function testMikrotikConnection() {
   const box = $('#mk-test-info');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الفحص…'; }
   try {
+    const proto = $('#mk-proto')?.value === 'https' ? 'https' : 'http';
     const payload = {
       slug: state.current ? state.current.id : '',
       host: $('#mk-host')?.value?.trim(),
-      protocol: $('#mk-proto')?.value || 'http',
-      port: Number($('#mk-port')?.value) || 80,
+      protocol: proto,
+      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : 80),
       username: $('#mk-user')?.value?.trim() || 'admin',
       password: $('#mk-pass')?.value || '',
-      tlsFingerprint: lastRouterFingerprint || ''
+      tlsFingerprint: ($('#mk-tls-fp')?.value?.trim() || lastRouterFingerprint || '').toUpperCase()
     };
     const info = await api('/mikrotik/test', { method: 'POST', body: JSON.stringify(payload) });
     if (info.tlsFingerprint) {
       lastRouterFingerprint = info.tlsFingerprint;
+      if ($('#mk-tls-fp')) $('#mk-tls-fp').value = lastRouterFingerprint;
       updateTlsBadge(lastRouterFingerprint);
     }
 
@@ -2019,10 +2041,11 @@ async function deployToMikrotik() {
     const saved = await saveConfig();
     if (!saved) return;
     const rscOpts = mikrotikRscParams();
+    const proto = $('#mk-proto')?.value === 'https' ? 'https' : 'http';
     const payload = {
       host: $('#mk-host')?.value?.trim(),
-      protocol: $('#mk-proto')?.value || 'http',
-      port: Number($('#mk-port')?.value) || 80,
+      protocol: proto,
+      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : 80),
       username: $('#mk-user')?.value?.trim() || 'admin',
       password: $('#mk-pass')?.value || '',
       targetDir: $('#mk-target-dir')?.value?.trim() || 'hotspot',
@@ -2034,7 +2057,7 @@ async function deployToMikrotik() {
       extraHosts: rscOpts.extraHosts,
       applyRsc: Boolean($('#mk-apply-rsc')?.checked),
       createBackup: Boolean($('#mk-create-backup')?.checked),
-      tlsFingerprint: lastRouterFingerprint || ''
+      tlsFingerprint: ($('#mk-tls-fp')?.value?.trim() || lastRouterFingerprint || '').toUpperCase()
     };
     const res = await api('/profiles/' + encodeURIComponent(state.current.id) + '/deploy', {
       method: 'POST',
@@ -2042,6 +2065,7 @@ async function deployToMikrotik() {
     });
     if (res.tlsFingerprint) {
       lastRouterFingerprint = res.tlsFingerprint;
+      if ($('#mk-tls-fp')) $('#mk-tls-fp').value = lastRouterFingerprint;
       updateTlsBadge(lastRouterFingerprint);
     }
     if (res.mikrotik) state.current.mikrotik = res.mikrotik;

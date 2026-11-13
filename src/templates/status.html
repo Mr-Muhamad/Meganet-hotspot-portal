@@ -46,8 +46,8 @@
                data-limit-bytes-total="$(limit-bytes-total)"
                data-bytes-in="$(bytes-in)"
                data-bytes-out="$(bytes-out)"
-               data-quota-format="{% if config.features.quotaDisplayFormat %}{{ config.features.quotaDisplayFormat }}{% else %}MB{% endif %}"
-               data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1000{% endif %}">
+               data-quota-format="{% if config.features.quotaDisplayFormat %}{{ config.features.quotaDisplayFormat | e }}{% else %}MB{% endif %}"
+               data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase | e }}{% else %}1000{% endif %}">
             <div class="session-countdown__label" data-i18n="remaining_quota">{{ i18n.remaining_quota }}</div>
             <div class="session-countdown__value" id="session-countdown">--</div>
             $(if limit-bytes-total)

@@ -332,6 +332,7 @@ function generatePage(page, lang, options = {}) {
         removeAttributeQuotes: false,
         collapseWhitespace: true,
         removeComments: true,
+        ignoreCustomComments: [/^ros:/],
         minifyCSS: true,
         minifyJS: true,
         keepClosingSlash: true,

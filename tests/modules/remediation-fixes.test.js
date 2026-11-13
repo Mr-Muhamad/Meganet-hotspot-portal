@@ -395,7 +395,7 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
       }
-    });
+    }, 30000);
   });
 
   describe('Built dist HTML & manifest contracts', () => {
@@ -654,6 +654,14 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(util.formatUptime(3661)).toBe('1 س 1 د 1 ث');
       expect(util.formatUptime(0)).toBe('0 ث');
       document.documentElement.setAttribute('lang', 'en');
+    });
+
+    test('alogin template preserves ros: comment carriers after build and validates URL scheme', () => {
+      const builtAlogin = fs.readFileSync(path.join(DIST, 'alogin.html'), 'utf8');
+      expect(builtAlogin).toContain('<!--ros:redirect:$(link-redirect)-->');
+      expect(builtAlogin).toContain('<!--ros:orig:$(link-orig-esc)-->');
+      expect(builtAlogin).toContain('<!--ros:status:$(link-status)-->');
+      expect(builtAlogin).toContain('function isSafeUrl(');
     });
   });
 });

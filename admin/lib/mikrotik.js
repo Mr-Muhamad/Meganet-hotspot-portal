@@ -246,6 +246,10 @@ function validateConnection(connection = {}) {
     throw new Error('invalid router host/IP');
   }
   const protocol = connection.protocol === 'https' ? 'https' : 'http';
+  const pinned = connection.tlsFingerprint ? String(connection.tlsFingerprint).trim() : '';
+  if (protocol === 'https' && !pinned) {
+    throw new Error('HTTPS to RouterOS requires tlsFingerprint (SHA-256). Refusing an unpinned connection.');
+  }
   const port = Number(connection.port) || (protocol === 'https' ? 443 : 80);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('invalid router port');
@@ -277,7 +281,7 @@ function validateConnection(connection = {}) {
 
 /**
  * Low-level HTTP/HTTPS JSON request helper for RouterOS v7 REST API.
- * Enforces optional TOFU TLS certificate fingerprint pinning on HTTPS.
+ * Requires and enforces a pinned TLS SHA-256 certificate fingerprint on HTTPS.
  */
 function rosRestRequest(conn, method, restPath, bodyObj) {
   return new Promise((resolve, reject) => {
@@ -295,7 +299,7 @@ function rosRestRequest(conn, method, restPath, bodyObj) {
       path: '/rest' + (restPath.startsWith('/') ? restPath : '/' + restPath),
       method,
       timeout: conn.timeoutMs || 10000,
-      rejectUnauthorized: false, // Self-signed certs common on RouterOS; verified via optional TOFU fingerprint
+      rejectUnauthorized: false, // RouterOS certs are commonly self-signed; HTTPS requires a pinned fingerprint below
       headers: Object.assign(
         {
           Authorization: `Basic ${authToken}`,
@@ -304,17 +308,24 @@ function rosRestRequest(conn, method, restPath, bodyObj) {
         payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {}
       )
     }, (res) => {
-      if (isHttps && res.socket && typeof res.socket.getPeerCertificate === 'function') {
+      if (isHttps) {
+        const expectedFp = conn.tlsFingerprint ? String(conn.tlsFingerprint).trim().toUpperCase() : '';
+        if (!expectedFp) {
+          res.resume();
+          return reject(new Error('HTTPS to RouterOS requires tlsFingerprint (SHA-256). Refusing an unpinned connection.'));
+        }
         try {
-          const cert = res.socket.getPeerCertificate(true);
+          const cert = res.socket && typeof res.socket.getPeerCertificate === 'function'
+            ? res.socket.getPeerCertificate(true)
+            : null;
           if (cert && cert.fingerprint256) {
             observedFingerprint = String(cert.fingerprint256).trim().toUpperCase();
-            if (conn.tlsFingerprint && observedFingerprint !== conn.tlsFingerprint) {
-              res.resume();
-              return reject(new Error(`TLS certificate mismatch (expected ${conn.tlsFingerprint}, got ${observedFingerprint})`));
-            }
           }
-        } catch { /* ignore peer cert extraction error */ }
+        } catch { /* compared below */ }
+        if (!observedFingerprint || observedFingerprint !== expectedFp) {
+          res.resume();
+          return reject(new Error(`TLS certificate mismatch (expected ${expectedFp}, got ${observedFingerprint || 'none'})`));
+        }
       }
 
       const chunks = [];
@@ -441,18 +452,28 @@ function pickLocalIpForRouter(routerHost) {
   return (candidates[0] && candidates[0].address) || '127.0.0.1';
 }
 
-function startBinaryPullServer(fileMap, listenHost = '0.0.0.0') {
+function startBinaryPullServer(fileMap, listenHost) {
+  if (!listenHost || listenHost === '0.0.0.0' || listenHost === '::') {
+    throw new Error('pull server requires a specific local interface address');
+  }
   const token = crypto.randomBytes(24).toString('hex');
   const fetchedSet = new Set();
 
   const srv = http.createServer((req, res) => {
-    const reqUrl = new URL(req.url, 'http://127.0.0.1');
-    const prefix = `/${token}/`;
-    if (req.method !== 'GET' || !reqUrl.pathname.startsWith(prefix)) {
-      res.writeHead(404);
+    let reqUrl;
+    let rel;
+    try {
+      reqUrl = new URL(req.url, 'http://127.0.0.1');
+      const prefix = `/${token}/`;
+      if (req.method !== 'GET' || !reqUrl.pathname.startsWith(prefix)) {
+        res.writeHead(404);
+        return res.end();
+      }
+      rel = decodeURIComponent(reqUrl.pathname.slice(prefix.length));
+    } catch {
+      res.writeHead(400);
       return res.end();
     }
-    const rel = decodeURIComponent(reqUrl.pathname.slice(prefix.length));
     const buf = fileMap.get(rel);
     if (!buf) {
       res.writeHead(404);
@@ -561,8 +582,11 @@ async function deployToRouter(files, connection = {}) {
   // 3. Transfer binary / oversized files losslessly via authenticated Studio HTTP + /tool/fetch
   if (fetchFiles.length > 0) {
     const isLoopback = /^(127\.|localhost$|::1$)/i.test(host);
-    const pullServer = await startBinaryPullServer(fetchBufferMap, isLoopback ? '127.0.0.1' : '0.0.0.0');
     const studioHost = connection.studioHost || pickLocalIpForRouter(host);
+    if (!isLoopback && (!studioHost || /^(0\.0\.0\.0|::)$/.test(studioHost))) {
+      throw new Error('Cannot determine a local interface the router can reach. Set studioHost to that interface address, or deploy via ZIP.');
+    }
+    const pullServer = await startBinaryPullServer(fetchBufferMap, isLoopback ? '127.0.0.1' : studioHost);
     try {
       for (const f of fetchFiles) {
         const remoteName = `${targetDir}/${f.cleanRel}`;

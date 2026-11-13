@@ -171,6 +171,25 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
     }
   });
 
+  test('deployToRouter and inspectRouter refuse HTTPS without a pinned certificate fingerprint', async () => {
+    await expect(deployToRouter([], {
+      host: '127.0.0.1',
+      protocol: 'https',
+      port: 443
+    })).rejects.toThrow(/tlsFingerprint/);
+    await expect(inspectRouter({
+      host: '127.0.0.1',
+      protocol: 'https',
+      port: 443
+    })).rejects.toThrow(/tlsFingerprint/);
+  });
+
+  test('Studio UI exposes #mk-tls-fp input for HTTPS connections', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'public', 'index.html'), 'utf8');
+    expect(html).toContain('id="mk-tls-fp"');
+    expect(html).toContain("tlsFpWrap.id = 'mk-tls-fp-wrap'");
+  });
+
   test('deployToRouter rejects invalid host or path traversal in targetDir', async () => {
     await expect(deployToRouter([], { host: '' })).rejects.toThrow(/invalid router host/);
     await expect(deployToRouter([], { host: '127.0.0.1', targetDir: '../etc' })).rejects.toThrow(/invalid target directory/);
@@ -531,6 +550,7 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
         mikrotik: {
           host: '192.168.50.1',
           protocol: 'https',
+          tlsFingerprint: 'aa:bb:cc:dd:ee:ff',
           port: 443,
           username: 'admin2',
           password: 'never-saved-password',
@@ -547,6 +567,7 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
       });
       expect(putMk.status).toBe(200);
       expect(putMk.json.mikrotik.host).toBe('192.168.50.1');
+      expect(putMk.json.mikrotik.tlsFingerprint).toBe('AA:BB:CC:DD:EE:FF');
       expect(putMk.json.mikrotik.password).toBeUndefined();
 
       const getProf = await request('GET', `${base}/api/profiles/${SLUG}`);

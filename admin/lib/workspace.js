@@ -143,6 +143,7 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
     return new Promise((resolve, reject) => {
       const zipfile = new ZipFile();
       const output = fs.createWriteStream(outputZip);
+      output.on('error', reject);
       output.on('close', () => {
         let zipSize = 0;
         try { zipSize = fs.statSync(outputZip).size; } catch { /* ignore */ }

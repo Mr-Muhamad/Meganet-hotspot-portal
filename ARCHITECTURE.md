@@ -8,7 +8,7 @@ The MikroTik Hotspot Portal is a captive portal system designed for MikroTik Rou
 
 ## Design Principles
 
-1. **CNA Compatibility**: All rendering-critical resources are inline (no external CSS/JS). The only exceptions are two same-host vendored scripts served from the hotspot directory itself: `md5.js` (CHAP hashing, ~9KB, required by RouterOS login) and `jsQR.js` (QR decoding, ~130KB, lazy-loaded only when a scan starts)
+1. **CNA Compatibility**: Critical pre-paint theme init, config CSS custom properties, and brand SVG remain inline in `<head>`, while shared styles (`portal.css`) and modular scripts (`portal-core.js`, `portal-login.js`, `portal-status.js`) are served from the router's own hotspot directory with zero external requests. Same-host vendored scripts (`md5.js`, ~9KB for CHAP login, and `jsQR.js`, ~127KB lazy-loaded when scanning starts and omitted if disabled) complete the bundle.
 2. **Security First**: XSS-safe variable handling, input validation, rate limiting
 3. **Accessibility**: WCAG AA compliance with screen reader support
 4. **Performance**: Minimal page weight, fast rendering
@@ -154,17 +154,18 @@ Build Script (build.js)
     ↓
 Template Compilation (Nunjucks)  ← config.json + i18n injected
     ↓
-CSS/JS Bundling (inlined per page)
+CSS/JS Shared Bundling (portal.css + portal-*.js) + Pre-paint Inline Layer
     ↓
 Minification
     ↓
 Output Files (dist/)
     ├── index / login / status / logout / error / expired / plans / alogin .html
     ├── ar/  (same 8 pages, RTL)
-    ├── redirect.html + errors.txt   ← copied verbatim from src/static/
+    ├── portal.css + portal-core.js + portal-login.js + portal-status.js
+    ├── redirect.html + errors.txt + ar/errors.txt  ← copied verbatim from src/static/
     ├── api.json / announcements.json / manifest.json
     ├── assets/
-    └── md5.js
+    └── md5.js / jsQR.js
 ```
 
 ### Runtime Flow

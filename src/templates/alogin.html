@@ -13,7 +13,10 @@
           <p class="card-header__subtitle" data-i18n="connected_subtitle">{{ i18n.connected_subtitle }}</p>
         </div>
 
-        <div class="card-body">
+        <div class="card-body" id="alogin-target">
+          <!--ros:redirect:$(link-redirect)-->
+          <!--ros:orig:$(link-orig-esc)-->
+          <!--ros:status:$(link-status)-->
           <!-- Username display -->
           <div class="text-center text-muted text-sm alogin-user-info">
             <span data-i18n="username">{{ i18n.username }}</span>: <strong><bdi dir="auto">$(username-esc)</bdi></strong>
@@ -51,10 +54,39 @@
         </div>
       </div>
 
+      <script>
+        function rosUrl(name) {
+          var root = document.getElementById('alogin-target');
+          if (!root) return '';
+          var comments = root.childNodes;
+          var marker = 'ros:' + name + ':';
+          for (var i = 0; i < comments.length; i++) {
+            if (comments[i].nodeType === 8 && comments[i].data.indexOf(marker) === 0) {
+              return comments[i].data.slice(marker.length);
+            }
+          }
+          return '';
+        }
+        function isSafeUrl(url) {
+          if (!url || typeof url !== 'string') return false;
+          var trimmed = url.trim();
+          if (!trimmed || /\$\([^)]*\)/.test(trimmed)) return false;
+          var noSpace = trimmed.replace(/\s+/g, '');
+          try {
+            var parsed = new URL(noSpace, 'http://localhost');
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+          } catch (e) {
+            return false;
+          }
+        }
+      </script>
       $(if popup)
       <script>
         if (window.open) {
-          window.open("$(link-status)", "hotspot_status", "width=800,height=600,scrollbars=yes");
+          var statusUrl = rosUrl('status');
+          if (isSafeUrl(statusUrl)) {
+            window.open(statusUrl, "hotspot_status", "width=800,height=600,scrollbars=yes");
+          }
         }
       </script>
       $(endif)
@@ -82,11 +114,15 @@
         var unsubstituted = function(value) {
           return !value || value.indexOf('$(') === 0;
         };
-        var primary = "$(link-redirect)";
-        var fallback = "$(link-orig)";
-        var redirectUrl = unsubstituted(primary)
-          ? (unsubstituted(fallback) ? '' : fallback)
-          : primary;
+        var decodeRos = function(value) {
+          if (unsubstituted(value)) return '';
+          try { return decodeURIComponent(value); } catch (e) { return ''; }
+        };
+        var primary = rosUrl('redirect');
+        var fallback = decodeRos(rosUrl('orig'));
+        var redirectUrl = isSafeUrl(primary)
+          ? primary.trim()
+          : (isSafeUrl(fallback) ? fallback.trim() : '');
 
         var countdownEl = document.getElementById('countdown');
         var countdownSecEl = document.getElementById('countdown-seconds');
@@ -115,10 +151,12 @@
         };
         render();
 
-        // Continue Now follows the same replace rule (the href stays for
-        // graceful degradation without JS)
+        // Continue Now follows the same replace rule. The static href is only
+        // the no-JS fallback; with JS, replace the attribute from the text
+        // node so a quote in the URL cannot truncate it.
         var continueBtn = document.getElementById('continueNow');
         if (continueBtn) {
+          continueBtn.setAttribute('href', redirectUrl);
           continueBtn.addEventListener('click', function(e) {
             e.preventDefault();
             window.location.replace(redirectUrl);
@@ -136,9 +174,9 @@
       } catch (err) {
         console.error('Alogin page init error:', err);
         // Last-resort fallback: navigate immediately (guarded the same way)
-        var lastResort = "$(link-redirect)";
-        if (lastResort && lastResort.indexOf('$(') !== 0) {
-          window.location.replace(lastResort);
+        var lastResort = rosUrl('redirect');
+        if (isSafeUrl(lastResort)) {
+          window.location.replace(lastResort.trim());
         }
       }
     })();

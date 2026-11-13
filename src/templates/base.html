@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="WiFi Portal">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" id="metaThemeColor" content="{% if config.theme and config.theme.backgroundColor %}{{ config.theme.backgroundColor }}{% else %}#020617{% endif %}">
+  <meta name="theme-color" id="metaThemeColor" content="{% if config.theme and config.theme.backgroundColor %}{{ config.theme.backgroundColor | e }}{% else %}#020617{% endif %}">
   <script>
     // Apply the saved theme BEFORE first paint — without this, light-theme
     // users get a dark flash on every page load. First-time visitors with no
@@ -20,7 +20,7 @@
         var m = document.cookie.match(/(?:^| )hotspot_theme=([^;]+)/);
         var t = m ? decodeURIComponent(m[1]) : null;
         if (t !== 'light' && t !== 'dark') {
-          t = '{% if config.theme and config.theme.defaultTheme %}{{ config.theme.defaultTheme }}{% else %}dark{% endif %}';
+          t = '{% if config.theme and config.theme.defaultTheme %}{{ config.theme.defaultTheme | e }}{% else %}dark{% endif %}';
         }
         document.documentElement.setAttribute('data-theme', t);
       } catch (err) { /* keep the hardcoded dark default */ }
@@ -93,7 +93,7 @@
           {{ config.general.poweredByText | e }}
           {% if config.general.poweredByUrl %}
             <a href="{{ config.general.poweredByUrl | e }}" class="footer__link" target="_blank" rel="noopener noreferrer">
-              {% if config.general.poweredByName %}{{ config.general.poweredByName | e }}{% else %}{{ config.general.poweredByUrl }}{% endif %}
+              {% if config.general.poweredByName %}{{ config.general.poweredByName | e }}{% else %}{{ config.general.poweredByUrl | e }}{% endif %}
             </a>
           {% endif %}
         {% else %}

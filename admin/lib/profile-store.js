@@ -122,6 +122,7 @@ function createProfileStore(baseDir) {
   function sanitizeMikrotikSettings(input = {}, id = '') {
     const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
     const protocol = src.protocol === 'https' ? 'https' : 'http';
+    const tlsFingerprint = String(src.tlsFingerprint || '').trim().toUpperCase();
     const rawPort = Number(src.port);
     const port = Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535
       ? rawPort
@@ -149,7 +150,7 @@ function createProfileStore(baseDir) {
       extraHosts,
       applyRsc: Boolean(src.applyRsc),
       createBackup: Boolean(src.createBackup),
-      tlsFingerprint: String(src.tlsFingerprint || '').trim(),
+      tlsFingerprint,
       updatedAt: String(src.updatedAt || new Date().toISOString())
     };
   }

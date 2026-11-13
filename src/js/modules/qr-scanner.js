@@ -27,14 +27,11 @@ var qrScanner = {
       if (this._isStrippedWebView()) {
         var href = (window.location.href || '').split('#')[0];
         var sep = href.indexOf('?') === -1 ? '?' : '&';
-        this.escapeNow(this.buildEscapeIntentUrl(href + sep + 'qrscan=1'));
+        this.escapeNow(this.buildEscapeIntentUrl(href + sep + 'qrscan=camera'));
         return;
       }
       var input = document.getElementById('qr-file-input');
       if (!input) return;
-      // Load the decoder in parallel with the camera app — the user needs a
-      // second or two to frame the shot anyway.
-      this._loadDecoder(null);
       this._wireFileInput();
       input.click();
     } catch (err) {
@@ -70,11 +67,10 @@ var qrScanner = {
         if (self._isStrippedWebView()) {
           var href = (window.location.href || '').split('#')[0];
           var sep = href.indexOf('?') === -1 ? '?' : '&';
-          self.escapeNow(self.buildEscapeIntentUrl(href + sep + 'qrscan=1'));
+          self.escapeNow(self.buildEscapeIntentUrl(href + sep + 'qrscan=gallery'));
           return;
         }
         if (galleryInput) {
-          self._loadDecoder(null);
           galleryInput.click();
         }
       });
@@ -107,9 +103,12 @@ var qrScanner = {
       }
 
       var params = new URLSearchParams(window.location.search);
+      var scanMode = params.get('qrscan');
       var btn = document.getElementById('qrScanButton');
-      if (params.get('qrscan') === '1') {
-        if (btn) btn.classList.add('qr-scan-btn--attn');
+      var galleryBtn = document.getElementById('qrGalleryButton');
+      if (scanMode === 'camera' || scanMode === '1' || scanMode === 'gallery') {
+        var targetBtn = scanMode === 'gallery' ? galleryBtn : btn;
+        if (targetBtn) targetBtn.classList.add('qr-scan-btn--attn');
         params.delete('qrscan');
         var qs = params.toString();
         var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
@@ -199,9 +198,10 @@ var qrScanner = {
         //    would corrupt it); only the voucher parameter is normalized.
         var voucherParam = parsed.searchParams.get('voucher');
         var usernameParam = parsed.searchParams.get('username');
+        var voucherFmt = (typeof auth !== 'undefined' && auth.getVoucherFormat) ? auth.getVoucherFormat() : 'numeric';
         if (voucherParam || usernameParam) {
           var code = voucherParam
-            ? auth.normalizeVoucherText(voucherParam)
+            ? auth.normalizeVoucherText(voucherParam, voucherFmt)
             : String(usernameParam).trim();
           var route = { action: 'autologin', code: code };
           var passwordParam = parsed.searchParams.get('password');
@@ -227,7 +227,8 @@ var qrScanner = {
         return { action: 'autologin', code: '' };
       }
     }
-    return { action: 'autologin', code: auth.normalizeVoucherText(cleaned) };
+    var bareFmt = (typeof auth !== 'undefined' && auth.getVoucherFormat) ? auth.getVoucherFormat() : 'numeric';
+    return { action: 'autologin', code: auth.normalizeVoucherText(cleaned, bareFmt) };
   },
 
   _loadDecoder: function(ready) {
@@ -260,8 +261,8 @@ var qrScanner = {
   },
 
   _handleFile: function(file) {
-    var self = this;
-    this._loadDecoder(function() { self._decodeFile(file); });
+    // Try native BarcodeDetector first; lazy-load jsQR.js ONLY as fallback.
+    this._decodeFile(file);
   },
 
   _decodeFile: function(file) {
@@ -279,8 +280,8 @@ var qrScanner = {
             return detector.detect(bitmap).then(function(barcodes) {
               if (bitmap && bitmap.close) bitmap.close();
               if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
-                var input = document.getElementById('qr-file-input');
-                if (input) input.value = '';
+                var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
+                inputs.forEach(function(inp) { inp.value = ''; });
                 self._handleResult(barcodes[0].rawValue);
                 return true;
               }

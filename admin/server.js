@@ -488,10 +488,14 @@ async function handleApi(req, res, url, method) {
       if (targetSlug) {
         const p = store.get(targetSlug);
         if (p) {
-          const effective = resolveEffectiveConfig(p.config, loadCustomPresets());
+          const rawConfig = (body.config && typeof body.config === 'object' && !Array.isArray(body.config))
+            ? body.config
+            : p.config;
+          const previewAnnouncements = body.announcements !== undefined ? body.announcements : p.announcements;
+          const effective = resolveEffectiveConfig(rawConfig, loadCustomPresets());
           const previewZip = path.join(ADMIN_DIR, 'tmp', `${targetSlug}-preview.zip`);
           await workspace.runBuildCycle(
-            { ...p, config: effective, dir: path.join(store.profilesDir, targetSlug) },
+            { ...p, config: effective, announcements: previewAnnouncements, dir: path.join(store.profilesDir, targetSlug) },
             previewZip,
             { previewDistDir: PREVIEW_DIST_DIR, customPresetsPath: CUSTOM_PRESETS_FILE }
           );
@@ -756,9 +760,18 @@ async function handleApi(req, res, url, method) {
 // ---------------------------------------------------------------------------
 
 function serveStatic(res, url) {
-  let rel = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
-  const file = path.join(PUBLIC_DIR, rel);
-  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+  const rel = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  const rootDir = path.resolve(PUBLIC_DIR);
+  const file = path.resolve(rootDir, rel);
+  const relativePath = path.relative(rootDir, file);
+  if (
+    !file.startsWith(rootDir + path.sep) ||
+    !relativePath ||
+    relativePath.startsWith('..') ||
+    path.isAbsolute(relativePath) ||
+    !fs.existsSync(file) ||
+    !fs.statSync(file).isFile()
+  ) {
     return sendJson(res, 404, { error: 'not found' });
   }
   const data = fs.readFileSync(file);

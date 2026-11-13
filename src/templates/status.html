@@ -3,16 +3,16 @@
 {% block content %}
       <!-- System Announcements Banner -->
       <div id="announcement-banner" class="announcement-banner" style="display: none;">
-        <div class="announcement-banner__icon-wrapper">
-          <svg id="announcement-icon" class="announcement-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="announcement-banner__icon-wrapper" aria-hidden="true">
+          <svg id="announcement-icon" class="announcement-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <!-- SVG path is dynamically set by JS -->
           </svg>
         </div>
         <div class="announcement-banner__content">
           <span id="announcement-text" class="announcement-banner__text"></span>
         </div>
-        <button class="announcement-banner__close" onclick="dismissAnnouncement()" aria-label="Dismiss announcement">
-          <svg class="announcement-banner__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="announcement-banner__close" onclick="dismissAnnouncement()" data-i18n-aria="dismiss_announcement" aria-label="{{ i18n.dismiss_announcement }}">
+          <svg class="announcement-banner__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -22,12 +22,12 @@
       <div class="card">
         <div class="card-header">
           <div class="status-header">
-            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
             </svg>
-            <h1 class="card-header__title" data-i18n="status_title">Session Status</h1>
+            <h1 class="card-header__title" data-i18n="status_title">{{ i18n.status_title }}</h1>
           </div>
-          <p class="card-header__subtitle"><span id="stat-username">$(username-esc)</span> &mdash; <span id="device-os-display">--</span> &mdash; $(ip)</p>
+          <p class="card-header__subtitle"><span id="stat-username"><bdi dir="auto">$(username-esc)</bdi></span> &mdash; <span id="device-os-display">--</span> &mdash; <bdi dir="ltr">$(ip)</bdi></p>
         </div>
 
         <div class="card-body">
@@ -41,38 +41,14 @@
             <span class="alert__text session-warning__text"></span>
           </div>
 
-          <!-- PWA Install Banner -->
-          <div class="stat-card--pwa" id="pwaBanner" style="display: none;">
-            <button class="pwa-banner__close" onclick="dismissPwaBanner(event)" aria-label="Dismiss">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            <div class="pwa-banner__body">
-              <div class="pwa-banner__icon-wrapper">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </div>
-              <div class="pwa-banner__text">
-                <div class="pwa-banner__title" data-i18n="pwa_banner_title">Install Network App</div>
-                <div class="pwa-banner__desc" data-i18n="pwa_banner_desc">Add this portal to your Home Screen to easily monitor your consumption and speed at any time.</div>
-                <button class="btn btn-primary btn-sm pwa-banner__btn" onclick="toggleInstallModal()" data-i18n="pwa_banner_btn">Install Now</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Session countdown / remaining quota -->
+          <!-- Session countdown / remaining quota (always shown above promotional PWA banner) -->
           <div class="session-countdown" id="sessionCountdownSection"
                data-limit-bytes-total="$(limit-bytes-total)"
                data-bytes-in="$(bytes-in)"
                data-bytes-out="$(bytes-out)"
                data-quota-format="{% if config.features.quotaDisplayFormat %}{{ config.features.quotaDisplayFormat }}{% else %}MB{% endif %}"
-               data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1024{% endif %}">
-            <div class="session-countdown__label" data-i18n="remaining_quota">Remaining Quota</div>
+               data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1000{% endif %}">
+            <div class="session-countdown__label" data-i18n="remaining_quota">{{ i18n.remaining_quota }}</div>
             <div class="session-countdown__value" id="session-countdown">--</div>
             $(if limit-bytes-total)
             <div class="session-countdown__progress-container" id="quota-progress-container">
@@ -84,26 +60,50 @@
             $(endif)
           </div>
 
+          <!-- PWA Install Banner -->
+          <div class="stat-card--pwa" id="pwaBanner" style="display: none;">
+            <button type="button" class="pwa-banner__close" onclick="dismissPwaBanner(event)" data-i18n-aria="dismiss_label" aria-label="{{ i18n.dismiss_label }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <div class="pwa-banner__body">
+              <div class="pwa-banner__icon-wrapper" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="pwa-banner__text">
+                <div class="pwa-banner__title" data-i18n="pwa_banner_title">{{ i18n.pwa_banner_title }}</div>
+                <div class="pwa-banner__desc" data-i18n="pwa_banner_desc">{{ i18n.pwa_banner_desc }}</div>
+                <button type="button" class="btn btn-primary btn-sm pwa-banner__btn" onclick="toggleInstallModal()" data-i18n="pwa_banner_btn">{{ i18n.pwa_banner_btn }}</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Status Grid -->
-          <div class="status-grid" role="region" aria-label="Session status">
+          <div class="status-grid" role="region" data-i18n-aria="session_status_aria" aria-label="{{ i18n.session_status_aria }}">
             <!-- Session Time -->
             <div class="stat-card stat-card--highlight">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              <div class="stat-card__label" data-i18n="session_time">Session Time</div>
-              <div class="stat-card__value" id="uptime" data-seconds="$(uptime-secs)">$(uptime)</div>
+              <div class="stat-card__label" data-i18n="session_time">{{ i18n.session_time }}</div>
+              <div class="stat-card__value" id="uptime" data-seconds="$(uptime-secs)"><bdi dir="ltr">$(uptime)</bdi></div>
             </div>
 
             <!-- Time Remaining Countdown Card -->
             <div class="stat-card" id="timeRemainingCard" $(if session-time-left)$(else)style="display:none;"$(endif)>
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              <div class="stat-card__label" data-i18n="time_remaining">Time Remaining</div>
-              <div class="stat-card__value" id="session-time-left" data-seconds="$(session-time-left-secs)">$(session-time-left)</div>
+              <div class="stat-card__label" data-i18n="time_remaining">{{ i18n.time_remaining }}</div>
+              <div class="stat-card__value" id="session-time-left" data-seconds="$(session-time-left-secs)"><bdi dir="ltr">$(session-time-left)</bdi></div>
               <div class="progress-bar time-remaining-progress-container" id="time-remaining-progress-container" style="display: none;">
                 <div class="progress-bar__fill progress-bar__fill--animated" id="time-remaining-progress-fill"></div>
               </div>
@@ -111,46 +111,46 @@
 
             <!-- Download Card -->
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <div class="stat-card__label" data-i18n="download">Download</div>
-              <div class="stat-card__value" id="stat-download">--</div>
+              <div class="stat-card__label" data-i18n="download">{{ i18n.download }}</div>
+              <div class="stat-card__value" id="stat-download"><bdi dir="ltr">--</bdi></div>
             </div>
 
             <!-- Upload Card -->
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              <div class="stat-card__label" data-i18n="upload">Upload</div>
-              <div class="stat-card__value" id="stat-upload">--</div>
+              <div class="stat-card__label" data-i18n="upload">{{ i18n.upload }}</div>
+              <div class="stat-card__value" id="stat-upload"><bdi dir="ltr">--</bdi></div>
             </div>
 
             <!-- Connection Quality Card -->
-            <div class="stat-card stat-card--interactive" id="connectionStatusCard" onclick="checkConnectionQuality()">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="stat-card stat-card--interactive" id="connectionStatusCard" role="button" tabindex="0" onclick="checkConnectionQuality()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();checkConnectionQuality();}">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
                 <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
                 <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
                 <line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3" stroke-linecap="round"/>
               </svg>
-              <div class="stat-card__label" data-i18n="connection_status">Connection Quality</div>
+              <div class="stat-card__label" data-i18n="connection_status">{{ i18n.connection_status }}</div>
               <div class="stat-card__value" id="connection-status-val">--</div>
-              <span class="stat-card__hint" data-i18n="check_now">Tap to test</span>
+              <span class="stat-card__hint" data-i18n="check_now">{{ i18n.check_now }}</span>
             </div>
 
             {% if config.features.enableSmartAssistant %}
             <!-- Smart Usage Card -->
             <div class="stat-card stat-card--wide" id="smartUsageCard">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
               </svg>
-              <div class="stat-card__label" data-i18n="smart_usage_assistant">Smart Usage Assistant</div>
+              <div class="stat-card__label" data-i18n="smart_usage_assistant">{{ i18n.smart_usage_assistant }}</div>
               <div class="stat-card__value smart-usage-value" id="smart-usage-tip">
                 --
               </div>
@@ -159,31 +159,31 @@
                   <!-- Social & Chatting Badge -->
                   <div class="activity-badge">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" class="activity-badge__icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
-                      <span data-i18n="browsing_estimate">Browsing:</span>
+                      <span data-i18n="browsing_estimate">{{ i18n.browsing_estimate }}</span>
                     </span>
                     <span id="browsing-hours" class="activity-badge__value">--</span>
                   </div>
                   <!-- Eco SD Video Badge -->
                   <div class="activity-badge activity-badge--warning">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" class="activity-badge__icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
                         <polygon points="23 7 16 12 23 17 23 7"></polygon>
                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                       </svg>
-                      <span data-i18n="video_sd_estimate">SD Video:</span>
+                      <span data-i18n="video_sd_estimate">{{ i18n.video_sd_estimate }}</span>
                     </span>
                     <span id="video-sd-hours" class="activity-badge__value">--</span>
                   </div>
                   <!-- HD Video Badge -->
                   <div class="activity-badge activity-badge--danger">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" class="activity-badge__icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                       </svg>
-                      <span data-i18n="video_hd_estimate">HD Video:</span>
+                      <span data-i18n="video_hd_estimate">{{ i18n.video_hd_estimate }}</span>
                     </span>
                     <span id="video-hd-hours" class="activity-badge__value">--</span>
                   </div>
@@ -198,29 +198,29 @@
           {% if config.features.enableTechDetails %}
           <!-- Collapsible Technical Details -->
           <div class="tech-details">
-            <button class="tech-details__trigger" onclick="toggleTechDetails()" aria-expanded="false">
-              <span data-i18n="technical_details">Technical Details</span>
-              <svg class="tech-details__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="tech-details__trigger" onclick="toggleTechDetails()" aria-expanded="false">
+              <span data-i18n="technical_details">{{ i18n.technical_details }}</span>
+              <svg class="tech-details__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </button>
             <div class="tech-details__content" id="techDetailsContent" hidden>
               <div class="tech-grid">
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="username">Username</span>
-                  <div class="tech-item__value" id="tech-username">$(username-esc)</div>
+                  <span class="tech-item__label" data-i18n="username">{{ i18n.username }}</span>
+                  <div class="tech-item__value" id="tech-username"><bdi dir="auto">$(username-esc)</bdi></div>
                 </div>
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="ip_address">IP Address</span>
-                  <div class="tech-item__value tech-item__value--clickable" id="tech-ip" onclick="copyToClipboard('$(ip)', 'IP')">$(ip)</div>
+                  <span class="tech-item__label" data-i18n="ip_address">{{ i18n.ip_address }}</span>
+                  <button type="button" class="tech-item__value tech-item__value--clickable" id="tech-ip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}"><bdi dir="ltr">$(ip)</bdi></button>
                 </div>
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="mac_address">MAC Address</span>
-                  <div class="tech-item__value tech-item__value--clickable" id="tech-mac" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')">$(mac-esc)</div>
+                  <span class="tech-item__label" data-i18n="mac_address">{{ i18n.mac_address }}</span>
+                  <button type="button" class="tech-item__value tech-item__value--clickable" id="tech-mac" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}"><bdi dir="ltr">$(mac-esc)</bdi></button>
                 </div>
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="uptime">Uptime</span>
-                  <div class="tech-item__value">$(uptime)</div>
+                  <span class="tech-item__label" data-i18n="uptime">{{ i18n.uptime }}</span>
+                  <div class="tech-item__value"><bdi dir="ltr">$(uptime)</bdi></div>
                 </div>
               </div>
             </div>
@@ -230,30 +230,30 @@
           <!-- Logout Section -->
           <div class="logout-section status-actions">
             <a href="$(link-logout)" class="btn btn-secondary btn-block" id="logout-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
-              <span data-i18n="logout">Logout</span>
+              <span data-i18n="logout">{{ i18n.logout }}</span>
             </a>
-            <button class="btn btn-primary btn-block" onclick="refreshStatus()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="btn btn-primary btn-block" onclick="refreshStatus()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
               </svg>
-              <span data-i18n="refresh">Refresh</span>
+              <span data-i18n="refresh">{{ i18n.refresh }}</span>
             </button>
           </div>
 
           <!-- Plans & Pricing Link -->
           <div class="plans-link-compact">
             <a href="./plans.html" class="plans-link" id="viewPlansLink">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
               </svg>
-              <span data-i18n="plans_link">View subscription plans</span>
+              <span data-i18n="plans_link">{{ i18n.plans_link }}</span>
             </a>
           </div>
         </div>

@@ -37,17 +37,24 @@ var rateLimiter = {
   /**
    * Check if action is rate limited
    * @param {string} key - Rate limit key (e.g., username or IP)
+   * @param {number} [maxAttemptsOverride] - Optional per-key max attempt ceiling
    * @returns {object} Rate limit status
    */
-  check: function(key) {
+  check: function(key, maxAttemptsOverride) {
     this.loadAttempts();
     var now = Date.now();
     var entry = this.attempts[key];
+    var maxAttempts = (typeof maxAttemptsOverride === 'number' && maxAttemptsOverride > 0)
+      ? maxAttemptsOverride
+      : this.config.maxAttempts;
 
     if (!entry) {
       return {
         blocked: false,
-        attemptsRemaining: this.config.maxAttempts
+        attempts: 0,
+        attemptsRemaining: maxAttempts,
+        remainingTime: 0,
+        warning: false
       };
     }
 
@@ -55,8 +62,10 @@ var rateLimiter = {
     if (entry.blockedUntil && now < entry.blockedUntil) {
       return {
         blocked: true,
+        attempts: entry.timestamps ? entry.timestamps.length : maxAttempts,
         remainingTime: entry.blockedUntil - now,
-        attemptsRemaining: 0
+        attemptsRemaining: 0,
+        warning: false
       };
     }
 
@@ -71,20 +80,26 @@ var rateLimiter = {
     };
 
     // Check if max attempts exceeded
-    if (recentAttempts.length >= this.config.maxAttempts) {
+    if (recentAttempts.length >= maxAttempts) {
       this.attempts[key].blockedUntil = now + this.config.blockDurationMs;
       this.saveAttempts();
       return {
         blocked: true,
+        attempts: recentAttempts.length,
         remainingTime: this.config.blockDurationMs,
-        attemptsRemaining: 0
+        attemptsRemaining: 0,
+        warning: false
       };
     }
 
     this.saveAttempts();
+    var remaining = maxAttempts - recentAttempts.length;
     return {
       blocked: false,
-      attemptsRemaining: this.config.maxAttempts - recentAttempts.length
+      attempts: recentAttempts.length,
+      attemptsRemaining: remaining,
+      remainingTime: 0,
+      warning: recentAttempts.length > 0 && remaining <= 2
     };
   },
 

@@ -80,14 +80,21 @@ function generateBrandTitleSvg(options = {}) {
   const networkName = String(options.networkName || 'Meganet').trim().slice(0, 40) || 'Meganet';
   const tagline = String(options.tagline || '').trim().slice(0, 50);
   const primary = normalizeHex(options.primaryColor, '#22c55e');
+  const maxChars = Math.max(networkName.length, Math.round(tagline.length * 0.55));
+  const width = Math.max(240, Math.min(360, 240 + Math.max(0, maxChars - 12) * 10));
+  const cx = Math.round(width / 2);
+  const fontSize = networkName.length > 14
+    ? Math.max(15, Math.round((24 * 14) / networkName.length))
+    : 24;
 
   const subtitleEl = tagline
-    ? `<text x="120" y="48" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif" font-size="11" font-weight="600" fill="${primary}" opacity="0.9">${escapeXml(tagline)}</text>`
-    : `<rect x="85" y="43" width="70" height="3.5" rx="2" fill="${primary}" opacity="0.85"/>`;
+    ? `<text x="${cx}" y="48" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif" font-size="11" font-weight="600" fill="${primary}" opacity="0.9">${escapeXml(tagline)}</text>`
+    : `<rect x="${cx - 35}" y="43" width="70" height="3.5" rx="2" fill="${primary}" opacity="0.85"/>`;
 
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" width="240" height="56" role="img" aria-label="${escapeXml(networkName)}">` +
-    `<text x="120" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif" font-size="24" font-weight="800" fill="currentColor">${escapeXml(networkName)}</text>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 56" width="${width}" height="56" role="img" aria-label="${escapeXml(networkName)}">` +
+    `<title>${escapeXml(networkName)}</title>` +
+    `<text x="${cx}" y="33" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif" font-size="${fontSize}" font-weight="800" fill="currentColor">${escapeXml(networkName)}</text>` +
     subtitleEl +
     `</svg>`
   );
@@ -122,19 +129,21 @@ function pngChunk(type, data) {
 }
 
 /**
- * Generate a valid binary 64x64 RGBA PNG (`icon.png`) drawing a rounded
+ * Generate a valid binary RGBA PNG (`icon.png`) drawing a rounded
  * badge in `backgroundColor` with a concentric WiFi/brand emblem in `primaryColor`.
+ * Defaults to 512x512 for PWA manifest maskable/any icon compliance.
  */
 function generateIconPngBuffer(options = {}) {
-  const size = Number(options.size) || 64;
+  const size = Number(options.size) || 512;
   const fg = hexToRgb(options.primaryColor || '#22c55e');
   const bg = hexToRgb(options.backgroundColor || '#020617');
+  const strokeScale = Math.max(1, size / 64);
 
   // Each scanline has 1 filter byte (0) + size * 4 RGBA bytes
   const raw = Buffer.alloc(size * (1 + size * 4));
   const cx = (size - 1) / 2;
   const cy = (size - 1) / 2;
-  const maxR = size / 2 - 2;
+  const maxR = size / 2 - Math.max(2, strokeScale * 2);
 
   for (let y = 0; y < size; y++) {
     const rowStart = y * (1 + size * 4);
@@ -153,12 +162,12 @@ function generateIconPngBuffer(options = {}) {
         raw[px + 3] = 0;
       } else {
         // Border ring or inner WiFi arcs
-        const isBorder = dist >= maxR - 2.5;
+        const isBorder = dist >= maxR - 2.5 * strokeScale;
         const isCenterDot = Math.sqrt(dx * dx + (dy - size * 0.16) * (dy - size * 0.16)) <= size * 0.06;
         const arcDist = Math.sqrt(dx * dx + (dy - size * 0.16) * (dy - size * 0.16));
         const inUpperCone = dy < size * 0.12 && Math.abs(dx) <= Math.abs(dy - size * 0.18) * 1.15;
-        const isArc1 = inUpperCone && Math.abs(arcDist - size * 0.18) <= 2.0;
-        const isArc2 = inUpperCone && Math.abs(arcDist - size * 0.30) <= 2.0;
+        const isArc1 = inUpperCone && Math.abs(arcDist - size * 0.18) <= 2.0 * strokeScale;
+        const isArc2 = inUpperCone && Math.abs(arcDist - size * 0.30) <= 2.0 * strokeScale;
 
         if (isBorder || isCenterDot || isArc1 || isArc2) {
           raw[px] = fg.r;

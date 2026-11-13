@@ -1,29 +1,40 @@
 <!DOCTYPE html>
-<html lang="{{ lang or 'en' }}" dir="{% if lang == 'ar' %}rtl{% else %}ltr{% endif %}">
+<html lang="{{ lang or 'ar' }}" dir="{% if lang == 'en' %}ltr{% else %}rtl{% endif %}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WiFi Portal</title>
+  <title>{% if lang == 'en' %}WiFi Portal{% else %}بوابة الواي فاي{% endif %}</title>
   <script>
-    // Route to the portal language matching the browser preference,
-    // falling back to the Arabic portal (primary audience).
+    // Route to the portal language matching explicit cookie or browser preference,
+    // defaulting to the Arabic portal (primary audience).
     (function() {
-      var lang = 'en';
+      var saved = '';
       try {
-        lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-      } catch (err) { /* detection unavailable */ }
-      var isArabic = lang.indexOf('ar') === 0;
+        var m = document.cookie.match(/(?:^|;\s*)hotspot_lang=([^;]+)/);
+        if (m) saved = decodeURIComponent(m[1]);
+      } catch (err) { /* cookie unavailable */ }
+
+      var goEnglish = saved === 'en';
+      if (saved !== 'en' && saved !== 'ar') {
+        var lang = 'ar';
+        try {
+          lang = (navigator.language || navigator.userLanguage || 'ar').toLowerCase();
+        } catch (err) { /* detection unavailable */ }
+        goEnglish = lang.indexOf('en') === 0;
+      }
+
+      var qs = window.location.search || '';
       {% if lang == 'ar' %}
-      window.location.replace(isArabic ? './login.html' : '../login.html');
+      window.location.replace((goEnglish ? '../login.html' : './login.html') + qs);
       {% else %}
-      window.location.replace(isArabic ? './ar/login.html' : './login.html');
+      window.location.replace((goEnglish ? './login.html' : './ar/login.html') + qs);
       {% endif %}
     })();
   </script>
-  <noscript><meta http-equiv="refresh" content="0; url={% if lang == 'ar' %}./login.html{% else %}./login.html{% endif %}"></noscript>
+  <noscript><meta http-equiv="refresh" content="0; url={% if lang == 'ar' %}./login.html{% else %}./ar/login.html{% endif %}"></noscript>
 </head>
 <body>
-  <p>Redirecting&hellip;</p>
+  <p>{% if lang == 'en' %}Redirecting&hellip;{% else %}جاري التحويل&hellip;{% endif %}</p>
   <p>
     <a href="{% if lang == 'ar' %}../login.html{% else %}./login.html{% endif %}">English</a> &middot; <a href="{% if lang == 'ar' %}./login.html{% else %}./ar/login.html{% endif %}">العربية</a>
   </p>

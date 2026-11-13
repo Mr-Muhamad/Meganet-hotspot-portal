@@ -59,6 +59,20 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
     }
   }
 
+  function collectReferencedAssets(cfg) {
+    const keep = new Set(['logo.svg', 'prand-title.svg', 'icon.png']);
+    const agents = cfg && cfg.support && Array.isArray(cfg.support.agents) ? cfg.support.agents : [];
+    for (const agent of agents) {
+      if (!agent || typeof agent !== 'object') continue;
+      for (const raw of [agent.avatar, agent.image]) {
+        if (!raw || typeof raw !== 'string') continue;
+        const cleaned = raw.replace(/^\.?\/?assets[\\/]/i, '').replace(/\\/g, '/');
+        if (cleaned) keep.add(cleaned);
+      }
+    }
+    return keep;
+  }
+
   function applyProfileToDir(profile, targetAssetsDir, targetConfigFile, targetAnnouncementsFile) {
     checkProfileShape(profile);
     const cfgCopy = JSON.parse(JSON.stringify(profile.config));
@@ -73,9 +87,18 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
       fs.copyFileSync(announcementsFile, targetAnnouncementsFile);
     }
 
+    const keepAssets = collectReferencedAssets(cfgCopy);
     fs.mkdirSync(targetAssetsDir, { recursive: true });
     if (fs.existsSync(assetsDir)) {
-      fs.cpSync(assetsDir, targetAssetsDir, { recursive: true, force: true });
+      for (const entry of fs.readdirSync(assetsDir, { withFileTypes: true })) {
+        const src = path.join(assetsDir, entry.name);
+        const dest = path.join(targetAssetsDir, entry.name);
+        if (entry.isDirectory()) {
+          fs.cpSync(src, dest, { recursive: true, force: true });
+        } else if (keepAssets.has(entry.name)) {
+          fs.copyFileSync(src, dest);
+        }
+      }
     }
 
     const applied = [];
@@ -83,6 +106,7 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
       for (const asset of profile.assets) {
         const safe = path.basename(asset.name);
         if (safe !== asset.name || safe.startsWith('.') || !safe) continue;
+        if (!keepAssets.has(safe)) continue;
         const src = inside(profile.dir, path.join('assets', safe));
         const dest = inside(targetAssetsDir, safe);
         if (!src || !dest || !fs.existsSync(src)) continue;
@@ -286,7 +310,7 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
 
         return {
           zipPath: built.outputZip,
-          distFiles: fs.readdirSync(stageDist).length,
+          distFiles: built.fileCount,
           zipSize: built.zipSize,
           totalRawSize: built.totalRawSize,
           breakdown: built.breakdown,

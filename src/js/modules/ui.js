@@ -172,20 +172,42 @@ var ui = {
   initCountdown: function(seconds, elementId, callback) {
     try {
       var element = document.getElementById(elementId);
-      if (!element || !seconds) return;
+      if (!element || !seconds) return null;
 
-      var remaining = seconds;
-      element.textContent = util.formatTime(remaining);
+      var targetEl = (element.querySelector && element.querySelector('bdi')) || element;
+      var endTime = Date.now() + seconds * 1000;
+      var completed = false;
+      var interval = null;
 
-      var interval = setInterval(function() {
-        remaining--;
-        element.textContent = util.formatTime(remaining);
+      var tick = function() {
+        var remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        targetEl.textContent = util.formatTime(remaining);
 
-        if (remaining <= 0) {
+        if (remaining <= 0 && !completed) {
+          completed = true;
           clearInterval(interval);
+          if (typeof document !== 'undefined' && ui._onCountdownVisibility) {
+            document.removeEventListener('visibilitychange', ui._onCountdownVisibility);
+            ui._onCountdownVisibility = null;
+          }
           if (callback) callback();
         }
-      }, 1000);
+      };
+
+      targetEl.textContent = util.formatTime(seconds);
+      interval = setInterval(tick, 1000);
+
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        if (ui._onCountdownVisibility) {
+          document.removeEventListener('visibilitychange', ui._onCountdownVisibility);
+        }
+        ui._onCountdownVisibility = function() {
+          if (!document.hidden && !completed) {
+            tick();
+          }
+        };
+        document.addEventListener('visibilitychange', ui._onCountdownVisibility);
+      }
 
       return interval;
     } catch (err) {
@@ -219,28 +241,123 @@ var ui = {
     }
   },
 
+  _getModalFocusable: function(modal) {
+    if (!modal || typeof modal.querySelectorAll !== 'function') return [];
+    var raw = modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    var list = [];
+    for (var i = 0; i < raw.length; i++) {
+      var el = raw[i];
+      if (!el) continue;
+      if (el.offsetParent === null && typeof window !== 'undefined' && typeof getComputedStyle === 'function') {
+        var style = getComputedStyle(el);
+        if (style && style.display === 'none') continue;
+      }
+      list.push(el);
+    }
+    return list;
+  },
+
+  _handleModalKeydown: function(e, modal, closeFn) {
+    if (!e) return;
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      closeFn();
+      return;
+    }
+    if (e.key === 'Tab' || e.keyCode === 9) {
+      var focusable = ui._getModalFocusable(modal);
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      var active = typeof document !== 'undefined' ? document.activeElement : null;
+      if (e.shiftKey) {
+        if (!active || active === first || (modal.contains && !modal.contains(active))) {
+          if (typeof e.preventDefault === 'function') e.preventDefault();
+          if (typeof last.focus === 'function') last.focus();
+        }
+      } else if (active === last || (modal.contains && !modal.contains(active))) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof first.focus === 'function') first.focus();
+      }
+    }
+  },
+
   toggleSupportModal: function() {
     try {
       var modal = document.getElementById('supportModal');
       if (!modal) return;
-      
+
       var isOpen = modal.classList.contains('support-modal--open');
       if (isOpen) {
         modal.classList.remove('support-modal--open');
         if (ui._onSupportModalEsc) {
           document.removeEventListener('keydown', ui._onSupportModalEsc);
+          ui._onSupportModalEsc = null;
         }
+        if (ui._supportModalTrigger && typeof ui._supportModalTrigger.focus === 'function') {
+          ui._supportModalTrigger.focus();
+        }
+        ui._supportModalTrigger = null;
       } else {
+        ui._supportModalTrigger = typeof document !== 'undefined' ? document.activeElement : null;
         modal.classList.add('support-modal--open');
         ui._onSupportModalEsc = function(e) {
-          if (e.key === 'Escape' || e.keyCode === 27) {
-            ui.toggleSupportModal();
-          }
+          ui._handleModalKeydown(e, modal, ui.toggleSupportModal);
         };
         document.addEventListener('keydown', ui._onSupportModalEsc);
+        var focusable = ui._getModalFocusable(modal);
+        if (focusable.length && typeof focusable[0].focus === 'function') {
+          focusable[0].focus();
+        }
       }
     } catch (err) {
       console.error('Toggle support modal error:', err);
+    }
+  },
+
+  selectPlan: function(cardEl) {
+    try {
+      if (!cardEl || typeof document === 'undefined') return;
+      var cards = document.querySelectorAll('.plan-card');
+      for (var i = 0; i < cards.length; i++) {
+        cards[i].classList.remove('plan-card--selected');
+        var btn = cards[i].querySelector ? cards[i].querySelector('.plan-card__select-btn') : null;
+        if (btn) btn.setAttribute('aria-pressed', 'false');
+      }
+
+      cardEl.classList.add('plan-card--selected');
+      var activeBtn = cardEl.querySelector ? cardEl.querySelector('.plan-card__select-btn') : null;
+      if (activeBtn) activeBtn.setAttribute('aria-pressed', 'true');
+
+      var planName = cardEl.getAttribute('data-plan-name') || '';
+      var planQuota = cardEl.getAttribute('data-plan-quota') || '';
+      var planPrice = cardEl.getAttribute('data-plan-price') || '';
+
+      var summaryEl = document.getElementById('selected-plan-summary');
+      var summaryTextEl = document.getElementById('selected-plan-summary-text') || summaryEl;
+      if (summaryEl && summaryTextEl && typeof i18n !== 'undefined') {
+        summaryTextEl.textContent = i18n.t('selected_plan_banner', {
+          name: planName,
+          quota: planQuota,
+          price: planPrice
+        });
+        summaryEl.style.display = 'flex';
+      }
+
+      var prefillMsg = (typeof i18n !== 'undefined')
+        ? i18n.t('support_plan_prefill', { name: planName, quota: planQuota, price: planPrice })
+        : (planName + ' - ' + planPrice);
+
+      var whatsappBtns = document.querySelectorAll('.support-whatsapp-btn');
+      for (var j = 0; j < whatsappBtns.length; j++) {
+        var waBtn = whatsappBtns[j];
+        var baseHref = waBtn.getAttribute('data-base-href') || (waBtn.getAttribute('href') || '').split('?')[0];
+        if (baseHref) {
+          var sep = baseHref.indexOf('?') !== -1 ? '&' : '?';
+          waBtn.setAttribute('href', baseHref + sep + 'text=' + encodeURIComponent(prefillMsg));
+        }
+      }
+    } catch (err) {
+      console.error('Select plan error:', err);
     }
   },
 
@@ -255,30 +372,86 @@ var ui = {
     }
   },
 
+  destroyBackground: function() {
+    try {
+      var bg = ui._bgState;
+      if (!bg) return;
+      bg.destroyed = true;
+      if (bg.rafId !== null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(bg.rafId);
+      }
+      if (bg.resizeTimer) {
+        clearTimeout(bg.resizeTimer);
+      }
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', bg.onResize);
+        window.removeEventListener('mousemove', bg.onMove);
+        window.removeEventListener('touchmove', bg.onMove);
+        window.removeEventListener('mouseleave', bg.onLeave);
+        window.removeEventListener('touchend', bg.onLeave);
+      }
+      if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+        document.removeEventListener('visibilitychange', bg.onVisibilityChange);
+      }
+      if (bg.reducedMotionQuery && bg.onReducedMotionChange) {
+        if (typeof bg.reducedMotionQuery.removeEventListener === 'function') {
+          bg.reducedMotionQuery.removeEventListener('change', bg.onReducedMotionChange);
+        } else if (typeof bg.reducedMotionQuery.removeListener === 'function') {
+          bg.reducedMotionQuery.removeListener(bg.onReducedMotionChange);
+        }
+      }
+      if (bg.themeObserver && typeof bg.themeObserver.disconnect === 'function') {
+        bg.themeObserver.disconnect();
+      }
+      ui._bgState = null;
+    } catch (err) {
+      console.error('Destroy background error:', err);
+    }
+  },
+
   initBackground: function() {
     try {
+      ui.destroyBackground();
       var canvas = document.getElementById('network-bg');
       if (!canvas) return;
 
-      // Accessibility: skip the animated particle background entirely when
-      // the visitor asked the OS to reduce motion (README claims WCAG AA —
-      // the canvas stays static-free instead of only being dimmable).
       var reducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-      if (reducedMotionQuery && reducedMotionQuery.matches) {
-        canvas.style.display = 'none';
+      var isReducedMotion = !!(reducedMotionQuery && reducedMotionQuery.matches);
+      var isPaused = isReducedMotion || (typeof document !== 'undefined' && !!document.hidden);
+
+      if (isReducedMotion) {
+        if (canvas.style) canvas.style.display = 'none';
+      }
+
+      var ctx = null;
+      var getCtx = function() {
+        if (ctx) return ctx;
+        try {
+          ctx = canvas.getContext('2d');
+        } catch (ctxErr) {
+          ctx = null;
+        }
+        return ctx;
+      };
+
+      if (isReducedMotion && !(reducedMotionQuery && (reducedMotionQuery.addEventListener || reducedMotionQuery.addListener))) {
         return;
       }
 
-      var ctx = canvas.getContext('2d');
-      var particles = [];
-      var maxParticles = window.innerWidth < 768 ? 45 : 90;
-      var connectionDistance = 100;
-      var mouse = { x: null, y: null, radius: 130 };
+      if (!isReducedMotion && !getCtx()) return;
 
-      // Brand-tied canvas colors: read the LIVE --color-primary token so a
-      // client brand recolors connections and pointer lines without touching
-      // JS (falls back to the shipped green when the token is unavailable).
-      // Nodes stay neutral blue/indigo — they read as "devices", not brand.
+      var particles = [];
+      var viewportW = window.innerWidth || 360;
+      var viewportH = window.innerHeight || 640;
+      var isCompact = viewportW <= 768;
+      var maxParticles = isCompact ? 45 : 90;
+      var connectionDistance = 100;
+      var connectionDistanceSq = connectionDistance * connectionDistance;
+      var mouse = { x: null, y: null, radius: 130, radiusSq: 130 * 130 };
+      var cachedTheme = (typeof document !== 'undefined' && document.documentElement)
+        ? (document.documentElement.getAttribute('data-theme') || 'dark')
+        : 'dark';
+
       var brandRgb = '34, 197, 94';
       try {
         var tokenRaw = (getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '').trim();
@@ -288,20 +461,38 @@ var ui = {
         }
       } catch (colorErr) { /* keep the shipped-green fallback */ }
 
-      // Set canvas size
-      var resizeCanvas = function() {
+      var applyCanvasSize = function() {
         if (!canvas) return;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        maxParticles = window.innerWidth < 768 ? 45 : 90;
+        viewportW = window.innerWidth || 360;
+        viewportH = window.innerHeight || 640;
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(viewportW * dpr);
+        canvas.height = Math.floor(viewportH * dpr);
+        if (canvas.style) {
+          canvas.style.width = viewportW + 'px';
+          canvas.style.height = viewportH + 'px';
+        }
+        var activeCtx = isReducedMotion ? ctx : getCtx();
+        if (activeCtx && typeof activeCtx.setTransform === 'function') {
+          activeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        isCompact = viewportW <= 768;
+        maxParticles = isCompact ? 45 : 90;
       };
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+      applyCanvasSize();
 
-      // Track mouse/touch movement
+      var resizeTimer = null;
+      var onResize = function() {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(applyCanvasSize, 120);
+        if (ui._bgState) ui._bgState.resizeTimer = resizeTimer;
+      };
+      window.addEventListener('resize', onResize);
+
       var handleMove = function(e) {
-        var clientX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
-        var clientY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY);
+        if (!e) return;
+        var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : undefined);
+        var clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : undefined);
         if (clientX !== undefined && clientY !== undefined) {
           mouse.x = clientX;
           mouse.y = clientY;
@@ -313,17 +504,13 @@ var ui = {
       };
 
       window.addEventListener('mousemove', handleMove);
-      // passive: the handlers only read coordinates, never preventDefault —
-      // without it every touch during a scroll waits on this JS (scroll jank
-      // on cheap phones)
       window.addEventListener('touchmove', handleMove, { passive: true });
       window.addEventListener('mouseleave', handleLeave);
       window.addEventListener('touchend', handleLeave, { passive: true });
 
-      // Particle Constructor
       var Particle = function() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * viewportW;
+        this.y = Math.random() * viewportH;
         this.vx = (Math.random() - 0.5) * 0.4;
         this.vy = (Math.random() - 0.5) * 0.4;
         this.size = Math.random() * 2 + 1;
@@ -333,16 +520,15 @@ var ui = {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Bounce on boundaries
-        if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
-        if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
+        if (this.x < 0 || this.x > viewportW) this.vx = -this.vx;
+        if (this.y < 0 || this.y > viewportH) this.vy = -this.vy;
 
-        // Mouse attraction/pull
         if (mouse.x !== null && mouse.y !== null) {
           var dx = mouse.x - this.x;
           var dy = mouse.y - this.y;
-          var dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < mouse.radius) {
+          var distSq = dx * dx + dy * dy;
+          if (distSq < mouse.radiusSq) {
+            var dist = Math.sqrt(distSq);
             var force = (mouse.radius - dist) / mouse.radius;
             this.x -= dx * force * 0.02;
             this.y -= dy * force * 0.02;
@@ -350,43 +536,73 @@ var ui = {
         }
       };
 
-      Particle.prototype.draw = function() {
+      Particle.prototype.draw = function(isLight) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        
-        var theme = document.documentElement.getAttribute('data-theme') || 'dark';
-        if (theme === 'light') {
-          ctx.fillStyle = 'rgba(79, 70, 229, 0.35)'; /* light mode: indigo nodes */
-        } else {
-          ctx.fillStyle = 'rgba(59, 130, 246, 0.4)'; /* dark mode: blue glowing nodes */
-        }
+        ctx.fillStyle = isLight ? 'rgba(79, 70, 229, 0.35)' : 'rgba(59, 130, 246, 0.4)';
         ctx.fill();
       };
 
-      // Populate particles
       for (var i = 0; i < maxParticles; i++) {
         particles.push(new Particle());
       }
 
-      // Animation Loop
-      var fpsInterval = 1000 / 30; // Limit to 30 FPS for mobile power saving and performance
+      var fpsInterval = 1000 / 30;
       var lastDrawTime = Date.now();
 
+      var bgState = {
+        destroyed: false,
+        rafId: null,
+        resizeTimer: resizeTimer,
+        onResize: onResize,
+        onMove: handleMove,
+        onLeave: handleLeave,
+        onVisibilityChange: null,
+        reducedMotionQuery: reducedMotionQuery,
+        onReducedMotionChange: null,
+        themeObserver: null
+      };
+      ui._bgState = bgState;
+
+      if (typeof MutationObserver === 'function' && document && document.documentElement) {
+        bgState.themeObserver = new MutationObserver(function() {
+          cachedTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        });
+        bgState.themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme']
+        });
+      }
+
+      var scheduleNext = function() {
+        if (bgState.destroyed || isPaused) {
+          bgState.rafId = null;
+          return;
+        }
+        bgState.rafId = requestAnimationFrame(animate);
+      };
+
       var animate = function() {
-        if (!canvas || !ctx) return;
-        requestAnimationFrame(animate);
+        var activeCtx = getCtx();
+        if (bgState.destroyed || isPaused || !canvas || !activeCtx) {
+          bgState.rafId = null;
+          return;
+        }
+        ctx = activeCtx;
+        scheduleNext();
 
         var now = Date.now();
         var elapsed = now - lastDrawTime;
         if (elapsed < fpsInterval) return;
         lastDrawTime = now - (elapsed % fpsInterval);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewportW, viewportH);
 
-        var theme = document.documentElement.getAttribute('data-theme') || 'dark';
-        var isLight = theme === 'light';
+        if (!bgState.themeObserver && document && document.documentElement) {
+          cachedTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        }
+        var isLight = cachedTheme === 'light';
 
-        // Adjust counts on screen resize dynamically
         while (particles.length < maxParticles) {
           particles.push(new Particle());
         }
@@ -394,72 +610,99 @@ var ui = {
           particles.length = maxParticles;
         }
 
-        // On small mobile devices, skip calculating inter-particle connections to save CPU
-        var isMobile = window.innerWidth < 768;
-
-        // Draw and update particles
         for (var i = 0; i < particles.length; i++) {
           var p1 = particles[i];
           p1.update();
-          p1.draw();
+          p1.draw(isLight);
 
-          // Calculate connections (only on desktop screen sizes to optimize mobile CPU)
-          if (!isMobile) {
+          if (!isCompact) {
             for (var j = i + 1; j < particles.length; j++) {
               var p2 = particles[j];
               var dx = p1.x - p2.x;
               var dy = p1.y - p2.y;
-              var dist = Math.sqrt(dx * dx + dy * dy);
+              var distSq = dx * dx + dy * dy;
 
-              if (dist < connectionDistance) {
+              if (distSq < connectionDistanceSq) {
+                var dist = Math.sqrt(distSq);
                 var alpha = (1 - dist / connectionDistance) * 0.15;
                 ctx.beginPath();
                 ctx.moveTo(p1.x, p1.y);
                 ctx.lineTo(p2.x, p2.y);
-                
-                if (isLight) {
-                  ctx.strokeStyle = 'rgba(148, 163, 184, ' + alpha + ')';
-                } else {
-                  ctx.strokeStyle = 'rgba(' + brandRgb + ', ' + alpha + ')';
-                }
-                
+                ctx.strokeStyle = isLight
+                  ? ('rgba(148, 163, 184, ' + alpha + ')')
+                  : ('rgba(' + brandRgb + ', ' + alpha + ')');
                 ctx.lineWidth = 0.8;
                 ctx.stroke();
               }
             }
           }
 
-          // Draw connections to pointer
           if (mouse.x !== null && mouse.y !== null) {
             var dxPointer = p1.x - mouse.x;
             var dyPointer = p1.y - mouse.y;
-            var distPointer = Math.sqrt(dxPointer * dxPointer + dyPointer * dyPointer);
-            if (distPointer < mouse.radius) {
+            var distPointerSq = dxPointer * dxPointer + dyPointer * dyPointer;
+            if (distPointerSq < mouse.radiusSq) {
+              var distPointer = Math.sqrt(distPointerSq);
               var alphaPointer = (1 - distPointer / mouse.radius) * 0.25;
               ctx.beginPath();
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(mouse.x, mouse.y);
-              
-              if (isLight) {
-                ctx.strokeStyle = 'rgba(79, 70, 229, ' + alphaPointer + ')'; /* light mode: indigo pointer lines */
-              } else {
-                ctx.strokeStyle = 'rgba(' + brandRgb + ', ' + alphaPointer + ')'; /* dark mode: brand glow pointer lines */
-              }
-              
+              ctx.strokeStyle = isLight
+                ? ('rgba(79, 70, 229, ' + alphaPointer + ')')
+                : ('rgba(' + brandRgb + ', ' + alphaPointer + ')');
               ctx.lineWidth = 1;
               ctx.stroke();
             }
           }
         }
-
       };
 
-      animate();
-      // The loop self-sustains through the single requestAnimationFrame at the
-      // top of animate(). A second one used to sit here — every drawn frame
-      // scheduled TWO successors, so the pending-callback chain grew by ~15/s
-      // for as long as the page stayed open (jank + battery drain that got
-      // worse by the minute).
+      var syncPauseState = function() {
+        var shouldPause = isReducedMotion || (typeof document !== 'undefined' && !!document.hidden);
+        if (canvas && canvas.style) {
+          canvas.style.display = isReducedMotion ? 'none' : '';
+        }
+        if (shouldPause) {
+          isPaused = true;
+          if (bgState.rafId !== null && typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(bgState.rafId);
+            bgState.rafId = null;
+          }
+        } else {
+          var wasPaused = isPaused;
+          isPaused = false;
+          if (wasPaused && !bgState.destroyed && bgState.rafId === null) {
+            lastDrawTime = Date.now();
+            animate();
+          }
+        }
+      };
+
+      bgState.onVisibilityChange = syncPauseState;
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', syncPauseState);
+      }
+
+      if (reducedMotionQuery) {
+        bgState.onReducedMotionChange = function(event) {
+          isReducedMotion = !!(event && event.matches);
+          syncPauseState();
+        };
+        if (typeof reducedMotionQuery.addEventListener === 'function') {
+          reducedMotionQuery.addEventListener('change', bgState.onReducedMotionChange);
+        } else if (typeof reducedMotionQuery.addListener === 'function') {
+          reducedMotionQuery.addListener(bgState.onReducedMotionChange);
+        }
+      }
+
+      if (isReducedMotion) {
+        if (canvas.style) canvas.style.display = 'none';
+        return;
+      }
+
+      if (!isPaused) {
+        animate();
+      }
     } catch (err) {
       console.error('Init background animation error:', err);
     }
@@ -585,8 +828,14 @@ var ui = {
         modal.classList.remove('support-modal--open');
         if (ui._onInstallModalEsc) {
           document.removeEventListener('keydown', ui._onInstallModalEsc);
+          ui._onInstallModalEsc = null;
         }
+        if (ui._installModalTrigger && typeof ui._installModalTrigger.focus === 'function') {
+          ui._installModalTrigger.focus();
+        }
+        ui._installModalTrigger = null;
       } else {
+        ui._installModalTrigger = typeof document !== 'undefined' ? document.activeElement : null;
         var ua = navigator.userAgent.toLowerCase();
         var isIos = /iphone|ipad|ipod/.test(ua);
         var isAndroid = /android/.test(ua);
@@ -611,11 +860,13 @@ var ui = {
 
         modal.classList.add('support-modal--open');
         ui._onInstallModalEsc = function(e) {
-          if (e.key === 'Escape' || e.keyCode === 27) {
-            ui.toggleInstallModal();
-          }
+          ui._handleModalKeydown(e, modal, ui.toggleInstallModal);
         };
         document.addEventListener('keydown', ui._onInstallModalEsc);
+        var focusable = ui._getModalFocusable(modal);
+        if (focusable.length && typeof focusable[0].focus === 'function') {
+          focusable[0].focus();
+        }
       }
     } catch (err) {
       console.error('Toggle install modal error:', err);

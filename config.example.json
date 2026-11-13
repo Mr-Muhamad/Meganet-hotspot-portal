@@ -30,6 +30,8 @@
     "loginMode_hints": "طريقة تسجيل الدخول: 'both' (كود شحن وباقة)، 'voucher_only' (كود شحن فقط)، 'normal_only' (باقة فقط)",
     "voucherPasswordMode": "same",
     "voucherPasswordMode_hints": "وضع كلمة المرور للكروت: 'same' (الباسورد يطابق الكود)، 'empty' (الباسورد يترك فارغاً)",
+    "voucherFormat": "numeric",
+    "voucherFormat_hints": "صيغة كود الكارت: 'numeric' (أرقام فقط مع لوحة أرقام الموبايل) أو 'alphanumeric' (حروف وأرقام)",
     "enableQRScanner": true,
     "enableQRScanner_hints": "إظهار (true) أو إخفاء (false) زر مسح الكارت عبر كاميرا الموبايل",
     "kbBase": 1000,

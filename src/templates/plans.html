@@ -4,20 +4,27 @@
 <div class="card plans-container">
   <div class="card-header">
     <div class="card-header__brand">
-      <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
       </svg>
     </div>
-    <h1 class="card-header__title" data-i18n="plans_title">Subscription Plans</h1>
-    <p class="card-header__subtitle" data-i18n="plans_subtitle">Choose the best package for your needs</p>
+    <h1 class="card-header__title" data-i18n="plans_title">{{ i18n.plans_title }}</h1>
+    <p class="card-header__subtitle" data-i18n="plans_subtitle">{{ i18n.plans_subtitle }}</p>
   </div>
 
   <div class="plans-grid" role="list">
     {% if config.plans and config.plans.length > 0 %}
       {% for plan in config.plans %}
-      <div class="plan-card" role="listitem">
-        <div class="plan-card__icon-wrapper">
+      {% set planName = plan.name_ar if (lang == 'ar' and plan.name_ar) else plan.name %}
+      {% set planQuota = plan.quota_ar if (lang == 'ar' and plan.quota_ar) else plan.quota %}
+      {% set planPrice = (plan.price ~ ' ج.م') if lang == 'ar' else (plan.price ~ ' EGP') %}
+      <div class="plan-card" role="listitem"
+           data-plan-name="{{ planName | e }}"
+           data-plan-quota="{{ planQuota | e }}"
+           data-plan-price="{{ planPrice | e }}"
+           onclick="if (typeof ui !== 'undefined' && ui.selectPlan) ui.selectPlan(this)">
+        <div class="plan-card__icon-wrapper" aria-hidden="true">
           {% if plan.icon == 'globe' %}
           <svg class="plan-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
@@ -66,21 +73,25 @@
           {% endif %}
         </div>
         <div class="plan-card__info">
-          <div class="plan-card__quota">{% if lang == 'ar' and plan.quota_ar %}{{ plan.quota_ar | e }}{% else %}{{ plan.quota | e }}{% endif %}</div>
-          <div class="plan-card__name">{% if lang == 'ar' and plan.name_ar %}{{ plan.name_ar | e }}{% else %}{{ plan.name | e }}{% endif %}</div>
+          <div class="plan-card__quota">{{ planQuota | e }}</div>
+          <div class="plan-card__name">{{ planName | e }}</div>
         </div>
-        <div class="plan-card__price">{% if lang == 'ar' %}{{ plan.price | e }} ج.م{% else %}{{ plan.price | e }} EGP{% endif %}</div>
+        <div class="plan-card__actions">
+          <div class="plan-card__price">{{ planPrice | e }}</div>
+          <button type="button" class="btn btn-sm btn-outline plan-card__select-btn" aria-pressed="false" data-i18n="choose_plan" onclick="event.stopPropagation(); if (typeof ui !== 'undefined' && ui.selectPlan) ui.selectPlan(this.closest('.plan-card'));">{{ i18n.choose_plan }}</button>
+        </div>
       </div>
       {% endfor %}
     {% else %}
-      <p class="plans-empty" data-i18n="plans_empty">No plans available</p>
+      <p class="plans-empty" data-i18n="plans_empty">{{ i18n.plans_empty }}</p>
     {% endif %}
   </div>
 
   <div class="plans-footer">
-    <p class="text-muted text-sm text-center plans-cta-hint" data-i18n="plans_cta_hint">Choose your plan and contact support to activate it</p>
-    <button class="btn btn-primary btn-block plans-cta-btn" onclick="toggleSupportModal()" data-i18n="request_activation">Request Activation</button>
-    <a href="./login.html" class="btn btn-secondary btn-block plans-back-btn" data-i18n="back_to_login">Back to Login</a>
+    <div id="selected-plan-summary" class="alert alert-info plans-selected-summary" style="display:none;" role="status"><span class="alert__text" id="selected-plan-summary-text"></span></div>
+    <p class="text-muted text-sm text-center plans-cta-hint" data-i18n="plans_cta_hint">{{ i18n.plans_cta_hint }}</p>
+    <button type="button" class="btn btn-primary btn-block plans-cta-btn" onclick="toggleSupportModal()" data-i18n="request_activation">{{ i18n.request_activation }}</button>
+    <a href="./login.html" class="btn btn-secondary btn-block plans-back-btn" data-i18n="back_to_login">{{ i18n.back_to_login }}</a>
   </div>
 </div>
 {% endblock %}

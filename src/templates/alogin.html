@@ -9,31 +9,31 @@
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </div>
-          <h1 class="card-header__title" data-i18n="connected">You are connected</h1>
-          <p class="card-header__subtitle" data-i18n="connected_subtitle">Internet access is now active</p>
+          <h1 class="card-header__title" data-i18n="connected">{{ i18n.connected }}</h1>
+          <p class="card-header__subtitle" data-i18n="connected_subtitle">{{ i18n.connected_subtitle }}</p>
         </div>
 
         <div class="card-body">
           <!-- Username display -->
           <div class="text-center text-muted text-sm alogin-user-info">
-            <span data-i18n="username">Username</span>: <strong>$(username-esc)</strong>
+            <span data-i18n="username">{{ i18n.username }}</span>: <strong><bdi dir="auto">$(username-esc)</bdi></strong>
           </div>
 
           <!-- Countdown display -->
           <div id="countdown" aria-live="polite" class="alogin-countdown">1</div>
           <p class="text-center text-muted text-sm alogin-countdown-label" role="status">
-            <span data-i18n="redirecting">Redirecting in</span>
+            <span data-i18n="redirecting">{{ i18n.redirecting }}</span>
             <span id="countdown-seconds">1</span>
-            <span id="countdown-word" data-i18n="seconds">seconds</span>
+            <span id="countdown-word" data-i18n="seconds">{{ i18n.seconds }}</span>
           </p>
 
           <!-- Continue Now button — manual redirect -->
           <a href="$(link-redirect)" id="continueNow" class="btn btn-primary btn-block">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="rtl-flip" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
             </svg>
-            <span data-i18n="continue_now">Continue Now</span>
+            <span data-i18n="continue_now">{{ i18n.continue_now }}</span>
           </a>
 
           <!-- Captive Portal / CNA Warning -->
@@ -43,13 +43,11 @@
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            <span class="alert__text" data-i18n="cna_warning">If pages don't load, close this window and open your regular browser (Chrome, Safari, etc.)</span>
+            <span class="alert__text" data-i18n="cna_warning">{{ i18n.cna_warning }}</span>
           </div>
 
           <!-- Open in full browser hint -->
-          <p class="text-center text-muted text-sm alogin-browser-hint" data-i18n="open_full_browser">
-            For best experience, open in full browser
-          </p>
+          <p class="text-center text-muted text-sm alogin-browser-hint" data-i18n="open_full_browser">{{ i18n.open_full_browser }}</p>
         </div>
       </div>
 

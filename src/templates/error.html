@@ -3,31 +3,33 @@
 {% block content %}
       <div class="card">
         <div class="card-header">
-          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <h1 class="card-header__title" data-i18n="error_title">Connection Error</h1>
-          <p class="card-header__subtitle" data-i18n="error_message">Unable to connect to the network</p>
+          <h1 class="card-header__title" data-i18n="error_title">{{ i18n.error_title }}</h1>
+          <p class="card-header__subtitle" data-i18n="error_message">{{ i18n.error_message }}</p>
         </div>
 
         <div class="card-body">
           <!-- Error Alert -->
           <div class="alert alert-error" role="alert">
-            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span class="alert__text" id="errorMessage">$(error-esc)</span>
+            <span class="alert__text" id="errorMessage"><bdi dir="auto">$(error-esc)</bdi></span>
           </div>
 
-          <!-- Error Details -->
-          <div class="text-center mt-lg">
-            <p class="text-muted text-sm">
-              <span data-i18n="error_code">Error Code</span>: <strong>$(error-esc)</strong>
-            </p>
+          <div class="actions actions--stack mt-lg">
+            <a href="./login.html" class="btn btn-primary btn-block">
+              <span data-i18n="back_to_login">{{ i18n.back_to_login }}</span>
+            </a>
+            <button type="button" class="btn btn-secondary btn-block" onclick="toggleSupportModal()">
+              <span data-i18n="technical_support">{{ i18n.technical_support }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -35,9 +37,11 @@
 
 {% block scripts %}
   <script>
+    {% if lang == 'ar' %}
     // RADIUS/User Manager error translation map (from config.json).
     // Consumed by ui.translateRouterError() during initLang()/toggleLang().
     window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | scriptjson }}{% else %}{}{% endif %};
+    {% endif %}
 
     // Initialize modules
     (function() {

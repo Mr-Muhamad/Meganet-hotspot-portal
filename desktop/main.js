@@ -56,6 +56,30 @@ if (gotTheLock) {
   });
 }
 
+function isAllowedAppUrl(rawUrl, activePort) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'http:') return false;
+    if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') return false;
+    const port = parsed.port ? Number(parsed.port) : 80;
+    return Boolean(activePort) && port === Number(activePort);
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedExternalUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === 'https:' ||
+      parsed.protocol === 'http:' ||
+      parsed.protocol === 'mailto:' ||
+      parsed.protocol === 'tel:';
+  } catch {
+    return false;
+  }
+}
+
 function createWindow() {
   const windowIcon = path.join(__dirname, '..', 'build', 'icon.png');
   mainWindow = new BrowserWindow({
@@ -81,12 +105,23 @@ function createWindow() {
     mainWindow.show();
   });
 
-  // Open external links (like support links, preview in browser, etc.) in system browser
+  // Restrict main window navigation strictly to the local Studio server
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isAllowedAppUrl(url, serverPort)) return;
+    event.preventDefault();
+    if (isAllowedExternalUrl(url)) {
+      shell.openExternal(url);
+    }
+  });
+
+  // Open safe external links (like support links, preview in browser, etc.) in system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http://127.0.0.1') || url.startsWith('http://localhost')) {
+    if (isAllowedAppUrl(url, serverPort)) {
       return { action: 'allow' };
     }
-    shell.openExternal(url);
+    if (isAllowedExternalUrl(url)) {
+      shell.openExternal(url);
+    }
     return { action: 'deny' };
   });
 
@@ -95,8 +130,7 @@ function createWindow() {
   });
 }
 
-// Clean up when all windows are closed
-app.on('window-all-closed', () => {
+function cleanupServerAndPreview() {
   try {
     stopPreview();
   } catch { /* empty */ }
@@ -104,8 +138,18 @@ app.on('window-all-closed', () => {
   if (server && server.listening) {
     server.close();
   }
+}
 
+app.on('before-quit', () => {
+  cleanupServerAndPreview();
+});
+
+// Clean up when all windows are closed (keep server alive on macOS until before-quit)
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    cleanupServerAndPreview();
     app.quit();
   }
 });
+
+module.exports = { isAllowedAppUrl, isAllowedExternalUrl, cleanupServerAndPreview };

@@ -22,22 +22,24 @@ var statusModule = {
       // Decode MAC address from URL-encoded format on load in all matching elements
       var macEls = document.querySelectorAll('#tech-mac, #stat-mac');
       macEls.forEach(function(macEl) {
-        var rawMac = macEl.textContent.trim();
+        var target = (macEl.querySelector && macEl.querySelector('bdi')) || macEl;
+        var rawMac = target.textContent.trim();
         try {
-          macEl.textContent = decodeURIComponent(rawMac);
+          target.textContent = decodeURIComponent(rawMac);
         } catch (macErr) {
-          macEl.textContent = rawMac.replace(/%3A/gi, ':');
+          target.textContent = rawMac.replace(/%3A/gi, ':');
         }
       });
 
       // Decode username from URL-encoded format in all matching elements
       var userEls = document.querySelectorAll('#tech-username, #stat-username');
       userEls.forEach(function(userEl) {
-        var rawUser = userEl.textContent.trim();
+        var target = (userEl.querySelector && userEl.querySelector('bdi')) || userEl;
+        var rawUser = target.textContent.trim();
         try {
-          userEl.textContent = decodeURIComponent(rawUser);
+          target.textContent = decodeURIComponent(rawUser);
         } catch (userErr) {
-          userEl.textContent = rawUser.replace(/%3A/gi, ':');
+          target.textContent = rawUser.replace(/%3A/gi, ':');
         }
       });
 
@@ -87,10 +89,12 @@ var statusModule = {
 
         // Update download and upload values
         if (downloadEl) {
-          downloadEl.textContent = util.formatBytes(bytesOut); // bytesOut = Download
+          var dlTarget = (downloadEl.querySelector && downloadEl.querySelector('bdi')) || downloadEl;
+          dlTarget.textContent = util.formatBytes(bytesOut); // bytesOut = Download
         }
         if (uploadEl) {
-          uploadEl.textContent = util.formatBytes(bytesIn);  // bytesIn = Upload
+          var ulTarget = (uploadEl.querySelector && uploadEl.querySelector('bdi')) || uploadEl;
+          ulTarget.textContent = util.formatBytes(bytesIn);  // bytesIn = Upload
         }
 
         // Update remaining quota header value
@@ -299,7 +303,8 @@ var statusModule = {
             statusModule.logoutOnExpiry();
           });
         } else {
-          timeLeftElement.textContent = '--';
+          var timeTarget = (timeLeftElement.querySelector && timeLeftElement.querySelector('bdi')) || timeLeftElement;
+          timeTarget.textContent = '--';
         }
       }
     } catch (err) {
@@ -329,11 +334,12 @@ var statusModule = {
       setInterval(function() {
         var elapsed = Math.floor((Date.now() - startTime) / 1000);
         var currentUptime = startUptime + elapsed;
+        var uptimeTarget = (uptimeElement.querySelector && uptimeElement.querySelector('bdi')) || uptimeElement;
         if (currentUptime > 0) {
-          uptimeElement.textContent = util.formatUptime(currentUptime);
+          uptimeTarget.textContent = util.formatUptime(currentUptime);
           uptimeElement.setAttribute('data-seconds', currentUptime);
         } else if (initialText) {
-          uptimeElement.textContent = initialText;
+          uptimeTarget.textContent = initialText;
         }
 
         if (startTimeLeft > 0) {

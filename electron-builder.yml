@@ -5,7 +5,10 @@ directories:
   output: dist-app
 files:
   - "**/*"
+  - "!dist/**"
   - "!dist-app/**"
+  - "!docs/**"
+  - "!**/*.map"
   - "!tests/**"
   - "!test-results/**"
   - "!playwright-report/**"

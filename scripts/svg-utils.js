@@ -9,6 +9,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const { optimize } = require('svgo');
 
 function stripDangerousMarkup(svg) {
@@ -40,18 +41,29 @@ function sanitizeSvg(svgString, options = {}) {
   }
 
   try {
-    const result = optimize(cleaned, {
-      multipass: true,
-      plugins: [
-        {
-          name: 'preset-default',
-          params: {
-            overrides: {
-              removeViewBox: false
-            }
+    const idPrefix = options.idPrefix || `s${crypto.createHash('sha1').update(cleaned).digest('hex').slice(0, 6)}`;
+    const plugins = [
+      {
+        name: 'preset-default',
+        params: {
+          overrides: {
+            removeViewBox: false
           }
         }
-      ]
+      }
+    ];
+    if (options.prefixIds !== false) {
+      plugins.push({
+        name: 'prefixIds',
+        params: {
+          prefix: idPrefix,
+          delim: '-'
+        }
+      });
+    }
+    const result = optimize(cleaned, {
+      multipass: true,
+      plugins
     });
     if (result && typeof result.data === 'string' && /<svg\b/i.test(result.data)) {
       return stripDangerousMarkup(result.data);

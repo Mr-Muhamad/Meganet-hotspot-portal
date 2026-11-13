@@ -41,10 +41,6 @@
   opacity: 1;
 }
 
-[dir="rtl"] .card-header__brand {
-  flex-direction: row-reverse;
-}
-
 .card-header__icon {
   width: 28px;
   height: 28px;
@@ -88,7 +84,7 @@
   transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
   user-select: none;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .btn:hover {
@@ -100,13 +96,15 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background-color: var(--color-primary);
+  background-image: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: var(--color-primary-text);
   box-shadow: 0 4px 12px var(--color-primary-bg);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
+  background-color: var(--color-primary-hover);
+  background-image: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
   box-shadow: 0 6px 16px var(--color-primary-alpha-35);
 }
 
@@ -216,19 +214,16 @@
 
 .input-toggle {
   position: absolute;
-  right: var(--space-sm);
+  inset-inline-end: var(--space-xs);
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-[dir="rtl"] .input-toggle {
-  right: auto;
-  left: var(--space-sm);
 }
 
 .input-toggle__icon {
@@ -416,12 +411,33 @@
   overflow: hidden;
   cursor: pointer;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
-[dir="rtl"] .plan-card {
-  flex-direction: row-reverse;
-  text-align: right;
+.plan-card--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha-30), 0 4px 15px var(--color-primary-alpha-10);
+  background: var(--color-surface-hover);
+}
+
+.plan-card__actions {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.plan-card__select-btn {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: var(--font-size-xs);
+}
+
+.selected-plan-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .plan-card:hover {
@@ -535,8 +551,8 @@
 /* Floating Support Button & Modal Popup */
 .support-trigger {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: calc(24px + env(safe-area-inset-right, 0px));
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -551,11 +567,6 @@
   z-index: 999;
   transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
   animation: support-pulse 2s infinite;
-}
-
-[dir="rtl"] .support-trigger {
-  right: auto;
-  left: 24px;
 }
 
 .support-trigger:hover {
@@ -573,10 +584,8 @@
 /* Support Modal Overlay */
 .support-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
   background: var(--glass-overlay); /* dark overlay */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -599,8 +608,10 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  width: 90%;
+  width: 92%;
   max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
   padding: var(--space-lg);
   box-shadow: var(--shadow-lg);
   transform: scale(0.95);
@@ -621,10 +632,6 @@
   padding-bottom: var(--space-sm);
 }
 
-[dir="rtl"] .support-modal__header {
-  flex-direction: row-reverse;
-}
-
 .support-modal__title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
@@ -637,6 +644,8 @@
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-xs);
   border-radius: var(--radius-md);
   transition: color var(--transition-fast), background var(--transition-fast);
@@ -658,101 +667,19 @@
 .support-modal__desc {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   text-align: center;
 }
 
-/* Support List & Items */
-.support-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.support-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  text-decoration: none;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-}
-
-[dir="rtl"] .support-item {
-  flex-direction: row-reverse;
-  text-align: right;
-}
-
-.support-item:hover {
-  transform: translateY(-2px);
-}
-
-/* WhatsApp Specific — fixed brand affordance, NOT client-brand-derived */
-.support-item--whatsapp {
-  border-left: 4px solid var(--color-whatsapp);
-}
-[dir="rtl"] .support-item--whatsapp {
-  border-left: 1px solid var(--color-border);
-  border-right: 4px solid var(--color-whatsapp);
-}
-.support-item--whatsapp:hover {
-  background: var(--color-whatsapp-alpha-08);
-  border-color: var(--color-whatsapp);
-}
-.support-item--whatsapp .support-item__icon-wrapper {
-  background: var(--color-whatsapp-alpha-15);
-  color: var(--color-whatsapp);
-}
-
-/* Phone Call Specific — fixed affordance */
-.support-item--phone {
-  border-left: 4px solid var(--color-phone);
-}
-[dir="rtl"] .support-item--phone {
-  border-left: 1px solid var(--color-border);
-  border-right: 4px solid var(--color-phone);
-}
-.support-item--phone:hover {
-  background: var(--color-phone-alpha-08);
-  border-color: var(--color-phone);
-}
-.support-item--phone .support-item__icon-wrapper {
-  background: var(--color-phone-alpha-15);
-  color: var(--color-phone);
-}
-
-.support-item__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.support-item__icon {
-  width: 22px;
-  height: 22px;
-}
-
-.support-item__info {
-  display: flex;
-  flex-direction: column;
-}
-
-.support-item__title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-  color: var(--color-text);
-}
-
-.support-item__detail {
+.support-modal__offline-note {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  margin-top: 2px;
+  background: var(--color-surface-hover);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-md);
+  text-align: center;
 }
 
 /* Pulsing Keyframe Animation */
@@ -822,10 +749,6 @@
   }
 }
 
-[dir="rtl"] .announcement-banner {
-  flex-direction: row-reverse;
-}
-
 .announcement-banner__icon-wrapper {
   display: flex;
   align-items: center;
@@ -843,11 +766,7 @@
 
 .announcement-banner__content {
   flex: 1;
-  text-align: left;
-}
-
-[dir="rtl"] .announcement-banner__content {
-  text-align: right;
+  text-align: start;
 }
 
 .announcement-banner__text {
@@ -867,6 +786,8 @@
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast), background var(--transition-fast);
@@ -993,11 +914,7 @@
   flex-direction: column;
   gap: var(--space-md);
   margin-top: var(--space-md);
-  text-align: left;
-}
-
-[dir="rtl"] .install-guide {
-  text-align: right;
+  text-align: start;
 }
 
 .install-step {
@@ -1008,10 +925,6 @@
   background: var(--color-primary-bg);
   border: 1px dashed var(--color-primary-alpha-20);
   border-radius: var(--radius-md);
-}
-
-[dir="rtl"] .install-step {
-  flex-direction: row-reverse;
 }
 
 .install-step__num {
@@ -1032,4 +945,28 @@
   font-size: var(--font-size-sm);
   color: var(--color-text);
   line-height: 1.4;
+}
+
+.actions--stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-md);
+}
+
+.actions--stack .btn {
+  width: 100%;
+  text-decoration: none;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-mode-panel],
+  .announcement-banner {
+    animation: none;
+  }
 }

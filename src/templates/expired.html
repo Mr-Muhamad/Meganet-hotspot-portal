@@ -4,46 +4,49 @@
       <div class="card expired-card">
         <div class="card-header expired-header">
           <!-- Hourglass / Suspension Pulse Icon -->
-          <svg class="card-header__icon expired-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="card-header__icon expired-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M12 2v20M17 5H7M17 19H7M12 12a5 5 0 0 1 5-5H7a5 5 0 0 1 5 5zm0 0a5 5 0 0 0 5 5H7a5 5 0 0 0 5-5z"/>
           </svg>
-          <h1 class="card-header__title expired-header__title" data-i18n="expired_title">Service Suspended</h1>
-          <p class="card-header__subtitle" data-i18n="expired_subtitle">Your internet service has been temporarily stopped</p>
+          <h1 class="card-header__title expired-header__title" data-i18n="expired_title">{{ i18n.expired_title }}</h1>
+          <p class="card-header__subtitle" data-i18n="expired_subtitle">{{ i18n.expired_subtitle }}</p>
         </div>
 
         <div class="card-body expired-body">
           <!-- Suspended Notice Alert -->
           <div class="alert alert-warning expired-alert" role="alert">
-            <svg class="alert__icon expired-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="alert__icon expired-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span class="alert__text expired-alert__text" data-i18n="expired_alert_text">
-              Your subscription balance is finished. Please contact us to renew your service.
-            </span>
+            <span class="alert__text expired-alert__text" data-i18n="expired_alert_text">{{ i18n.expired_alert_text }}</span>
           </div>
 
           <!-- Interactive Action Buttons -->
-          <div class="expired-actions">
-            <!-- Back to Login Button -->
+          <div class="expired-actions actions--stack">
+            <a href="./plans.html" class="btn btn-primary btn-block">
+              <span data-i18n="view_plans">{{ i18n.view_plans }}</span>
+            </a>
             <a href="./login.html" class="btn btn-secondary btn-block expired-ghost-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="rtl-flip" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"/>
                 <polyline points="12 19 5 12 12 5"/>
               </svg>
-              <span data-i18n="back_to_login">Back to Login</span>
+              <span data-i18n="enter_new_voucher">{{ i18n.enter_new_voucher }}</span>
             </a>
+            <button type="button" class="btn btn-outline btn-block" onclick="toggleSupportModal()">
+              <span data-i18n="technical_support">{{ i18n.technical_support }}</span>
+            </button>
           </div>
 
           <!-- Device MAC and IP Info inside Card Footer style -->
           <div class="footer__device-info">
-            <span class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" title="Click to copy IP">
-              IP: <strong class="device-chip__value">$(ip)</strong>
-            </span>
-            <span class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" title="Click to copy MAC">
-              MAC: <strong id="footer-mac-display" class="device-chip__value">$(mac-esc)</strong> <span id="mac-type-display" class="mac-type-display"></span>
-            </span>
+            <button type="button" class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}">
+              IP: <strong class="device-chip__value"><bdi dir="ltr">$(ip)</bdi></strong>
+            </button>
+            <button type="button" class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}">
+              MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
+            </button>
           </div>
         </div>
       </div>
@@ -61,14 +64,15 @@
         // Decode footer MAC address if present
         var footerMac = document.getElementById('footer-mac-display');
         if (footerMac) {
-          var rawMacText = footerMac.textContent.trim();
+          var footerMacTarget = (footerMac.querySelector && footerMac.querySelector('bdi')) || footerMac;
+          var rawMacText = footerMacTarget.textContent.trim();
           var decodedMac = '';
           try {
             decodedMac = decodeURIComponent(rawMacText);
           } catch (e) {
             decodedMac = rawMacText.replace(/%3A/gi, ':');
           }
-          footerMac.textContent = decodedMac;
+          footerMacTarget.textContent = decodedMac;
           
           // Determine MAC type
           var cleanMac = decodedMac.replace(/[:-]/g, '');

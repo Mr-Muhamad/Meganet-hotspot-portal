@@ -2,21 +2,15 @@
 .skip-link {
   position: absolute;
   top: -40px;
-  left: 0;
+  inset-inline-start: 0;
   background: var(--color-primary);
   color: var(--color-primary-text);
   padding: var(--space-sm) var(--space-md);
   z-index: 200;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  border-radius: 0 0 var(--radius-sm) 0;
+  border-end-end-radius: var(--radius-sm);
   transition: top var(--transition-fast);
-}
-
-[dir="rtl"] .skip-link {
-  left: auto;
-  right: 0;
-  border-radius: 0 0 0 var(--radius-sm);
 }
 
 .skip-link:focus {
@@ -28,8 +22,8 @@
 /* Theme Toggle */
 .theme-toggle,
 .lang-toggle {
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -519,6 +513,7 @@
   align-items: flex-start;
   gap: var(--space-md);
   width: 100%;
+  padding-inline-end: 48px;
 }
 .pwa-banner__icon-wrapper {
   background: var(--color-primary-bg);
@@ -536,7 +531,6 @@
   flex-direction: column;
   gap: var(--space-xs);
   text-align: start;
-  padding-right: var(--space-md);
 }
 .pwa-banner__title {
   font-weight: var(--font-weight-semibold);
@@ -551,19 +545,26 @@
 .pwa-banner__btn {
   margin-top: var(--space-xs);
   width: fit-content;
+  min-height: 44px;
   padding: 6px var(--space-md);
   font-size: var(--font-size-xs);
   border-radius: var(--radius-sm);
 }
 .pwa-banner__close {
   position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
+  top: var(--space-xs);
+  inset-inline-end: var(--space-xs);
   background: none;
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-xs);
+  border-radius: var(--radius-sm);
 }
 
 /* Smart usage assistant */
@@ -651,6 +652,14 @@
 }
 .tech-item__value--clickable {
   cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-align: start;
 }
 
 /* Status page card footer */
@@ -707,9 +716,14 @@
   flex: 1;
 }
 .qr-scan-btn--gallery {
-  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
   flex-shrink: 0;
-  padding: 0;
+  padding: 0 var(--space-sm);
+  font-size: var(--font-size-xs);
+}
+.qr-scan-btn__gallery-label {
+  white-space: nowrap;
 }
 .qr-scan-btn__icon {
   flex-shrink: 0;
@@ -746,7 +760,14 @@
 }
 .device-chip {
   cursor: pointer;
-  padding: 1px 4px;
+  padding: 6px 10px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
   border-radius: var(--radius-sm);
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border);
@@ -759,7 +780,7 @@
 .mac-type-display {
   font-size: 8px;
   font-weight: bold;
-  margin-left: 2px;
+  margin-inline-start: 2px;
 }
 /* JS sets one of these classes instead of inline style colors so the hues
    follow the theme tokens (warning amber / live emerald). */
@@ -770,7 +791,7 @@
 
 /* Header name spacing */
 .header__name {
-  margin-right: var(--space-xs);
+  margin-inline-end: var(--space-xs);
 }
 
 /* Active status dot (header, status/alogin pages only) */
@@ -782,7 +803,7 @@
   border-radius: var(--radius-full);
   background: var(--color-online-alpha-10);
   border: 1px solid var(--color-online-alpha-20);
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 .status-dot-badge__dot {
   display: inline-block;
@@ -861,8 +882,8 @@
 }
 .support-action-btn {
   text-decoration: none;
-  padding: var(--space-xs);
-  min-height: 28px;
+  padding: var(--space-xs) var(--space-sm);
+  min-height: 44px;
   font-size: 11px;
 }
 .support-action-btn svg {

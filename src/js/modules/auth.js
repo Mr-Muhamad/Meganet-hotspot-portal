@@ -78,7 +78,7 @@ var auth = {
       var voucherInput = document.getElementById('voucher');
       if (voucherInput) {
         voucherInput.addEventListener('input', function() {
-          var val = auth.normalizeVoucherText(voucherInput.value);
+          var val = auth.normalizeVoucherText(voucherInput.value, auth.getVoucherFormat());
           if (voucherInput.value !== val) {
             voucherInput.value = val;
           }
@@ -93,7 +93,7 @@ var auth = {
         // Instant submit on paste event if valid
         voucherInput.addEventListener('paste', function(e) {
           setTimeout(function() {
-            var val = auth.normalizeVoucherText(voucherInput.value);
+            var val = auth.normalizeVoucherText(voucherInput.value, auth.getVoucherFormat());
             voucherInput.value = val;
             var lenForm = document.getElementById('login-form');
             var minLen = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
@@ -185,7 +185,7 @@ var auth = {
       }
 
       if (typeof rateLimiter !== 'undefined') {
-        var initLimitStatus = rateLimiter.check('device');
+        var initLimitStatus = rateLimiter.check('device', 15);
         if (initLimitStatus.blocked) {
           auth.handleRateLimit(initLimitStatus);
         }
@@ -263,6 +263,65 @@ var auth = {
     } catch (err) {
       console.error('Format retry time error:', err);
       return '';
+    }
+  },
+
+  showNormalCredentialsError: function() {
+    try {
+      var alertsContainer = document.getElementById('alerts');
+      if (alertsContainer) {
+        var oldAlert = document.getElementById('normal-credentials-alert');
+        if (oldAlert) oldAlert.remove();
+
+        var alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-error';
+        alertDiv.id = 'normal-credentials-alert';
+        alertDiv.setAttribute('role', 'alert');
+        var rawMsg = (typeof i18n !== 'undefined' && i18n.t)
+          ? i18n.t('normal_credentials_required')
+          : 'Please enter both username and password.';
+        var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(rawMsg) : rawMsg;
+        alertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
+          '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+          '<span class="alert__text">' + safeMsg + '</span>' +
+          '</div>';
+        alertsContainer.appendChild(alertDiv);
+      }
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+      if (usernameInput && !usernameInput.value.trim()) {
+        usernameInput.focus();
+      } else if (passwordInput) {
+        passwordInput.focus();
+      }
+    } catch (err) {
+      console.error('Show normal credentials error:', err);
+    }
+  },
+
+  showRateLimitWarning: function(attemptsRemaining) {
+    try {
+      var alertsContainer = document.getElementById('alerts');
+      if (!alertsContainer) return;
+
+      var oldWarn = document.getElementById('rate-limit-warning');
+      if (oldWarn) oldWarn.remove();
+
+      var warnDiv = document.createElement('div');
+      warnDiv.className = 'alert alert-warning';
+      warnDiv.id = 'rate-limit-warning';
+      warnDiv.setAttribute('role', 'status');
+      var rawMsg = (typeof i18n !== 'undefined' && i18n.t)
+        ? i18n.t('rate_limit_warning', { n: attemptsRemaining })
+        : ('Notice: ' + attemptsRemaining + ' attempts remaining before temporary pause.');
+      var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(rawMsg) : rawMsg;
+      warnDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
+        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        '<span class="alert__text">' + safeMsg + '</span>' +
+        '</div>';
+      alertsContainer.appendChild(warnDiv);
+    } catch (err) {
+      console.error('Show rate limit warning error:', err);
     }
   },
 
@@ -464,6 +523,17 @@ var auth = {
         }
       }
 
+      // Empty normal credentials guard (must run before consuming rate-limit slots)
+      if (mode === 'normal') {
+        var userVal = usernameInput ? usernameInput.value.trim() : '';
+        var passVal = passwordInput ? passwordInput.value.trim() : '';
+        if (!userVal || !passVal) {
+          e.preventDefault();
+          auth.showNormalCredentialsError();
+          return;
+        }
+      }
+
       // Minimum-length check (config: features.voucherMinLength) — catches
       // obviously-truncated codes before a slow round trip to the router.
       // Codes are variable length, so only a floor is enforced: anything at
@@ -482,14 +552,15 @@ var auth = {
       }
 
       if (typeof rateLimiter !== 'undefined') {
-        var deviceLimit = rateLimiter.check('device');
-        var specificKey = (mode === 'voucher' && voucherInput && voucherInput.value)
-          ? voucherInput.value.trim()
-          : (usernameInput && usernameInput.value ? usernameInput.value.trim() : null);
+        var deviceLimit = rateLimiter.check('device', 15);
+        var fmt = auth.getVoucherFormat();
+        var specificKey = (mode === 'voucher' && voucherInput && voucherInput.value.trim())
+          ? ('voucher:' + (auth.normalizeVoucherText(voucherInput.value, fmt) || voucherInput.value.trim()))
+          : (usernameInput && usernameInput.value.trim() ? ('user:' + usernameInput.value.trim()) : null);
         var specificLimit = specificKey ? rateLimiter.check(specificKey) : null;
         var limitStatus = (deviceLimit && deviceLimit.blocked)
           ? deviceLimit
-          : (specificLimit && specificLimit.blocked ? specificLimit : deviceLimit);
+          : (specificLimit && specificLimit.blocked ? specificLimit : null);
 
         if (limitStatus && limitStatus.blocked) {
           e.preventDefault();
@@ -499,6 +570,10 @@ var auth = {
         rateLimiter.recordAttempt('device');
         if (specificKey) {
           rateLimiter.recordAttempt(specificKey);
+          var afterAttempt = rateLimiter.check(specificKey);
+          if (afterAttempt && !afterAttempt.blocked && afterAttempt.attemptsRemaining <= 2) {
+            auth.showRateLimitWarning(afterAttempt.attemptsRemaining);
+          }
         }
       }
 
@@ -715,13 +790,20 @@ var auth = {
 
   autoLoginTimer: null,
 
+  getVoucherFormat: function() {
+    var form = document.getElementById('login-form');
+    var fmt = form ? form.getAttribute('data-voucher-format') : '';
+    return fmt === 'alphanumeric' ? 'alphanumeric' : 'numeric';
+  },
+
   /**
    * Normalize voucher text: convert Eastern Arabic/Persian numerals to ASCII
-   * digits and strip everything else (spaces, dashes, newlines from QR scans).
+   * digits and strip stray characters (honoring numeric vs alphanumeric format).
    * @param {string} text - raw voucher text
-   * @returns {string} digits-only voucher code
+   * @param {string} [format='numeric'] - 'numeric' or 'alphanumeric'
+   * @returns {string} normalized voucher code
    */
-  normalizeVoucherText: function(text) {
+  normalizeVoucherText: function(text, format) {
     try {
       var val = String(text || '');
       var arabicNums = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
@@ -729,10 +811,15 @@ var auth = {
       for (var i = 0; i < 10; i++) {
         val = val.replace(arabicNums[i], i).replace(persianNums[i], i);
       }
+      if (format === 'alphanumeric') {
+        return val.replace(/[^a-zA-Z0-9_-]/g, '');
+      }
       return val.replace(/[^0-9]/g, '');
     } catch (err) {
       console.error('Normalize voucher text error:', err);
-      return String(text || '').replace(/[^0-9]/g, '');
+      return format === 'alphanumeric'
+        ? String(text || '').replace(/[^a-zA-Z0-9_-]/g, '')
+        : String(text || '').replace(/[^0-9]/g, '');
     }
   },
 

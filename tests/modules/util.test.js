@@ -42,34 +42,35 @@ describe('Hotspot.util', () => {
       expect(util.formatBytes(0)).toBe('0 بايت');
     });
 
-    test('formats bytes correctly in English', () => {
+    test('formats bytes correctly in English (default decimal base 1000)', () => {
       document.documentElement.setAttribute('lang', 'en');
-      expect(util.formatBytes(1024)).toBe('1 KB');
-      expect(util.formatBytes(1048576)).toBe('1 MB');
-      expect(util.formatBytes(1073741824)).toBe('1 GB');
+      expect(util.formatBytes(1000)).toBe('1 KB');
+      expect(util.formatBytes(1000000)).toBe('1 MB');
+      expect(util.formatBytes(1000000000)).toBe('1 GB');
     });
 
-    test('formats bytes correctly in Arabic', () => {
+    test('formats bytes correctly in Arabic (default decimal base 1000)', () => {
       document.documentElement.setAttribute('lang', 'ar');
-      expect(util.formatBytes(1024)).toBe('1 كيلوبايت');
-      expect(util.formatBytes(1048576)).toBe('1 ميجابايت');
-      expect(util.formatBytes(1073741824)).toBe('1 جيجابايت');
+      expect(util.formatBytes(1000)).toBe('1 كيلوبايت');
+      expect(util.formatBytes(1000000)).toBe('1 ميجابايت');
+      expect(util.formatBytes(1000000000)).toBe('1 جيجابايت');
     });
 
     test('formats with decimals in Arabic', () => {
       document.documentElement.setAttribute('lang', 'ar');
-      expect(util.formatBytes(1536)).toBe('1.5 كيلوبايت');
-      expect(util.formatBytes(2621440)).toBe('2.5 ميجابايت');
+      expect(util.formatBytes(1500)).toBe('1.5 كيلوبايت');
+      expect(util.formatBytes(2500000)).toBe('2.5 ميجابايت');
     });
 
     test('handles negative values', () => {
-      expect(util.formatBytes(-1024)).toContain('NaN');
+      expect(util.formatBytes(-1000)).toContain('NaN');
     });
 
-    test('reads data-kb-base from any [data-kb-base] element (e.g. logout.html)', () => {
+    test('reads explicit data-kb-base="1024" from [data-kb-base] element', () => {
       document.documentElement.setAttribute('lang', 'en');
-      document.body.innerHTML = '<div class="status-grid" data-kb-base="1000"></div>';
-      expect(util.formatBytes(1000000)).toBe('1 MB');
+      document.body.innerHTML = '<div class="status-grid" data-kb-base="1024"></div>';
+      expect(util.formatBytes(1024)).toBe('1 KB');
+      expect(util.formatBytes(1048576)).toBe('1 MB');
       document.body.innerHTML = '';
     });
   });
@@ -267,9 +268,13 @@ describe('Hotspot.util', () => {
         .toBe('اسم المستخدم أو كلمة المرور غير صحيح');
     });
 
-    test('collapses stray slashes from corrupted encodings', () => {
+    test('collapses repeated slashes while preserving single slashes and URL schemes', () => {
       expect(util.translateError('uptime limit///reached', map, 'ar'))
         .toBe('حد وقت الاستخدام');
+      expect(util.translateError('quota 5/10 GB or path /login.html', map, 'en'))
+        .toBe('quota 5/10 GB or path /login.html');
+      expect(util.translateError('see http://portal.local/help///now', map, 'en'))
+        .toBe('see http://portal.local/help now');
     });
 
     // Real RADIUS / User Manager reply messages observed on RouterOS v6 in

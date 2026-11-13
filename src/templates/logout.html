@@ -3,72 +3,74 @@
 {% block content %}
       <div class="card">
         <div class="card-header">
-          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          <h1 class="card-header__title" data-i18n="logout_title">Logged Out</h1>
-          <p class="card-header__subtitle" data-i18n="logout_success">You have been successfully logged out</p>
+          <h1 class="card-header__title" data-i18n="logout_title">{{ i18n.logout_title }}</h1>
+          <p class="card-header__subtitle" data-i18n="logout_success">{{ i18n.logout_success }}</p>
         </div>
 
         <div class="card-body">
           <!-- Session Summary -->
-          <div class="status-grid" role="region" aria-label="Session summary" data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1024{% endif %}">
+          <div class="status-grid" role="region" data-i18n-aria="session_summary_aria" aria-label="{{ i18n.session_summary_aria }}" data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase }}{% else %}1000{% endif %}">
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                 <circle cx="12" cy="7" r="4"/>
               </svg>
-              <div class="stat-card__label" data-i18n="username">Username</div>
-              <div class="stat-card__value" id="stat-username">$(username-esc)</div>
+              <div class="stat-card__label" data-i18n="username">{{ i18n.username }}</div>
+              <div class="stat-card__value" id="stat-username"><bdi dir="auto">$(username-esc)</bdi></div>
             </div>
 
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              <div class="stat-card__label" data-i18n="session_time">Session Time</div>
-              <div class="stat-card__value">$(uptime)</div>
+              <div class="stat-card__label" data-i18n="session_time">{{ i18n.session_time }}</div>
+              <div class="stat-card__value"><bdi dir="ltr">$(uptime)</bdi></div>
             </div>
 
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              <div class="stat-card__label" data-i18n="download">Download</div>
+              <div class="stat-card__label" data-i18n="download">{{ i18n.download }}</div>
               <!-- RouterOS convention: bytes-out = sent TO the user = download;
                    bytes-in = received FROM the user = upload (matches status.js) -->
-              <div class="stat-card__value" id="stat-download" data-bytes="$(bytes-out)">$(bytes-out-nice)</div>
+              <div class="stat-card__value" id="stat-download" data-bytes="$(bytes-out)"><bdi dir="ltr">$(bytes-out-nice)</bdi></div>
             </div>
 
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              <div class="stat-card__label" data-i18n="upload">Upload</div>
-              <div class="stat-card__value" id="stat-upload" data-bytes="$(bytes-in)">$(bytes-in-nice)</div>
+              <div class="stat-card__label" data-i18n="upload">{{ i18n.upload }}</div>
+              <div class="stat-card__value" id="stat-upload" data-bytes="$(bytes-in)"><bdi dir="ltr">$(bytes-in-nice)</bdi></div>
             </div>
           </div>
 
-          <!-- Redirect countdown -->
+          <!-- Redirect countdown (20s with stay/cancel option) -->
           <div class="text-center mt-md">
-            <p class="text-muted text-sm">
-              <span data-i18n="redirecting">Redirecting in</span>
-              <span id="redirect-countdown">5</span>
-              <span data-i18n="seconds">seconds</span>
+            <p class="text-muted text-sm" id="logout-redirect-notice">
+              <span data-i18n="redirecting">{{ i18n.redirecting }}</span>
+              <span id="redirect-countdown">20</span>
+              <span data-i18n="seconds">{{ i18n.seconds }}</span>
             </p>
+            <p class="text-muted text-sm" id="redirect-cancelled-msg" hidden data-i18n="redirect_cancelled">{{ i18n.redirect_cancelled }}</p>
+            <button type="button" id="cancel-redirect-btn" class="btn btn-outline btn-sm mt-xs" data-i18n="stay_on_page">{{ i18n.stay_on_page }}</button>
           </div>
         </div>
 
         <div class="card-footer">
           <a href="$(link-login)" class="btn btn-primary btn-block">
-            <span data-i18n="login_button">Sign In Again</span>
+            <span data-i18n="sign_in_again">{{ i18n.sign_in_again }}</span>
           </a>
         </div>
       </div>
@@ -86,40 +88,71 @@
         // Decode username and mac from URL-encoded RouterOS values
         var userEls = document.querySelectorAll('#stat-username, #tech-username');
         userEls.forEach(function(el) {
-          var raw = el.textContent.trim();
+          var target = (el.querySelector && el.querySelector('bdi')) || el;
+          var raw = target.textContent.trim();
           try {
-            el.textContent = decodeURIComponent(raw);
+            target.textContent = decodeURIComponent(raw);
           } catch (e) {
-            el.textContent = raw.replace(/%3A/gi, ':');
+            target.textContent = raw.replace(/%3A/gi, ':');
           }
         });
         var macEls = document.querySelectorAll('#stat-mac, #tech-mac');
         macEls.forEach(function(el) {
-          var raw = el.textContent.trim();
+          var target = (el.querySelector && el.querySelector('bdi')) || el;
+          var raw = target.textContent.trim();
           try {
-            el.textContent = decodeURIComponent(raw);
+            target.textContent = decodeURIComponent(raw);
           } catch (e) {
-            el.textContent = raw.replace(/%3A/gi, ':');
+            target.textContent = raw.replace(/%3A/gi, ':');
           }
         });
 
-        // Auto-redirect countdown. Guard against an un-substituted token
+        // Auto-redirect countdown (20s). Guard against an un-substituted token
         // (local preview / cached page): navigating to the literal
         // '$(link-login)' would 404.
         var loginUrl = '$(link-login)';
         if (!loginUrl || loginUrl.indexOf('$(') === 0) loginUrl = './login.html';
-        util.safeRedirect(loginUrl, 5, 'redirect-countdown');
+        var cancelLogoutRedirect = util.safeRedirect(loginUrl, 20, 'redirect-countdown');
+
+        var cancelBtn = document.getElementById('cancel-redirect-btn');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', function() {
+            if (typeof cancelLogoutRedirect === 'function') {
+              cancelLogoutRedirect();
+              cancelLogoutRedirect = null;
+            }
+            var notice = document.getElementById('logout-redirect-notice');
+            if (notice) {
+              notice.hidden = true;
+              notice.style.display = 'none';
+            }
+            var cancelledMsg = document.getElementById('redirect-cancelled-msg');
+            if (cancelledMsg) {
+              cancelledMsg.hidden = false;
+              cancelledMsg.style.display = 'block';
+              if (typeof i18n !== 'undefined') cancelledMsg.textContent = i18n.t('redirect_cancelled');
+            }
+            cancelBtn.hidden = true;
+            cancelBtn.style.display = 'none';
+          });
+        }
 
         // Dynamically format and localize bytes using util.formatBytes
         var dlEl = document.getElementById('stat-download');
         var ulEl = document.getElementById('stat-upload');
         if (dlEl) {
           var dlBytes = parseInt(dlEl.getAttribute('data-bytes'));
-          if (!isNaN(dlBytes)) dlEl.textContent = util.formatBytes(dlBytes);
+          if (!isNaN(dlBytes)) {
+            var dlTarget = (dlEl.querySelector && dlEl.querySelector('bdi')) || dlEl;
+            dlTarget.textContent = util.formatBytes(dlBytes);
+          }
         }
         if (ulEl) {
           var ulBytes = parseInt(ulEl.getAttribute('data-bytes'));
-          if (!isNaN(ulBytes)) ulEl.textContent = util.formatBytes(ulBytes);
+          if (!isNaN(ulBytes)) {
+            var ulTarget = (ulEl.querySelector && ulEl.querySelector('bdi')) || ulEl;
+            ulTarget.textContent = util.formatBytes(ulBytes);
+          }
         }
       } catch (err) {
         console.error('Logout page init error:', err);

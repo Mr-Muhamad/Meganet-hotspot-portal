@@ -54,9 +54,12 @@
   .flash-bar { width: 130px; height: 8px; background: var(--panel); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
   .flash-fill { height: 100%; background: var(--acc); transition: width .3s ease; }
   /* Tabs & Workspace Split */
-  .tabs { flex-shrink: 0; display: flex; gap: 4px; padding: 8px 20px 0; background: var(--panel); flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .tabs { flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 8px 20px 0; background: var(--panel); flex-wrap: wrap; border-bottom: 1px solid var(--line); }
   .tab { padding: 9px 15px; border-radius: 10px 10px 0 0; background: transparent; color: var(--muted); border: none; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit; }
   .tab.active { background: var(--bg); color: var(--text); }
+  .tab-sep { width: 1px; height: 20px; background: var(--line); margin: 0 6px 4px; flex-shrink: 0; }
+  .sim-group { display: flex; flex-direction: column; gap: 4px; }
+  .sim-group__label { font-size: 10px; color: var(--muted); font-weight: 600; }
   .workspace-body { flex: 1; display: flex; min-height: 0; height: 100%; overflow: hidden; }
   .content { flex: 1; height: 100%; overflow-y: auto; padding: 20px; min-width: 0; }
   /* Split-Screen Live Simulator */
@@ -128,6 +131,20 @@
   .qr-svg-wrap { width: 112px; height: 112px; background: #fff; border-radius: 10px; padding: 6px; display: flex; align-items: center; justify-content: center; }
   .qr-svg-wrap svg { width: 100%; height: 100%; }
   .brand-preview-row { display: flex; align-items: center; gap: 18px; padding: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .studio-modal { position: fixed; inset: 0; background: rgba(2,6,23,.76); display: none; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+  .studio-modal.open { display: flex; }
+  .studio-modal__box { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  .studio-modal__title { margin: 0; font-size: 16px; color: var(--text); }
+  .studio-modal__body { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--muted); }
+  .studio-modal__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  @media (max-width: 768px) {
+    html, body { height: auto; overflow: auto; }
+    body { flex-direction: column; height: auto; }
+    aside { width: 100%; height: auto; max-height: 220px; border-left: none; border-bottom: 1px solid var(--line); }
+    main { height: auto; overflow: visible; }
+    .workspace-body { overflow: visible; height: auto; flex-direction: column; }
+    .content { overflow-y: visible; height: auto; }
+  }
 </style>
 </head>
 <body>
@@ -182,30 +199,39 @@
         </div>
       </div>
       <div class="sim-controls">
-        <div class="sim-pages" id="simPagesBar"></div>
-        <div class="sim-row">
-          <select id="sim-scenario" onchange="updateSimulatorFrame()">
-            <option value="normal">السيناريو: عادي (متصل)</option>
-            <option value="error">السيناريو: رسالة خطأ RADIUS</option>
-            <option value="trial">السيناريو: فترة تجريبية (Trial)</option>
-            <option value="chap">السيناريو: تشفير CHAP</option>
-          </select>
-          <select id="sim-lang" onchange="updateSimulatorFrame()">
-            <option value="ar">اللغة: العربية (RTL)</option>
-            <option value="en">Language: English (LTR)</option>
-          </select>
+        <div class="sim-group">
+          <span class="sim-group__label">مسار الصفحة بالمعاينة</span>
+          <div class="sim-pages" id="simPagesBar"></div>
         </div>
-        <div class="sim-row">
-          <select id="sim-theme" aria-label="ثيم المعاينة" onchange="setSimTheme(this.value)">
-            <option value="auto">الثيم: افتراضي البروفايل</option>
-            <option value="dark">الثيم: داكن (Dark)</option>
-            <option value="light">الثيم: نهاري (Light)</option>
-          </select>
-          <select id="sim-device" aria-label="حجم شاشة المعاينة" onchange="setSimDevice(this.value)">
-            <option value="mobile">الشاشة: موبايل ضيق (340px)</option>
-            <option value="wide">الشاشة: موبايل عريض (412px)</option>
-            <option value="tablet">الشاشة: تابلت (768px)</option>
-          </select>
+        <div class="sim-group">
+          <span class="sim-group__label">السيناريو واللغة</span>
+          <div class="sim-row">
+            <select id="sim-scenario" onchange="updateSimulatorFrame()">
+              <option value="normal">السيناريو: عادي (متصل)</option>
+              <option value="error">السيناريو: رسالة خطأ RADIUS</option>
+              <option value="trial">السيناريو: فترة تجريبية (Trial)</option>
+              <option value="chap">السيناريو: تشفير CHAP</option>
+            </select>
+            <select id="sim-lang" onchange="updateSimulatorFrame()">
+              <option value="ar">اللغة: العربية (RTL)</option>
+              <option value="en">Language: English (LTR)</option>
+            </select>
+          </div>
+        </div>
+        <div class="sim-group">
+          <span class="sim-group__label">المظهر والجهاز</span>
+          <div class="sim-row">
+            <select id="sim-theme" aria-label="ثيم المعاينة" onchange="setSimTheme(this.value)">
+              <option value="auto">الثيم: افتراضي البروفايل</option>
+              <option value="dark">الثيم: داكن (Dark)</option>
+              <option value="light">الثيم: نهاري (Light)</option>
+            </select>
+            <select id="sim-device" aria-label="حجم شاشة المعاينة" onchange="setSimDevice(this.value)">
+              <option value="mobile">الشاشة: موبايل ضيق (340px)</option>
+              <option value="wide">الشاشة: موبايل عريض (412px)</option>
+              <option value="tablet">الشاشة: تابلت (768px)</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="sim-viewport">
@@ -223,6 +249,16 @@
 </main>
 
 <div class="toast" id="toast"></div>
+<div class="studio-modal" id="studioModal" role="dialog" aria-modal="true" aria-labelledby="studioModalTitle">
+  <div class="studio-modal__box">
+    <h3 class="studio-modal__title" id="studioModalTitle"></h3>
+    <div class="studio-modal__body" id="studioModalBody"></div>
+    <div class="studio-modal__actions">
+      <button type="button" class="btn ghost" id="studioModalCancel">إلغاء</button>
+      <button type="button" class="btn primary" id="studioModalConfirm">تأكيد</button>
+    </div>
+  </div>
+</div>
 
 <script>
 'use strict';
@@ -284,12 +320,113 @@ function markDirty(isDirty) {
   if (badge) badge.className = 'badge dirty' + (state.dirty ? ' show' : '');
 }
 
-// Track form edits in #content to light up Dirty State indicator
-document.addEventListener('input', (e) => {
+let simRefreshTimer = null;
+function scheduleSimulatorAutoRefresh() {
+  if (!state.sim.open || !state.current) return;
+  clearTimeout(simRefreshTimer);
+  simRefreshTimer = setTimeout(async () => {
+    try {
+      if (!state.sim.open || !state.current) return;
+      const previewCfg = JSON.parse(JSON.stringify(state.current.config));
+      captureDraft(state.tab);
+      applyDrafts(previewCfg);
+      const data = await api('/preview', {
+        method: 'POST',
+        body: JSON.stringify({
+          slug: state.current.id,
+          port: state.sim.port,
+          config: previewCfg,
+          announcements: state.drafts.announcements !== undefined ? state.drafts.announcements : state.current.announcements
+        })
+      });
+      state.sim.baseUrl = data.baseUrl || data.url.replace(/\/login\.html$/, '');
+      state.sim.port = data.port;
+      updateSimulatorFrame();
+    } catch {
+      // Quiet skip while editing incomplete draft values
+    }
+  }, 800);
+}
+
+function openStudioModal({ title, bodyHtml, confirmLabel = 'تأكيد', cancelLabel = 'إلغاء', isDanger = false, focusSelector = 'input, select' }) {
+  return new Promise((resolve) => {
+    const modal = $('#studioModal');
+    const titleEl = $('#studioModalTitle');
+    const bodyEl = $('#studioModalBody');
+    const okBtn = $('#studioModalConfirm');
+    const cancelBtn = $('#studioModalCancel');
+    if (!modal || !titleEl || !bodyEl || !okBtn || !cancelBtn) { resolve(null); return; }
+
+    titleEl.textContent = title || '';
+    bodyEl.innerHTML = bodyHtml || '';
+    okBtn.textContent = confirmLabel;
+    okBtn.className = isDanger ? 'btn danger' : 'btn primary';
+    cancelBtn.textContent = cancelLabel;
+    modal.classList.add('open');
+
+    const prevFocus = document.activeElement;
+    const cleanup = (result) => {
+      modal.classList.remove('open');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      modal.onclick = null;
+      window.removeEventListener('keydown', onKey);
+      if (prevFocus && typeof prevFocus.focus === 'function') prevFocus.focus();
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
+      if (e.key === 'Enter' && e.target && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        okBtn.click();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    modal.onclick = (e) => { if (e.target === modal) cleanup(null); };
+    cancelBtn.onclick = () => cleanup(null);
+    okBtn.onclick = () => cleanup(bodyEl);
+
+    setTimeout(() => {
+      const target = bodyEl.querySelector(focusSelector) || okBtn;
+      if (target && typeof target.focus === 'function') target.focus();
+    }, 10);
+  });
+}
+
+async function studioConfirm(message, { title = 'تأكيد الإجراء', confirmLabel = 'متابعة', isDanger = false } = {}) {
+  const res = await openStudioModal({
+    title,
+    bodyHtml: '<p style="margin:0;line-height:1.6">' + esc(message) + '</p>',
+    confirmLabel,
+    isDanger,
+    focusSelector: '#studioModalConfirm'
+  });
+  return Boolean(res);
+}
+
+async function studioPrompt(label, defaultVal = '', { title = 'إدخال بيانات', confirmLabel = 'حفظ' } = {}) {
+  const res = await openStudioModal({
+    title,
+    bodyHtml: '<div class="field"><label for="studio-prompt-input">' + esc(label) + '</label><input id="studio-prompt-input" type="text" value="' + esc(defaultVal) + '"></div>',
+    confirmLabel,
+    focusSelector: '#studio-prompt-input'
+  });
+  if (!res) return null;
+  const val = res.querySelector('#studio-prompt-input')?.value ?? '';
+  return val.trim() ? val : null;
+}
+
+// Track form edits in #content to light up Dirty State indicator & auto-refresh simulator
+function onContentEdited(e) {
   if (state.current && $('#content') && $('#content').contains(e.target)) {
-    if (!e.target.dataset.ignoreDirty) markDirty(true);
+    if (!e.target.dataset.ignoreDirty) {
+      markDirty(true);
+      scheduleSimulatorAutoRefresh();
+    }
   }
-});
+}
+document.addEventListener('input', onContentEdited);
+document.addEventListener('change', onContentEdited);
 
 // Keyboard shortcut Ctrl+S / Cmd+S to save
 window.addEventListener('keydown', (e) => {
@@ -365,10 +502,16 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ 
 
 async function selectProfile(id, skipDirtyCheck) {
   if (!skipDirtyCheck && state.dirty && state.current && state.current.id !== id) {
-    if (!confirm('لديك تعديلات غير محفوظة في البروفايل الحالي. هل تريد المتابعة وتجاهلها؟')) return;
+    const ok = await studioConfirm('لديك تعديلات غير محفوظة في البروفايل الحالي. هل تريد المتابعة وتجاهلها؟', {
+      title: 'تعديلات غير محفوظة',
+      confirmLabel: 'تجاهل والمتابعة',
+      isDanger: true
+    });
+    if (!ok) return;
   }
   try {
     state.drafts = {};
+    state.mikrotikDirty = false;
     markDirty(false);
     const data = await api('/profiles/' + encodeURIComponent(id));
     state.current = data.profile;
@@ -387,22 +530,25 @@ async function selectProfile(id, skipDirtyCheck) {
 // Tabs
 // ---------------------------------------------------------------------------
 const TABS = [
-  { id: 'general', label: 'عام' },
-  { id: 'theme', label: 'الثيم' },
-  { id: 'features', label: 'المميزات' },
-  { id: 'plans', label: 'الباقات' },
-  { id: 'support', label: 'الدعم' },
-  { id: 'announcements', label: 'الإعلانات' },
-  { id: 'words', label: 'الكلمات والأخطاء' },
-  { id: 'qrtest', label: 'مختبر QR الدخول' },
-  { id: 'assets', label: 'الملفات والشعارات' },
-  { id: 'mikrotik', label: 'مايكروتك (.rsc والرفع)' }
+  { id: 'general', label: 'عام', group: 'design' },
+  { id: 'theme', label: 'الثيم', group: 'design' },
+  { id: 'features', label: 'المميزات', group: 'design' },
+  { id: 'plans', label: 'الباقات', group: 'design' },
+  { id: 'support', label: 'الدعم', group: 'design' },
+  { id: 'announcements', label: 'الإعلانات', group: 'content' },
+  { id: 'words', label: 'الكلمات والأخطاء', group: 'content' },
+  { id: 'qrtest', label: 'مختبر QR الدخول', group: 'content' },
+  { id: 'assets', label: 'الملفات والشعارات', group: 'content' },
+  { id: 'mikrotik', label: 'مايكروتك (.rsc والرفع)', group: 'router' }
 ];
 
 function renderTabs() {
-  $('#tabs').innerHTML = TABS.map(t =>
-    '<button class="tab' + (state.tab === t.id ? ' active' : '') + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>'
-  ).join('');
+  let prevGroup = null;
+  $('#tabs').innerHTML = TABS.map(t => {
+    const sep = (prevGroup && prevGroup !== t.group) ? '<span class="tab-sep" aria-hidden="true"></span>' : '';
+    prevGroup = t.group;
+    return sep + '<button class="tab' + (state.tab === t.id ? ' active' : '') + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>';
+  }).join('');
 }
 
 function setTab(id) {
@@ -438,6 +584,7 @@ function captureDraft(tab) {
       state.drafts.features = {
         loginMode: $('#f-login').value,
         voucherPasswordMode: $('#f-pass').value,
+        voucherFormat: $('#f-vfmt') ? $('#f-vfmt').value : 'numeric',
         enableQRScanner: $('#f-qr').value === 'true',
         qrScannerUrl: $('#f-qrurl').value.trim(),
         voucherMinLength: $('#f-min').value,
@@ -544,6 +691,7 @@ function applyDrafts(c) {
   if (d.features) {
     c.features.loginMode = d.features.loginMode;
     c.features.voucherPasswordMode = d.features.voucherPasswordMode;
+    c.features.voucherFormat = d.features.voucherFormat || 'numeric';
     c.features.enableQRScanner = d.features.enableQRScanner;
     if (d.features.qrScannerUrl) c.features.qrScannerUrl = d.features.qrScannerUrl;
     else delete c.features.qrScannerUrl;
@@ -597,7 +745,8 @@ function applyDrafts(c) {
 }
 
 function renderTab() {
-  const c = state.current.config;
+  const c = JSON.parse(JSON.stringify(state.current.config));
+  applyDrafts(c);
   const el = $('#content');
   el.innerHTML = '';
   switch (state.tab) {
@@ -841,7 +990,9 @@ function applyPresetToInputs(presetId) {
 
 async function saveCurrentAsPreset() {
   if (!state.current) return;
-  const id = prompt('معرّف الشخصية (إنجليزي):', state.current.id + '-style');
+  const id = await studioPrompt('معرّف الشخصية (إنجليزي):', state.current.id + '-style', {
+    title: 'حفظ كشخصية مخصصة'
+  });
   if (!id) return;
   try {
     captureDraft(state.tab);
@@ -879,6 +1030,11 @@ function formFeatures(c) {
     '<select id="f-pass"><option value="same"' + (f.voucherPasswordMode !== 'empty' ? ' selected' : '') + '>نفس الكود</option>' +
     '<option value="empty"' + (f.voucherPasswordMode === 'empty' ? ' selected' : '') + '>بدون كلمة مرور</option></select>',
     'حسب نظام كروت شبكتك — الخطأ هنا يمنع الدخول'));
+
+  grid.appendChild(field('صيغة كود الكارت',
+    '<select id="f-vfmt"><option value="numeric"' + (f.voucherFormat !== 'alphanumeric' ? ' selected' : '') + '>أرقام فقط (لوحة أرقام)</option>' +
+    '<option value="alphanumeric"' + (f.voucherFormat === 'alphanumeric' ? ' selected' : '') + '>حروف وأرقام</option></select>',
+    'يفضل أرقام فقط للكروت الرقمية لتسهيل الإدخال على الموبايل'));
 
   grid.appendChild(field('مسح QR',
     '<select id="f-qr"><option value="true"' + (f.enableQRScanner !== false ? ' selected' : '') + '>مفعل</option>' +
@@ -975,6 +1131,7 @@ function formPlans(c) {
 function addPlan() {
   captureDraft(state.tab);
   applyDrafts(state.current.config);
+  delete state.drafts.plans;
   state.current.config.plans = state.current.config.plans || [];
   state.current.config.plans.push({ name: 'New Plan', name_ar: 'باقة جديدة', quota: '10 GB', quota_ar: '10 جيجا', price: '60', icon: 'globe' });
   markDirty(true);
@@ -984,6 +1141,7 @@ function addPlan() {
 function removePlan(i) {
   captureDraft(state.tab);
   applyDrafts(state.current.config);
+  delete state.drafts.plans;
   state.current.config.plans.splice(i, 1);
   markDirty(true);
   renderTab();
@@ -1034,6 +1192,7 @@ function formSupport(c) {
   add.onclick = () => {
     captureDraft(state.tab);
     applyDrafts(state.current.config);
+    delete state.drafts.support;
     state.current.config.support = state.current.config.support || { agents: [] };
     state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '+201000000000', whatsapp: '201000000000' });
     markDirty(true);
@@ -1046,6 +1205,7 @@ function formSupport(c) {
 function removeAgent(i) {
   captureDraft(state.tab);
   applyDrafts(state.current.config);
+  delete state.drafts.support;
   state.current.config.support.agents.splice(i, 1);
   markDirty(true);
   renderTab();
@@ -1340,34 +1500,7 @@ function formAssets() {
 
   const list = document.createElement('div');
   list.id = 'assets-list';
-  const render = () => {
-    list.innerHTML = '';
-    for (const a of state.current.assets) {
-      const row = document.createElement('div');
-      row.className = 'card';
-      row.style.marginBottom = '8px';
-      row.style.padding = '12px';
-
-      const meta = document.createElement('span');
-      meta.appendChild(document.createTextNode(a.name + ' '));
-      const badge = document.createElement('span');
-      badge.className = 'badge';
-      badge.textContent = Math.max(1, Math.round(a.size / 1024)) + ' KB';
-      meta.appendChild(badge);
-
-      const del = document.createElement('button');
-      del.className = 'rowbtn';
-      del.textContent = 'حذف';
-      del.dataset.asset = a.name;
-      del.addEventListener('click', () => deleteAsset(del.dataset.asset));
-
-      row.appendChild(meta);
-      row.appendChild(document.createTextNode(' '));
-      row.appendChild(del);
-      list.appendChild(row);
-    }
-  };
-  render();
+  renderAssetsList(list);
 
   const up = document.createElement('div');
   up.className = 'field';
@@ -1459,6 +1592,48 @@ function autoCropAndCompressImage(file, targetDim) {
   });
 }
 
+function renderAssetsList(targetList) {
+  const list = targetList || $('#assets-list');
+  if (!list || !state.current) return;
+  list.innerHTML = '';
+  for (const a of (state.current.assets || [])) {
+    const row = document.createElement('div');
+    row.className = 'card';
+    row.style.marginBottom = '8px';
+    row.style.padding = '12px';
+
+    const meta = document.createElement('span');
+    meta.appendChild(document.createTextNode(a.name + ' '));
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = Math.max(1, Math.round(a.size / 1024)) + ' KB';
+    meta.appendChild(badge);
+
+    const del = document.createElement('button');
+    del.className = 'rowbtn';
+    del.textContent = 'حذف';
+    del.dataset.asset = a.name;
+    del.addEventListener('click', () => deleteAsset(del.dataset.asset));
+
+    row.appendChild(meta);
+    row.appendChild(document.createTextNode(' '));
+    row.appendChild(del);
+    list.appendChild(row);
+  }
+}
+
+async function refreshAssetsInPlace() {
+  if (!state.current) return;
+  const data = await api('/profiles/' + encodeURIComponent(state.current.id));
+  state.current.assets = data.profile.assets || [];
+  if (data.profile.updatedAt) state.current.updatedAt = data.profile.updatedAt;
+  $('#profileMeta').textContent =
+    state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
+  renderAssetsList();
+  renderProfileList();
+  if (state.sim.open) scheduleSimulatorAutoRefresh();
+}
+
 async function uploadAsset() {
   const file = $('#asset-file').files[0];
   if (!file) return toast('اختر ملفاً أولاً', true);
@@ -1489,14 +1664,17 @@ async function uploadAsset() {
       body: JSON.stringify({ filename: file.name, dataBase64 })
     });
     toast(autoCrop && isRaster ? `تم رفع وضغط الصورة (${origKb} KB ← ${finalKb} KB)` : 'تم رفع الملف');
-    await selectProfile(state.current.id, true);
+    if ($('#asset-file')) $('#asset-file').value = '';
+    if ($('#asset-file-name')) $('#asset-file-name').textContent = 'لم يتم اختيار ملف بعد';
+    await refreshAssetsInPlace();
   } catch (e) { toast(e.message, true); }
 }
 
 async function deleteAsset(name) {
   try {
     await api('/profiles/' + encodeURIComponent(state.current.id) + '/assets/' + encodeURIComponent(name), { method: 'DELETE' });
-    await selectProfile(state.current.id, true);
+    toast('تم حذف الملف: ' + name);
+    await refreshAssetsInPlace();
   } catch (e) { toast(e.message, true); }
 }
 
@@ -1638,7 +1816,12 @@ function formMikrotik(c) {
     refreshRscPreview();
     ['mk-dns', 'mk-htmldir', 'mk-profname', 'mk-dhcp-server', 'mk-capport-mode', 'mk-extra-wg'].forEach((id) => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('change', () => { syncMikrotikDraft(); refreshRscPreview(); });
+      if (el) el.addEventListener('change', () => {
+        state.mikrotikDirty = true;
+        markDirty(true);
+        syncMikrotikDraft();
+        refreshRscPreview();
+      });
     });
     ['mk-host', 'mk-proto', 'mk-port', 'mk-user', 'mk-target-dir', 'mk-create-backup', 'mk-apply-rsc'].forEach((id) => {
       const el = document.getElementById(id);
@@ -1649,6 +1832,8 @@ function formMikrotik(c) {
           if (el.value === 'https' && (!curPort || curPort === 80)) $('#mk-port').value = '443';
           if (el.value === 'http' && (!curPort || curPort === 443)) $('#mk-port').value = '80';
         }
+        state.mikrotikDirty = true;
+        markDirty(true);
         syncMikrotikDraft();
       });
     });
@@ -1700,11 +1885,15 @@ async function saveMikrotikSettings(silent = false) {
       body: JSON.stringify({ mikrotik })
     });
     state.current.mikrotik = res.mikrotik;
+    state.mikrotikDirty = false;
     if (res.mikrotik && res.mikrotik.tlsFingerprint) {
       lastRouterFingerprint = res.mikrotik.tlsFingerprint;
       updateTlsBadge(lastRouterFingerprint);
     }
-    if (!silent) toast('تم حفظ إعدادات الراوتر لهذا البروفايل');
+    if (!silent) {
+      if (Object.keys(state.drafts || {}).length === 0) markDirty(false);
+      toast('تم حفظ إعدادات الراوتر لهذا البروفايل');
+    }
     return res.mikrotik;
   } catch (e) {
     if (!silent) toast('فشل حفظ إعدادات الراوتر: ' + e.message, true);
@@ -1898,6 +2087,12 @@ async function saveConfig() {
       state.current.announcements = state.drafts.announcements;
     }
 
+    if (state.mikrotikDirty) {
+      await saveMikrotikSettings(true);
+    }
+
+    state.drafts = {};
+    state.mikrotikDirty = false;
     markDirty(false);
     toast('تم الحفظ — الإعدادات سليمة');
     $('#profileMeta').textContent = state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
@@ -2163,22 +2358,37 @@ async function togglePreview() {
 // Profile CRUD
 // ---------------------------------------------------------------------------
 async function createProfile() {
-  const slug = prompt('معرّف البريفايل (إنجليزي، بدون مسافات):', 'client-' + Date.now().toString(36));
+  const defaultSlug = 'client-' + Date.now().toString(36);
+  const presets = (state.meta && state.meta.presets) ? state.meta.presets : [
+    { id: 'meganet', label: 'MegaNet Dark Neon' },
+    { id: 'cafe', label: 'Cafe' },
+    { id: 'hotel', label: 'Hotel' },
+    { id: 'clinic', label: 'Clinic' }
+  ];
+  const presetOpts = presets.map(p => '<option value="' + esc(p.id) + '">' + esc(p.id + ' — ' + p.label) + '</option>').join('');
+  const res = await openStudioModal({
+    title: 'إنشاء بريفايل جديد',
+    confirmLabel: 'إنشاء',
+    focusSelector: '#studio-new-name',
+    bodyHtml:
+      '<div class="field"><label for="studio-new-slug">معرّف البريفايل (إنجليزي بدون مسافات)</label><input id="studio-new-slug" type="text" value="' + esc(defaultSlug) + '"></div>' +
+      '<div class="field"><label for="studio-new-name">الاسم الظاهر (مثال: كافيه التراس)</label><input id="studio-new-name" type="text" value="' + esc(defaultSlug) + '"></div>' +
+      '<div class="field"><label for="studio-new-preset">شخصية القالب (Preset)</label><select id="studio-new-preset">' + presetOpts + '</select></div>'
+  });
+  if (!res) return;
+  const slug = res.querySelector('#studio-new-slug')?.value.trim();
+  const name = res.querySelector('#studio-new-name')?.value.trim() || slug;
+  const preset = res.querySelector('#studio-new-preset')?.value.trim() || 'meganet';
   if (!slug) return;
-  const name = prompt('الاسم الظاهر (مثال: كافيه التراس):', slug) || slug;
-  const presetOptions = (state.meta && state.meta.presets)
-    ? state.meta.presets.map(p => '• ' + p.id + ' : ' + p.label).join('\n')
-    : 'meganet, cafe, hotel, clinic, restaurant, gym, netcafe, mall, school, coworking, bakery, mobile-shop';
-  const preset = prompt('اختر شخصية القالب (اكتب المعرّف مثل cafe أو hotel أو اتركه فارغاً):\n\n' + presetOptions, 'meganet');
   try {
-    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name, preset: (preset && preset.trim()) ? preset.trim() : 'meganet' }) });
+    const data = await api('/profiles', { method: 'POST', body: JSON.stringify({ slug, name, preset }) });
     await loadProfiles(data.profile.id);
     toast('تم إنشاء البريفايل بنجاح');
   } catch (e) { toast(e.message, true); }
 }
 
 async function duplicateProfile(id) {
-  const newSlug = prompt('معرّف النسخة الجديدة:', id + '-copy');
+  const newSlug = await studioPrompt('معرّف النسخة الجديدة:', id + '-copy', { title: 'نسخ البريفايل', confirmLabel: 'نسخ' });
   if (!newSlug) return;
   try {
     const data = await api('/profiles/' + encodeURIComponent(id) + '/duplicate', {
@@ -2190,7 +2400,8 @@ async function duplicateProfile(id) {
 }
 
 async function renameProfile(id) {
-  const name = prompt('الاسم الجديد:', state.profiles.find(p => p.id === id)?.name || id);
+  const curName = state.profiles.find(p => p.id === id)?.name || id;
+  const name = await studioPrompt('الاسم الجديد:', curName, { title: 'إعادة تسمية البريفايل', confirmLabel: 'تحديث' });
   if (!name) return;
   try {
     await api('/profiles/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ name }) });
@@ -2199,7 +2410,12 @@ async function renameProfile(id) {
 }
 
 async function deleteProfile(id) {
-  if (!confirm('حذف البريفايل نهائياً؟')) return;
+  const ok = await studioConfirm('حذف البريفايل نهائياً؟ لا يمكن التراجع عن هذه الخطوة.', {
+    title: 'حذف البريفايل',
+    confirmLabel: 'حذف نهائي',
+    isDanger: true
+  });
+  if (!ok) return;
   try {
     await api('/profiles/' + encodeURIComponent(id), { method: 'DELETE' });
     state.current = null;
@@ -2232,7 +2448,8 @@ async function importProfile() {
     if (!f) return;
     try {
       const bundle = JSON.parse(await f.text());
-      const slug = prompt('معرّف البروفايل المستورد:', (bundle.name || 'imported').replace(/\s+/g, '-').toLowerCase().slice(0, 40));
+      const defaultSlug = (bundle.name || 'imported').replace(/\s+/g, '-').toLowerCase().slice(0, 40);
+      const slug = await studioPrompt('معرّف البروفايل المستورد:', defaultSlug, { title: 'استيراد بروفايل', confirmLabel: 'استيراد' });
       if (!slug) return;
       const data = await api('/profiles/import', {
         method: 'POST',

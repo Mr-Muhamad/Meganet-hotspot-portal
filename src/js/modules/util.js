@@ -31,7 +31,7 @@ var util = {
     if (!bytes || bytes < 0 || isNaN(bytes)) return 'NaN';
     
     // Read dynamic kbBase from active sessionCountdownSection or any element with data-kb-base
-    var k = 1024;
+    var k = 1000;
     if (typeof document !== 'undefined') {
       var quotaEl = document.getElementById('sessionCountdownSection') || document.querySelector('[data-kb-base]');
       if (quotaEl) {
@@ -119,8 +119,15 @@ var util = {
    * @returns {string|null} Cookie value
    */
   getCookie: function(name) {
-    var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
+    if (!name) return null;
+    var escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var match = document.cookie.match(new RegExp('(?:^|;\\s*)' + escaped + '=([^;]*)'));
+    if (!match) return null;
+    try {
+      return decodeURIComponent(match[1]);
+    } catch (e) {
+      return match[1];
+    }
   },
 
   /**
@@ -204,7 +211,7 @@ var util = {
                        .replace(/%[a-zA-Z0-9]{2,}/g, '');
     }
     cleaned = cleaned.replace(/(?:\s*[/%]*[fF]{3,}[%]*)+/g, '')
-                     .replace(/\s*\/[\s/]*/g, ' ')
+                     .replace(/(^|[^:])\s*\/{2,}[\s/]*/g, '$1 ')
                      .replace(/\s+/g, ' ')
                      .trim();
 
@@ -253,21 +260,50 @@ var util = {
    * @param {string} elementId - Countdown element ID
    */
   safeRedirect: function(url, seconds, elementId) {
-    if (!url) return;
-    seconds = seconds || 5;
-    var remaining = seconds;
-    var element = document.getElementById(elementId);
+    if (!url || typeof url !== 'string') return null;
+    var trimmed = url.trim();
+    if (!trimmed || /\$\([^)]*\)/.test(trimmed)) return null;
 
+    var noSpace = trimmed.replace(/\s+/g, '');
+    try {
+      var parsed = new URL(noSpace, 'http://localhost');
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+
+    var remaining = (typeof seconds === 'number' && !isNaN(seconds) && seconds >= 0)
+      ? Math.floor(seconds)
+      : 5;
+    var element = elementId ? document.getElementById(elementId) : null;
+    if (element) {
+      element.textContent = remaining;
+    }
+
+    if (remaining <= 0) {
+      window.location.replace(trimmed);
+      return null;
+    }
+
+    var cancelled = false;
     var interval = setInterval(function() {
+      if (cancelled) return;
       remaining--;
       if (element) {
-        element.textContent = remaining;
+        element.textContent = Math.max(0, remaining);
       }
       if (remaining <= 0) {
         clearInterval(interval);
-        window.location.href = url;
+        window.location.replace(trimmed);
       }
     }, 1000);
+
+    return function cancelRedirect() {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }
 };
 

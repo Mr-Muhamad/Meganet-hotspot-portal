@@ -53,14 +53,44 @@ var i18n = {
     }
   },
 
+  isSupportedLang: function(lang) {
+    if (!lang || typeof lang !== 'string') return false;
+    if (lang === 'en' || lang === 'ar') return true;
+    if (i18n.data && typeof i18n.data === 'object') {
+      return Object.prototype.hasOwnProperty.call(i18n.data, lang);
+    }
+    return false;
+  },
+
+  updateTitle: function() {
+    if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+    var titleEl = document.querySelector('title[data-i18n-title]');
+    var key = titleEl ? titleEl.getAttribute('data-i18n-title') : '';
+    var networkName = titleEl ? (titleEl.getAttribute('data-network-name') || '') : '';
+    if (!key && document.body && typeof document.body.getAttribute === 'function') {
+      var page = document.body.getAttribute('data-page');
+      if (page) key = page + '_title';
+      networkName = document.body.getAttribute('data-network-name') || networkName;
+    }
+    if (!key) return;
+    var translated = i18n.t(key);
+    if (translated && translated !== key) {
+      document.title = networkName ? (networkName + ' - ' + translated) : translated;
+    }
+  },
+
   setLang: function(lang) {
     try {
+      if (!i18n.isSupportedLang(lang)) return false;
       i18n.currentLang = lang;
       document.documentElement.setAttribute('lang', lang);
       document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       i18n.apply();
+      i18n.updateTitle();
+      return true;
     } catch (err) {
       console.error('i18n setLang error:', err);
+      return false;
     }
   },
 
@@ -95,12 +125,14 @@ var i18n = {
 
       var titleElements = document.querySelectorAll('[data-i18n-title]');
       titleElements.forEach(function(element) {
+        if (element.tagName && element.tagName.toUpperCase() === 'TITLE') return;
         var key = element.getAttribute('data-i18n-title');
         var translation = i18n.t(key);
         if (translation !== key) {
           element.setAttribute('title', translation);
         }
       });
+      i18n.updateTitle();
     } catch (err) {
       console.error('i18n apply error:', err);
     }
@@ -109,13 +141,25 @@ var i18n = {
   detectLang: function() {
     try {
       var savedLang = util.getCookie('hotspot_lang');
-      if (savedLang) return savedLang;
+      if (savedLang && i18n.isSupportedLang(savedLang)) return savedLang;
+
+      if (
+        typeof window !== 'undefined' &&
+        window.location &&
+        typeof window.location.pathname === 'string' &&
+        /(?:^|\/)ar(?:\/|$)/.test(window.location.pathname) &&
+        i18n.isSupportedLang('ar')
+      ) {
+        return 'ar';
+      }
 
       var browserLang = navigator.language.split('-')[0];
-      if (i18n.data && i18n.data[browserLang]) {
+      if (i18n.isSupportedLang(browserLang)) {
         return browserLang;
       }
 
+      if (i18n.isSupportedLang('ar')) return 'ar';
+      if (i18n.isSupportedLang('en')) return 'en';
       return 'ar';
     } catch (err) {
       console.error('i18n detectLang error:', err);

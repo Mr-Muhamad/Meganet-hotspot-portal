@@ -68,12 +68,24 @@ function buildRscPlanData(config = {}, options = {}) {
   const dnsName = sanitizeIdentifier(options.dnsName, 'login.meganet.local');
   const dhcpServer = options.dhcpServer ? sanitizeIdentifier(options.dhcpServer, '') : '';
   const capportMode = ['https', 'http', 'off'].includes(options.capportMode) ? options.capportMode : 'https';
+  const sslCertificate = options.sslCertificate ? sanitizeIdentifier(options.sslCertificate, '') : '';
 
   const loginModes = ['http-chap', 'http-pap', 'cookie'];
   if (features.enableClonePrevention === false) {
     loginModes.push('mac-cookie');
   }
+  if (capportMode === 'https' && sslCertificate) {
+    loginModes.push('https');
+  }
   const loginBy = loginModes.join(',');
+  const requiresSslSetup = capportMode === 'https' && !sslCertificate;
+  const protocolNote = capportMode === 'https'
+    ? (sslCertificate
+        ? 'HTTPS CAPPORT aligned with login-by=https and ssl-certificate.'
+        : 'HTTPS CAPPORT requires /ip/service/www-ssl + certificate and login-by=https; otherwise use capportMode=http or off for local HTTP portals.')
+    : (capportMode === 'http'
+        ? 'HTTP CAPPORT aligned with plain HTTP hotspot login (http-chap/http-pap).'
+        : 'CAPPORT Option 114 disabled; clients use standard captive probe detection.');
 
   const wgHosts = new Set();
   if (features.enableQRScanner !== false && features.qrScannerUrl) {
@@ -94,6 +106,9 @@ function buildRscPlanData(config = {}, options = {}) {
     dnsName,
     dhcpServer,
     capportMode,
+    sslCertificate,
+    requiresSslSetup,
+    protocolNote,
     loginBy,
     walledGardenHosts: Array.from(wgHosts)
   };
@@ -111,9 +126,14 @@ function generateRscScript(config = {}, options = {}) {
     dnsName,
     dhcpServer,
     capportMode,
+    sslCertificate,
     loginBy,
     walledGardenHosts
   } = plan;
+
+  const sslProp = (capportMode === 'https' && sslCertificate)
+    ? ` ssl-certificate="${escapeRos(sslCertificate)}"`
+    : '';
 
   const lines = [
     '# ============================================================================',
@@ -124,9 +144,9 @@ function generateRscScript(config = {}, options = {}) {
     '# 1. Hotspot Server Profile (idempotent create or update via [find])',
     `:local profIds [/ip/hotspot/profile/find where name="${escapeRos(profileName)}"]`,
     ':if ([:len $profIds] > 0) do={',
-    `  /ip/hotspot/profile/set $profIds html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}`,
+    `  /ip/hotspot/profile/set $profIds html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
     '} else={',
-    `  /ip/hotspot/profile/add name="${escapeRos(profileName)}" html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}`,
+    `  /ip/hotspot/profile/add name="${escapeRos(profileName)}" html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
     '}',
     ''
   ];
@@ -142,8 +162,13 @@ function generateRscScript(config = {}, options = {}) {
     lines.push(
       `# 2. DHCP Option 114 — Captive Portal API (RFC 8910, scheme: ${capportScheme})`,
       capportScheme === 'https'
-        ? '# Note: iOS/Android CNA requires a trusted certificate enabled on /ip/service/www-ssl for HTTPS CAPPORT.'
-        : '# Note: HTTP CAPPORT selected; some modern OS captive probes prefer HTTPS with valid TLS.',
+        ? '# Note: HTTPS CAPPORT + HTTPS login require www-ssl + a valid SSL certificate imported on RouterOS.'
+        : '# Note: HTTP CAPPORT matches plain HTTP login-by (http-chap/http-pap) when no TLS certificate is installed.',
+      capportScheme === 'https' && !sslCertificate
+        ? `# Optional TLS alignment once cert is imported: /ip/service/set www-ssl disabled=no certificate=<cert_0> && /ip/hotspot/profile/set [find name="${escapeRos(profileName)}"] login-by=${loginBy},https ssl-certificate=<cert_0>`
+        : (sslCertificate
+            ? `/ip/service/set www-ssl disabled=no certificate="${escapeRos(sslCertificate)}"`
+            : '# Or switch capportMode to "http" if serving portal solely over HTTP.'),
       '# force=yes is required so clients that omit code 114 in PRL still receive it.',
       '# Outer double quotes + inner single quotes ensure RouterOS sends a string URI.',
       `/ip/dhcp-server/option/sets/remove [find comment="${COMMENT_TAG}"]`,

@@ -3,16 +3,16 @@
 {% block content %}
       <!-- System Announcements Banner -->
       <div id="announcement-banner" class="announcement-banner" style="display: none;">
-        <div class="announcement-banner__icon-wrapper">
-          <svg id="announcement-icon" class="announcement-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="announcement-banner__icon-wrapper" aria-hidden="true">
+          <svg id="announcement-icon" class="announcement-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <!-- SVG path is dynamically set by JS -->
           </svg>
         </div>
         <div class="announcement-banner__content">
           <span id="announcement-text" class="announcement-banner__text"></span>
         </div>
-        <button class="announcement-banner__close" onclick="dismissAnnouncement()" aria-label="Dismiss announcement">
-          <svg class="announcement-banner__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="announcement-banner__close" onclick="dismissAnnouncement()" data-i18n-aria="dismiss_announcement" aria-label="{{ i18n.dismiss_announcement }}">
+          <svg class="announcement-banner__close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -23,14 +23,14 @@
         <div class="card-header">
           <div class="card-header__brand">
             <span class="card-header__logo">{{ prandTitleInline | safe }}</span>
-            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
               <line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
           </div>
-          <h1 class="card-header__title" data-i18n="login_title">Sign In</h1>
-          <p class="card-header__subtitle" data-i18n="login_subtitle">Enter your credentials to connect</p>
+          <h1 class="card-header__title" data-i18n="login_title">{{ i18n.login_title }}</h1>
+          <p class="card-header__subtitle" data-i18n="login_subtitle">{{ i18n.login_subtitle }}</p>
         </div>
 
         <div class="card-body">
@@ -38,21 +38,23 @@
           <div id="alerts">
             $(if error)
             <div class="alert alert-error" role="alert">
-              <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              <span class="alert__text" id="errorMessage">$(error-esc)</span>
+              <span class="alert__text" id="errorMessage"><bdi dir="auto">$(error-esc)</bdi></span>
             </div>
             $(endif)
           </div>
 
           <!-- Login Form -->
+          {% set vFmt = config.features.voucherFormat | default('numeric') %}
           <form name="login" id="login-form" action="$(link-login-only)" method="post"
                 $(if chap-id) onsubmit="return doLogin()" $(endif)
                 autocomplete="on" novalidate
                 data-voucher-password-mode="{% if config.features.voucherPasswordMode %}{{ config.features.voucherPasswordMode }}{% else %}same{% endif %}"
+                data-voucher-format="{{ vFmt }}"
                 data-clone-prevention="{% if config.features.enableClonePrevention %}true{% else %}false{% endif %}"
                 data-voucher-min-length="{% if config.features.voucherMinLength %}{{ config.features.voucherMinLength }}{% endif %}">
 
@@ -69,15 +71,15 @@
 
             {% if config.features.loginMode == 'both' %}
             <!-- Mode Tabs -->
-            <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
-              <button type="button" class="auth-tab auth-tab--active" role="tab" aria-selected="true" data-mode="voucher" data-i18n="voucher_tab">{{ i18n.voucher_tab or 'Voucher' }}</button>
-              <button type="button" class="auth-tab" role="tab" aria-selected="false" data-mode="normal" data-i18n="normal_tab">{{ i18n.normal_tab or 'Normal' }}</button>
+            <div class="auth-tabs" role="tablist" data-i18n-aria="auth_mode_aria" aria-label="{{ i18n.auth_mode_aria }}">
+              <button type="button" class="auth-tab auth-tab--active" role="tab" aria-selected="true" data-mode="voucher" data-i18n="voucher_tab">{{ i18n.voucher_tab }}</button>
+              <button type="button" class="auth-tab" role="tab" aria-selected="false" data-mode="normal" data-i18n="normal_tab">{{ i18n.normal_tab }}</button>
             </div>
             {% endif %}
 
             <!-- Normal credentials -->
             <div class="form-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
-              <label class="form-label" for="username" data-i18n="username_label">{{ i18n.username_label or 'Username' }}</label>
+              <label class="form-label" for="username" data-i18n="username_label">{{ i18n.username_label }}</label>
               <div class="input-wrapper">
                 <input class="form-input" type="text" id="username" name="username"
                        value="$(username-esc)"
@@ -88,12 +90,12 @@
                        required
                        aria-required="true"
                        data-i18n-placeholder="username_placeholder"
-                       placeholder="Enter username">
+                       placeholder="{{ i18n.username_placeholder }}">
               </div>
             </div>
 
             <div class="form-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
-              <label class="form-label" for="password" data-i18n="password_label">Password</label>
+              <label class="form-label" for="password" data-i18n="password_label">{{ i18n.password_label }}</label>
               <div class="input-wrapper">
                 <input class="form-input" type="password" id="password" name="password"
                        autocomplete="current-password"
@@ -103,9 +105,9 @@
                        required
                        aria-required="true"
                        data-i18n-placeholder="password_placeholder"
-                       placeholder="Enter password">
-                <button type="button" class="input-toggle" onclick="auth.togglePassword()" aria-label="Show password" data-i18n-aria="password_show" title="Show password" data-i18n-title="password_show">
-                  <svg class="input-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       placeholder="{{ i18n.password_placeholder }}">
+                <button type="button" class="input-toggle" onclick="auth.togglePassword()" aria-label="{{ i18n.password_show }}" data-i18n-aria="password_show" title="{{ i18n.password_show }}" data-i18n-title="password_show">
+                  <svg class="input-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
@@ -119,88 +121,84 @@
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <span data-i18n="caps_lock_warning">Caps Lock is on</span>
+              <span data-i18n="caps_lock_warning">{{ i18n.caps_lock_warning }}</span>
             </div>
 
             <div class="checkbox-group" data-mode-panel="normal" {% if config.features.loginMode == 'voucher_only' %}style="display: none;"{% elif config.features.loginMode == 'both' %}hidden{% endif %}>
-              <input type="checkbox" id="remember-me" checked>
-              <label for="remember-me" data-i18n="remember_me">Remember me</label>
+              <input type="checkbox" id="remember-me">
+              <label for="remember-me" data-i18n="remember_me">{{ i18n.remember_me }}</label>
             </div>
 
             <!-- Voucher mode -->
             <div class="form-group" data-mode-panel="voucher" {% if config.features.loginMode == 'normal_only' %}style="display: none;"{% endif %}>
-              <label class="form-label" for="voucher" data-i18n="voucher_label">Voucher code</label>
+              <label class="form-label" for="voucher" data-i18n="voucher_label">{{ i18n.voucher_label }}</label>
               <div class="input-wrapper">
-                <input class="form-input" type="tel" id="voucher" name="voucher"
-                       inputmode="numeric"
-                       pattern="[0-9]*"
+                <input class="form-input"
+                       type="{% if vFmt == 'alphanumeric' %}text{% else %}tel{% endif %}"
+                       id="voucher" name="voucher"
+                       {% if vFmt != 'alphanumeric' %}inputmode="numeric" pattern="[0-9]*" dir="ltr"{% else %}dir="auto"{% endif %}
                        autocomplete="off"
                        autocapitalize="none"
                        autocorrect="off"
                        spellcheck="false"
                        autofocus
                        data-i18n-placeholder="voucher_placeholder"
-                       placeholder="Enter voucher code">
+                       placeholder="{{ i18n.voucher_placeholder }}">
               </div>
               {% if config.features.enableQRScanner %}
                <div class="qr-buttons-row">
                  <button type="button" class="btn btn-secondary qr-scan-btn qr-scan-btn--camera" id="qrScanButton"
                    {% if config.features.qrScannerUrl %}data-qr-scanner-url="{{ config.features.qrScannerUrl | e }}"{% endif %}>
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="qr-scan-btn__icon">
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="qr-scan-btn__icon" aria-hidden="true">
                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                      <path d="M7 7h2v2H7zM15 7h2v2h-2zM7 15h2v2H7zM12 7h1v10h-1zM15 15h2v2h-2zM11 12h2v2h-2z"></path>
                    </svg>
-                   <span data-i18n="qr_scan_btn_text">Scan Card QR Code</span>
+                   <span data-i18n="qr_scan_btn_text">{{ i18n.qr_scan_btn_text }}</span>
                  </button>
-                 <button type="button" class="btn btn-secondary qr-scan-btn qr-scan-btn--gallery" id="qrGalleryButton" aria-label="Upload QR from Gallery" data-i18n-aria="qr_gallery_btn_aria" title="Choose card photo from gallery" data-i18n-title="qr_gallery_btn_aria">
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <button type="button" class="btn btn-secondary qr-scan-btn qr-scan-btn--gallery" id="qrGalleryButton" aria-label="{{ i18n.qr_gallery_btn_aria }}" data-i18n-aria="qr_gallery_btn_aria" title="{{ i18n.qr_gallery_btn_aria }}" data-i18n-title="qr_gallery_btn_aria">
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
                      <polyline points="21 15 16 10 5 21"></polyline>
                    </svg>
+                   <span class="qr-scan-btn__gallery-label" data-i18n="qr_gallery_btn_text">{{ i18n.qr_gallery_btn_text }}</span>
                  </button>
                </div>
-               <span class="form-hint qr-scan-hint" id="qr-webview-hint" style="display: none;" data-i18n="qr_scan_webview_hint">Opening camera will ask to continue in browser</span>
-               <span class="qr-hint-or" id="qr-hint-or" style="display: none;" data-i18n="qr_hint_or">or</span>
+               <span class="form-hint qr-scan-hint" id="qr-webview-hint" style="display: none;" data-i18n="qr_scan_webview_hint">{{ i18n.qr_scan_webview_hint }}</span>
+               <span class="qr-hint-or" id="qr-hint-or" style="display: none;" data-i18n="qr_hint_or">{{ i18n.qr_hint_or }}</span>
                <!-- Hidden camera picker (capture=environment) -->
                <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display: none;">
                <!-- Hidden gallery photo picker (without capture tag so it opens photo gallery/WhatsApp photos directly) -->
                <input type="file" id="qr-gallery-input" accept="image/*" style="display: none;">
               {% endif %}
               {% if config.features.voucherPasswordMode == 'empty' %}
-              <span class="form-hint" data-i18n="voucher_hint_empty">Enter the code as the username and leave the password empty.</span>
+              <span class="form-hint" data-i18n="voucher_hint_empty">{{ i18n.voucher_hint_empty }}</span>
               {% else %}
-              <span class="form-hint" data-i18n="voucher_hint">Use the same code for username and password.</span>
+              <span class="form-hint" data-i18n="voucher_hint">{{ i18n.voucher_hint }}</span>
               {% endif %}
             </div>
 
             <!-- Actions -->
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary btn-block" id="loginButton" data-i18n="login_button">Connect</button>
+              <button type="submit" class="btn btn-primary btn-block" id="loginButton" data-i18n="login_button">{{ i18n.login_button }}</button>
             </div>
-
-            $(if captive)
-            <div class="form-footer">
-              <p class="text-muted" data-i18n="captive_notice">You are in the captive portal. Login to access the network.</p>
-            </div>
-            $(endif)
           </form>
         </div>
         <div class="card-footer login-card-footer">
           <a href="./plans.html" class="plans-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="plans-link__icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="plans-link__icon" aria-hidden="true">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
             </svg>
-            <span data-i18n="plans_link">{{ i18n.plans_link or 'View subscription plans' }}</span>
+            <span data-i18n="plans_link">{{ i18n.plans_link }}</span>
           </a>
           <div class="footer__device-info">
-            <span class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" title="Click to copy IP">
-              IP: <strong class="device-chip__value">$(ip)</strong>
-            </span>
-            <span class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" title="Click to copy MAC">
-              MAC: <strong id="footer-mac-display" class="device-chip__value">$(mac-esc)</strong> <span id="mac-type-display" class="mac-type-display"></span>
-            </span>
+            <button type="button" class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}">
+              IP: <strong class="device-chip__value"><bdi dir="ltr">$(ip)</bdi></strong>
+            </button>
+            <button type="button" class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}">
+              MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
+            </button>
           </div>
         </div>
       </div>
@@ -210,9 +208,11 @@
 {% block scripts %}
   <script src="{% if lang == 'ar' %}../{% endif %}md5.js"></script>
   <script>
+    {% if lang == 'ar' %}
     // RADIUS/User Manager error translation map (from config.json).
     // Consumed by ui.translateRouterError() during initLang()/toggleLang().
     window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | scriptjson }}{% else %}{}{% endif %};
+    {% endif %}
 
     // Initialize modules
     (function() {
@@ -245,14 +245,15 @@
         ui.loadAnnouncements();
         var footerMac = document.getElementById('footer-mac-display');
         if (footerMac) {
-          var rawMacText = footerMac.textContent.trim();
+          var footerMacTarget = (footerMac.querySelector && footerMac.querySelector('bdi')) || footerMac;
+          var rawMacText = footerMacTarget.textContent.trim();
           var decodedMac = '';
           try {
             decodedMac = decodeURIComponent(rawMacText);
           } catch (e) {
             decodedMac = rawMacText.replace(/%3A/gi, ':');
           }
-          footerMac.textContent = decodedMac;
+          footerMacTarget.textContent = decodedMac;
           
           // Determine MAC type
           var cleanMac = decodedMac.replace(/[:-]/g, '');

@@ -136,7 +136,7 @@ test('inside the stripped captive-portal WebView the scan tap escapes to the ful
 
     const target = await page.evaluate(() => window.__escapeTarget);
     expect(target).toMatch(/^intent:\/\//);
-    expect(target).toContain('qrscan=1');
+    expect(target).toContain('qrscan=camera');
     expect(target).toContain('S.browser_fallback_url=');
     // the camera path must NOT have been attempted — it is dead in there
     expect(chooserOpened).toBe(false);

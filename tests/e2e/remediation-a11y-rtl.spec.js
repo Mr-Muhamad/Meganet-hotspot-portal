@@ -37,7 +37,10 @@ test.describe('axe-core Accessibility Audit across Themes, Languages & Viewports
               await page.evaluate(() => Promise.all(
                 document.getAnimations()
                   .filter((a) => a.effect && a.effect.getComputedTiming && a.effect.getComputedTiming().iterations !== Infinity)
-                  .map((a) => a.finished.catch(() => {}))
+                  .map((a) => {
+                    try { a.finish(); } catch { /* ignore */ }
+                    return a.finished.catch(() => {});
+                  })
               ));
               await page.evaluate(axeCore.source);
               const results = await page.evaluate(async () => {

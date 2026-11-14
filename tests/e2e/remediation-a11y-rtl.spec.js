@@ -330,4 +330,35 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     await expect(arPage.locator('.support-person-card__role').first()).toHaveText(agent.role_ar || agent.role);
     await arContext.close();
   });
+
+  test('stat-card--pwa is compact on mobile and .pwa-banner__btn retains painted hover fill and readable text', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/status.html`);
+
+    await page.evaluate(() => {
+      const banner = document.getElementById('pwaBanner');
+      if (banner) banner.style.display = 'block';
+    });
+
+    const cardRect = await page.locator('.stat-card--pwa').boundingBox();
+    expect(cardRect).not.toBeNull();
+    expect(cardRect.height).toBeLessThanOrEqual(145);
+
+    const btn = page.locator('.pwa-banner__btn');
+    const normalStyles = await btn.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { bg: cs.backgroundColor, bgImg: cs.backgroundImage, color: cs.color };
+    });
+    await btn.hover();
+    await page.waitForTimeout(250);
+    const hoverStyles = await btn.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { bg: cs.backgroundColor, bgImg: cs.backgroundImage, color: cs.color };
+    });
+
+    expect(normalStyles.bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(hoverStyles.bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(hoverStyles.bgImg).toContain('linear-gradient');
+    expect(hoverStyles.bg).not.toBe(hoverStyles.color);
+  });
 });

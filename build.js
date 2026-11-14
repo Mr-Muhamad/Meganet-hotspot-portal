@@ -86,11 +86,12 @@ function applyI18nOverrides(allTranslations, overrides) {
 }
 
 function buildDynamicThemeCSS(resolvedConfig) {
-  if (!resolvedConfig || typeof resolvedConfig !== 'object') return { shared: '', dark: '' };
+  if (!resolvedConfig || typeof resolvedConfig !== 'object') return { shared: '', light: '', dark: '' };
   const theme = resolvedConfig.theme || {};
   const tokens = deriveThemeTokens(theme.primaryColor, theme.backgroundColor);
   const sharedRules = [];
-  const darkRules = [];
+  const darkDecls = [];
+  const lightDecls = [];
   if (theme.cardRadius !== undefined && theme.cardRadius !== null && theme.cardRadius !== '') {
     const r = Number(theme.cardRadius);
     if (Number.isFinite(r) && r >= 0) {
@@ -101,35 +102,30 @@ function buildDynamicThemeCSS(resolvedConfig) {
     }
   }
   if (tokens) {
-    if (theme.primaryColor) {
-      darkRules.push(`--color-primary:${theme.primaryColor}`);
-      darkRules.push(`--color-primary-hover:${tokens.primaryHover}`);
-      darkRules.push(`--color-primary-bright:${tokens.primaryBright}`);
-      darkRules.push(`--color-primary-bg:${tokens.primaryBg}`);
-      darkRules.push(`--color-primary-alpha-03:${tokens.primaryAlpha03}`);
-      darkRules.push(`--color-primary-alpha-05:${tokens.primaryAlpha05}`);
-      darkRules.push(`--color-primary-alpha-10:${tokens.primaryAlpha10}`);
-      darkRules.push(`--color-primary-alpha-15:${tokens.primaryAlpha15}`);
-      darkRules.push(`--color-primary-alpha-20:${tokens.primaryAlpha20}`);
-      darkRules.push(`--color-primary-alpha-30:${tokens.primaryAlpha30}`);
-      darkRules.push(`--color-primary-alpha-40:${tokens.primaryAlpha40}`);
-      darkRules.push(`--color-primary-alpha-50:${tokens.primaryAlpha50}`);
-      darkRules.push(`--color-primary-alpha-60:${tokens.primaryAlpha60}`);
-      darkRules.push(`--shadow-glow:0 0 20px ${tokens.primaryAlpha30}`);
+    for (const [key, value] of Object.entries(tokens.dark || {})) {
+      if (value !== undefined && value !== null && value !== '') {
+        darkDecls.push(`--${key}:${value}`);
+      }
+    }
+    if (tokens.dark && tokens.dark['color-primary-alpha-30']) {
+      darkDecls.push(`--shadow-glow:0 0 20px ${tokens.dark['color-primary-alpha-30']}`);
     }
     if (theme.backgroundColor) {
-      darkRules.push(`--color-bg:${theme.backgroundColor}`);
-      darkRules.push(`--color-bg-deep:${tokens.bgDeep}`);
+      darkDecls.push(`--color-bg:${theme.backgroundColor}`);
+    }
+    for (const [key, value] of Object.entries(tokens.light || {})) {
+      if (value !== undefined && value !== null && value !== '') {
+        lightDecls.push(`--${key}:${value}`);
+      }
     }
   }
   const shared = sharedRules.length ? `:root{${sharedRules.join(';')}}\n` : '';
-  const dark = darkRules.length
-    ? `:root{${darkRules.join(';')}}\n`
+  const rootDark = darkDecls.length ? `:root{${darkDecls.join(';')}}\n` : '';
+  const light = lightDecls.length
+    ? `@media (prefers-color-scheme: light){:root{${lightDecls.join(';')}}}\n[data-theme="light"]{${lightDecls.join(';')}}\n`
     : '';
-  const darkAfter = darkRules.length
-    ? `[data-theme="dark"]{${darkRules.join(';')}}\n`
-    : '';
-  return { shared: shared + dark, dark: darkAfter };
+  const darkAfter = darkDecls.length ? `[data-theme="dark"]{${darkDecls.join(';')}}\n` : '';
+  return { shared: shared + rootDark, light, dark: darkAfter };
 }
 
 // Build CSS from separate files
@@ -139,6 +135,7 @@ function buildCSS(shouldMinify = false, resolvedConfig = null) {
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'variables.css'), 'utf8') + '\n';
   combinedCSS += dynamicTheme.shared;
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'theme.css'), 'utf8') + '\n';
+  combinedCSS += dynamicTheme.light;
   combinedCSS += dynamicTheme.dark;
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'reset.css'), 'utf8') + '\n';
   combinedCSS += fs.readFileSync(path.join(__dirname, 'src', 'css', 'layout.css'), 'utf8') + '\n';

@@ -104,11 +104,14 @@
 .btn-primary:hover {
   background-color: var(--color-primary-hover);
   background-image: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
+  color: var(--color-primary-text);
   box-shadow: 0 6px 16px var(--color-primary-alpha-35);
 }
 
 .btn-primary:active {
-  background: var(--color-primary-active);
+  background-color: var(--color-primary-active);
+  background-image: none;
+  color: var(--color-primary-text);
 }
 
 .btn-secondary {

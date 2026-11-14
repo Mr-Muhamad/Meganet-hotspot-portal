@@ -149,4 +149,20 @@ describe('color-utils', () => {
       expect(tokens.dark['glass-header']).toBe('#0F172AA6');
     });
   });
+
+  describe('buildCSS dynamic token injection', () => {
+    const { buildCSS } = require('../../build.js');
+
+    test('never emits :undefined CSS custom properties for default or custom themes', () => {
+      const defaultCss = buildCSS(true, { theme: { primaryColor: DEFAULT_PRIMARY, backgroundColor: DEFAULT_BACKGROUND } });
+      expect(defaultCss).not.toContain('undefined');
+      expect(defaultCss).toContain('--color-primary-hover:#16a34a');
+
+      const customCss = buildCSS(true, { theme: { primaryColor: '#3b82f6', backgroundColor: '#0b0b1e' } });
+      expect(customCss).not.toContain('undefined');
+      expect(customCss).toContain('--color-primary:#3B82F6');
+      expect(customCss).toMatch(/\[data-theme=["']?light["']?\]/);
+      expect(customCss).toMatch(/\[data-theme=["']?dark["']?\]/);
+    });
+  });
 });

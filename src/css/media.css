@@ -722,8 +722,11 @@
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
   width: 100%;
+  align-items: start;
 }
 .tech-item {
+  display: flex;
+  flex-direction: column;
   text-align: start;
 }
 .tech-item__label {
@@ -735,6 +738,7 @@
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 .tech-item__value--clickable {
   cursor: pointer;
@@ -742,10 +746,19 @@
   border: 0;
   padding: 0;
   font-family: inherit;
-  min-height: 44px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   text-align: start;
+}
+.tech-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 /* Status page card footer */

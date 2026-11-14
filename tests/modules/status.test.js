@@ -371,6 +371,54 @@ document.body.appendChild(mockSmartUsageCard);
     });
   });
 
+  describe('copyDiagnosticInfo and MAC type detection', () => {
+    test('labels randomized vs hardware MAC in #status-mac-type on init', () => {
+      document.documentElement.setAttribute('lang', 'ar');
+      const macBtn = document.createElement('button');
+      macBtn.id = 'tech-mac';
+      macBtn.innerHTML = '<bdi dir="ltr">3C%3A5A%3AB4%3A0F%3A22%3A91</bdi> <span id="status-mac-type"></span>';
+      document.body.appendChild(macBtn);
+
+      statusModule.init();
+
+      expect(macBtn.querySelector('bdi').textContent).toBe('3C:5A:B4:0F:22:91');
+      const badge = document.getElementById('status-mac-type');
+      expect(badge.textContent).toBe('(الجهاز)');
+      expect(badge.classList.contains('mac-type-display--device')).toBe(true);
+    });
+
+    test('copyDiagnosticInfo builds summary from DOM fields and writes to clipboard', async () => {
+      document.body.innerHTML =
+        '<span id="stat-username"><bdi>8118</bdi></span>' +
+        '<span id="stat-ip"><bdi>10.5.50.118</bdi></span>' +
+        '<button id="tech-mac"><bdi>3C:5A:B4:0F:22:91</bdi> <span id="status-mac-type">(Device)</span></button>' +
+        '<span id="device-os-display">Android Mobile</span>' +
+        '<div id="tech-login-by">http-chap</div>' +
+        '<div id="tech-server">hotspot1</div>' +
+        '<div id="tech-idle-timeout">5m</div>' +
+        '<div id="uptime"><bdi>00:10:00</bdi></div>' +
+        '<button id="copy-diagnostics-btn"><span>Copy</span></button>';
+
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        configurable: true
+      });
+
+      statusModule.copyDiagnosticInfo(document.getElementById('copy-diagnostics-btn'));
+      await Promise.resolve();
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const payload = writeText.mock.calls[0][0];
+      expect(payload).toContain('User: 8118');
+      expect(payload).toContain('IP: 10.5.50.118');
+      expect(payload).toContain('MAC: 3C:5A:B4:0F:22:91 (Device)');
+      expect(payload).toContain('Login: http-chap');
+      expect(payload).toContain('Server: hotspot1');
+      expect(payload).toContain('Idle Timeout: 5m');
+    });
+  });
+
   describe('updateTimeProgress', () => {
     test('computes remaining time percentage and updates progress bar correctly', () => {
       // 100s uptime + 900s remaining = 1000s total. Remaining = 90% (900s)

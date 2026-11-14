@@ -31,6 +31,21 @@ var statusModule = {
         }
       });
 
+      var techMacTarget = document.querySelector('#tech-mac bdi') || document.getElementById('tech-mac');
+      var macTypeEl = document.getElementById('status-mac-type');
+      if (techMacTarget && macTypeEl) {
+        var cleanMac = techMacTarget.textContent.replace(/[:-]/g, '');
+        if (cleanMac.length >= 2) {
+          var secondChar = cleanMac.charAt(1).toUpperCase();
+          var isRandom = ['2', '6', 'A', 'E'].indexOf(secondChar) !== -1;
+          var macLang = document.documentElement.getAttribute('lang') || 'en';
+          macTypeEl.textContent = isRandom
+            ? (macLang === 'ar' ? '(عشوائي)' : '(Random)')
+            : (macLang === 'ar' ? '(الجهاز)' : '(Device)');
+          macTypeEl.classList.add(isRandom ? 'mac-type-display--random' : 'mac-type-display--device');
+        }
+      }
+
       // Decode username from URL-encoded format in all matching elements
       var userEls = document.querySelectorAll('#tech-username, #stat-username');
       userEls.forEach(function(userEl) {
@@ -424,6 +439,66 @@ var statusModule = {
       }
     } catch (err) {
       console.error('Toggle tech details error:', err);
+    }
+  },
+
+  copyDiagnosticInfo: function(btnEl) {
+    try {
+      var readText = function(selector) {
+        var el = document.querySelector(selector);
+        return el ? el.textContent.trim() : '';
+      };
+      var lines = [];
+      var user = readText('#stat-username bdi') || readText('#stat-username');
+      var ip = readText('#stat-ip bdi') || readText('#stat-ip');
+      var mac = readText('#tech-mac bdi') || readText('#tech-mac');
+      var macType = readText('#status-mac-type');
+      var os = readText('#device-os-display');
+      var loginBy = readText('#tech-login-by');
+      var server = readText('#tech-server');
+      var idleTimeout = readText('#tech-idle-timeout');
+      var uptime = readText('#uptime bdi') || readText('#uptime');
+
+      if (user) lines.push('User: ' + user);
+      if (ip) lines.push('IP: ' + ip);
+      if (mac) lines.push('MAC: ' + mac + (macType ? ' ' + macType : ''));
+      if (os && os !== '--') lines.push('Device: ' + os);
+      if (loginBy && loginBy !== '--') lines.push('Login: ' + loginBy);
+      if (server && server !== '--') lines.push('Server: ' + server);
+      if (idleTimeout && idleTimeout !== '--') lines.push('Idle Timeout: ' + idleTimeout);
+      if (uptime) lines.push('Uptime: ' + uptime);
+
+      var summary = lines.join('\n');
+      if (!summary) return;
+
+      var notifyOk = function() {
+        var msg = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('diagnostics_copied') : 'Copied!';
+        if (typeof util !== 'undefined' && util.showToast) {
+          util.showToast(msg, 'success', 2000);
+        }
+        if (btnEl) {
+          var span = btnEl.querySelector ? btnEl.querySelector('span') : null;
+          if (span && msg && msg !== 'diagnostics_copied') {
+            var orig = span.textContent;
+            span.textContent = msg;
+            setTimeout(function() { span.textContent = orig; }, 2000);
+          }
+        }
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(summary).then(notifyOk).catch(function() {
+          if (typeof window !== 'undefined' && typeof window.copyToClipboard === 'function') {
+            window.copyToClipboard(summary, 'Diagnostics');
+          }
+        });
+      } else if (typeof window !== 'undefined' && typeof window.copyToClipboard === 'function') {
+        window.copyToClipboard(summary, 'Diagnostics');
+      } else {
+        notifyOk();
+      }
+    } catch (err) {
+      console.error('Copy diagnostic info error:', err);
     }
   },
 

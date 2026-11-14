@@ -10,10 +10,9 @@ const DEFAULT = 'http://127.0.0.1:8790';
 
 test('renders the RouterOS demo data from the preview server', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/status.html`);
-  // #device-os-display is repurposed by JS for the device name, so the
-  // username is asserted in the technical details instead.
-  await expect(page.locator('#tech-username')).toContainText('ahmed_sayed');
-  await expect(page.locator('body')).toContainText('10.5.50.118');
+  // #stat-username and #stat-ip render the authenticated demo session in the header.
+  await expect(page.locator('#stat-username')).toContainText('ahmed_sayed');
+  await expect(page.locator('#stat-ip')).toContainText('10.5.50.118');
   await expect(page.locator('body')).toContainText('02:14:37');
 });
 
@@ -52,8 +51,14 @@ test('technical details start collapsed and expand on tap', async ({ page }) => 
   await expect(content).toBeVisible();
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
-  // technical fields render the demo values too
-  await expect(page.locator('#tech-ip')).toContainText('10.5.50.118');
+  // technical fields render non-duplicate RouterOS details without repeating top header/uptime items
+  await expect(page.locator('#tech-mac')).toContainText('3C:5A:B4:0F:22:91');
+  await expect(page.locator('#tech-login-by')).toContainText('http-chap');
+  await expect(page.locator('#tech-server')).toContainText('hotspot1');
+  await expect(page.locator('#tech-idle-timeout')).toContainText('5m');
+  await expect(page.locator('#tech-username')).toHaveCount(0);
+  await expect(page.locator('#tech-ip')).toHaveCount(0);
+  await expect(page.locator('#copy-diagnostics-btn')).toBeVisible();
 });
 
 test('no RouterOS template variable leaks onto the rendered page', async ({ page }) => {

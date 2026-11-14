@@ -20,13 +20,11 @@
     "caps_lock_warning": "مفتاح Caps Lock مفعّل",
     "status_title": "حالة الجلسة",
     "username": "اسم المستخدم",
-    "ip_address": "عنوان IP",
     "mac_address": "عنوان MAC",
     "download": "التحميل",
     "upload": "الرفع",
     "session_time": "وقت الجلسة",
     "time_remaining": "الوقت المتبقي",
-    "uptime": "وقت التشغيل",
     "refresh": "تحديث",
     "logout": "تسجيل الخروج",
     "logout_success": "تم تسجيل الخروج بنجاح",
@@ -137,6 +135,11 @@
     "logout_confirm_prompt": "هل أنت متأكد من تسجيل الخروج الآن؟",
     "logout_confirm_yes": "نعم، خروج",
     "copy_order_btn": "نسخ طلب الباقة",
-    "order_copied_toast": "تم نسخ تفاصيل الباقة!"
+    "order_copied_toast": "تم نسخ تفاصيل الباقة!",
+    "login_method": "طريقة الدخول",
+    "hotspot_server": "نقطة الاتصال",
+    "idle_timeout_label": "مهلة الخمول",
+    "copy_diagnostics": "نسخ بيانات التشخيص للدعم",
+    "diagnostics_copied": "تم نسخ بيانات التشخيص!"
   }
 }

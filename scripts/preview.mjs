@@ -35,6 +35,10 @@ const baseVars = {
   mac: '3C:5A:B4:0F:22:91',
   hostname: 'Meganet-Hotspot',
   identity: 'MikroTik',
+  'server-name': 'hotspot1',
+  'interface-name': 'bridge-hotspot',
+  'login-by': 'http-chap',
+  'idle-timeout': '5m',
   uptime: '02:14:37',
   'uptime-secs': '8077',
   'session-time-left': '01:45:23',
@@ -64,6 +68,9 @@ const baseConds = {
   'chap-id': false,
   'session-time-left': true,
   'limit-bytes-total': true,
+  'login-by': true,
+  'server-name': true,
+  'idle-timeout': true,
   popup: true,
   captive: false
 };

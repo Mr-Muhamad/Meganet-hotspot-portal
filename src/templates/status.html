@@ -27,7 +27,7 @@
             </svg>
             <h1 class="card-header__title" data-i18n="status_title">{{ i18n.status_title }}</h1>
           </div>
-          <p class="card-header__subtitle"><span id="stat-username"><bdi dir="auto">$(username-esc)</bdi></span> &mdash; <span id="device-os-display">--</span> &mdash; <bdi dir="ltr">$(ip)</bdi></p>
+          <p class="card-header__subtitle"><span id="stat-username"><bdi dir="auto">$(username-esc)</bdi></span> &mdash; <span id="device-os-display">--</span> &mdash; <span id="stat-ip"><bdi dir="ltr">$(ip)</bdi></span></p>
         </div>
 
         <div class="card-body">
@@ -221,22 +221,26 @@
             <div class="tech-details__content" id="techDetailsContent" hidden>
               <div class="tech-grid">
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="username">{{ i18n.username }}</span>
-                  <div class="tech-item__value" id="tech-username"><bdi dir="auto">$(username-esc)</bdi></div>
-                </div>
-                <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="ip_address">{{ i18n.ip_address }}</span>
-                  <button type="button" class="tech-item__value tech-item__value--clickable" id="tech-ip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}"><bdi dir="ltr">$(ip)</bdi></button>
-                </div>
-                <div class="tech-item">
                   <span class="tech-item__label" data-i18n="mac_address">{{ i18n.mac_address }}</span>
-                  <button type="button" class="tech-item__value tech-item__value--clickable" id="tech-mac" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}"><bdi dir="ltr">$(mac-esc)</bdi></button>
+                  <button type="button" class="tech-item__value tech-item__value--clickable" id="tech-mac" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}"><bdi dir="ltr">$(mac-esc)</bdi> <span id="status-mac-type" class="mac-type-display"></span></button>
                 </div>
                 <div class="tech-item">
-                  <span class="tech-item__label" data-i18n="uptime">{{ i18n.uptime }}</span>
-                  <div class="tech-item__value"><bdi dir="ltr">$(uptime)</bdi></div>
+                  <span class="tech-item__label" data-i18n="login_method">{{ i18n.login_method }}</span>
+                  <div class="tech-item__value" id="tech-login-by"><bdi dir="ltr">$(if login-by)$(login-by)$(else)--$(endif)</bdi></div>
+                </div>
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="hotspot_server">{{ i18n.hotspot_server }}</span>
+                  <div class="tech-item__value" id="tech-server"><bdi dir="auto">$(if server-name)$(server-name)$(else)--$(endif)</bdi></div>
+                </div>
+                <div class="tech-item">
+                  <span class="tech-item__label" data-i18n="idle_timeout_label">{{ i18n.idle_timeout_label }}</span>
+                  <div class="tech-item__value" id="tech-idle-timeout"><bdi dir="ltr">$(if idle-timeout)$(idle-timeout)$(else)--$(endif)</bdi></div>
                 </div>
               </div>
+              <button type="button" class="btn btn-outline btn-sm btn-block tech-copy-btn" id="copy-diagnostics-btn" onclick="copyDiagnosticInfo(this)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span data-i18n="copy_diagnostics">{{ i18n.copy_diagnostics }}</span>
+              </button>
             </div>
           </div>
           {% endif %}
@@ -285,6 +289,9 @@
   <script>
     function toggleTechDetails() {
       if (window.Hotspot && window.Hotspot.status) return window.Hotspot.status.toggleTechDetails();
+    }
+    function copyDiagnosticInfo(btn) {
+      if (window.Hotspot && window.Hotspot.status) return window.Hotspot.status.copyDiagnosticInfo(btn);
     }
     function checkConnectionQuality() {
       if (window.Hotspot && window.Hotspot.status) return window.Hotspot.status.checkConnectionQuality();

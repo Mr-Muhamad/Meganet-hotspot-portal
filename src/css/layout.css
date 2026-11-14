@@ -17,6 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-xs);
   padding: env(safe-area-inset-top, 0px) max(var(--space-md), env(safe-area-inset-right, 0px)) 0 max(var(--space-md), env(safe-area-inset-left, 0px));
   background: var(--glass-header); /* Glassmorphism translucent backdrop (themed) */
   backdrop-filter: blur(12px);
@@ -47,6 +48,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .header__logo {
@@ -69,13 +73,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
+  min-width: 0;
 }
 
 .header__actions {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  flex-shrink: 0;
 }
 
 /* Main Content */

@@ -127,6 +127,23 @@
   box-shadow: 0 4px 10px var(--color-primary-alpha-15);
 }
 
+.btn-outline {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-outline:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-outline:active {
+  background: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+}
+
 .btn-block {
   width: 100%;
 }
@@ -514,7 +531,7 @@
 .plans-container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   width: 100%;
   margin: 0 auto;
 }
@@ -522,19 +539,19 @@
 .plans-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
+  gap: 6px;
+  margin-top: var(--space-xs);
 }
 
 .plan-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
   overflow: hidden;
@@ -549,14 +566,24 @@
   background: var(--color-surface-hover);
 }
 
+.plan-card--selected .plan-card__select-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
 .plan-card__actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
   margin-inline-start: auto;
   flex-shrink: 0;
 }
 
 .plan-card__select-btn {
-  min-height: 36px;
-  padding: 6px 12px;
+  min-height: 32px;
+  padding: 4px 10px;
   font-size: var(--font-size-xs);
 }
 
@@ -594,8 +621,8 @@
 }
 
 .plan-card__icon-wrapper {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--color-primary-bg);
   color: var(--color-primary);
@@ -635,10 +662,10 @@
 }
 
 .plan-card__price {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
-  padding: var(--space-xs) var(--space-sm);
+  padding: 2px var(--space-sm);
   background: var(--color-primary-bg);
   border-radius: var(--radius-md);
   display: inline-block;
@@ -647,7 +674,7 @@
 
 .plans-footer {
   text-align: center;
-  margin-top: var(--space-lg);
+  margin-top: var(--space-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }

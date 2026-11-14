@@ -400,4 +400,71 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     expect(Math.abs(metrics.logoutTop - metrics.refreshTop)).toBeLessThanOrEqual(2);
     expect(metrics.uptimeDir).toBe('auto');
   });
+
+  test('cross-page regression: .btn-outline renders border, English mobile header never overflows, logout uses dir="auto", and mobile plans buttons clear support FAB', async ({ page }) => {
+    // 1. .btn-outline border & hover state on expired.html
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/expired.html`);
+    const outlineBtn = page.locator('.btn-outline').first();
+    const outlineNormal = await outlineBtn.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        borderTopWidth: parseFloat(cs.borderTopWidth),
+        borderTopStyle: cs.borderTopStyle,
+        borderColor: cs.borderTopColor
+      };
+    });
+    expect(outlineNormal.borderTopWidth).toBeGreaterThanOrEqual(1);
+    expect(outlineNormal.borderTopStyle).toBe('solid');
+    await outlineBtn.hover();
+    await page.waitForTimeout(200);
+    const outlineHoverBg = await outlineBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(outlineHoverBg).not.toBe('rgba(0, 0, 0, 0)');
+
+    // 2. English mobile status & alogin header fits inside 390px without pushing .install-toggle off-screen
+    for (const url of [`${DEFAULT}/status.html`, `${DEFAULT}/alogin.html`]) {
+      await page.goto(url);
+      const headerFit = await page.evaluate(() => {
+        const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+        const installBtn = document.querySelector('.install-toggle');
+        const installRect = installBtn ? installBtn.getBoundingClientRect() : null;
+        return {
+          overflow,
+          viewportWidth: window.innerWidth,
+          installRight: installRect ? Math.round(installRect.right) : null,
+          installLeft: installRect ? Math.round(installRect.left) : null
+        };
+      });
+      expect(headerFit.overflow).toBe(false);
+      if (headerFit.installRight !== null) {
+        expect(headerFit.installRight).toBeLessThanOrEqual(headerFit.viewportWidth);
+        expect(headerFit.installLeft).toBeGreaterThanOrEqual(0);
+      }
+    }
+
+    // 3. logout.html uses .stat-card__head and <bdi dir="auto"> (never dir="ltr")
+    await page.goto(`${DEFAULT}/ar/logout.html`);
+    const logoutStats = await page.evaluate(() => {
+      const heads = document.querySelectorAll('.stat-card .stat-card__head').length;
+      const bdis = Array.from(document.querySelectorAll('.stat-card__value bdi')).map((el) => el.getAttribute('dir'));
+      return { heads, bdis };
+    });
+    expect(logoutStats.heads).toBe(4);
+    expect(logoutStats.bdis.every((dir) => dir === 'auto')).toBe(true);
+
+    // 4. plans.html mobile CTA and Back buttons do not intersect floating .support-trigger
+    for (const url of [`${DEFAULT}/ar/plans.html`, `${DEFAULT}/plans.html`]) {
+      await page.goto(url);
+      const overlap = await page.evaluate(() => {
+        const fab = document.querySelector('.support-trigger').getBoundingClientRect();
+        const rects = Array.from(document.querySelectorAll('.plans-cta-btn, .plans-back-btn'))
+          .map((el) => el.getBoundingClientRect());
+        return rects.some((r) =>
+          Math.max(fab.left, r.left) < Math.min(fab.right, r.right) &&
+          Math.max(fab.top, r.top) < Math.min(fab.bottom, r.bottom)
+        );
+      });
+      expect(overlap).toBe(false);
+    }
+  });
 });

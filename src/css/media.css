@@ -1116,20 +1116,37 @@
   color: var(--color-text-muted);
 }
 .plans-cta-hint {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xs);
   margin-bottom: var(--space-sm);
+}
+.plans-actions {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-xs);
 }
 .plans-cta-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  width: 100%;
-  margin-bottom: var(--space-md);
+  flex: 1;
+  width: auto;
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm);
 }
 .plans-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  display: block;
+  flex: 1;
+  width: auto;
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm);
 }
 
 /* ===== alogin page: extracted inline styles (migration 2026-11) ===== */

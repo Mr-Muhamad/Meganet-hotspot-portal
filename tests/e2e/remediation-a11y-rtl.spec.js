@@ -260,6 +260,16 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     // Floating support button stays anchored near the centered portal card (RTL end = left)
     expect(metrics.cardLeft - metrics.supportRight).toBeGreaterThanOrEqual(16);
     expect(metrics.cardLeft - metrics.supportRight).toBeLessThanOrEqual(120);
+
+    // Mobile login page: footer also sits tightly below the card without empty flex void
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/login.html`);
+    const mobileGap = await page.evaluate(() => {
+      const c = document.querySelector('.card').getBoundingClientRect();
+      const f = document.querySelector('.footer').getBoundingClientRect();
+      return f.top - c.bottom;
+    });
+    expect(mobileGap).toBeLessThanOrEqual(40);
   });
 
   test('mobile floating support trigger stays clickable with #voucher autofocus, opens/closes repeatedly, and does not overlap card on 768px status page', async ({ page }) => {

@@ -80,7 +80,7 @@
 
 /* Main Content */
 .main-content {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

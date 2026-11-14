@@ -88,22 +88,26 @@
           <div class="status-grid" role="region" data-i18n-aria="session_status_aria" aria-label="{{ i18n.session_status_aria }}">
             <!-- Session Time -->
             <div class="stat-card stat-card--highlight">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="session_time">{{ i18n.session_time }}</div>
-              <div class="stat-card__value" id="uptime" data-seconds="$(uptime-secs)"><bdi dir="ltr">$(uptime)</bdi></div>
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="session_time">{{ i18n.session_time }}</div>
+              </div>
+              <div class="stat-card__value" id="uptime" data-seconds="$(uptime-secs)"><bdi dir="auto">$(uptime)</bdi></div>
             </div>
 
             <!-- Time Remaining Countdown Card -->
             <div class="stat-card" id="timeRemainingCard" $(if session-time-left)$(else)style="display:none;"$(endif)>
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="time_remaining">{{ i18n.time_remaining }}</div>
-              <div class="stat-card__value" id="session-time-left" data-seconds="$(session-time-left-secs)"><bdi dir="ltr">$(session-time-left)</bdi></div>
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="time_remaining">{{ i18n.time_remaining }}</div>
+              </div>
+              <div class="stat-card__value" id="session-time-left" data-seconds="$(session-time-left-secs)"><bdi dir="auto">$(session-time-left)</bdi></div>
               <div class="progress-bar time-remaining-progress-container" id="time-remaining-progress-container" style="display: none;">
                 <div class="progress-bar__fill progress-bar__fill--animated" id="time-remaining-progress-fill"></div>
               </div>
@@ -111,46 +115,56 @@
 
             <!-- Download Card -->
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="download">{{ i18n.download }}</div>
-              <div class="stat-card__value" id="stat-download"><bdi dir="ltr">--</bdi></div>
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="download">{{ i18n.download }}</div>
+              </div>
+              <div class="stat-card__value" id="stat-download"><bdi dir="auto">--</bdi></div>
             </div>
 
             <!-- Upload Card -->
             <div class="stat-card">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="upload">{{ i18n.upload }}</div>
-              <div class="stat-card__value" id="stat-upload"><bdi dir="ltr">--</bdi></div>
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="upload">{{ i18n.upload }}</div>
+              </div>
+              <div class="stat-card__value" id="stat-upload"><bdi dir="auto">--</bdi></div>
             </div>
 
             <!-- Connection Quality Card -->
-            <div class="stat-card stat-card--interactive" id="connectionStatusCard" role="button" tabindex="0" onclick="checkConnectionQuality()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();checkConnectionQuality();}">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                <line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3" stroke-linecap="round"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="connection_status">{{ i18n.connection_status }}</div>
-              <div class="stat-card__value" id="connection-status-val">--</div>
-              <span class="stat-card__hint" data-i18n="check_now">{{ i18n.check_now }}</span>
+            <div class="stat-card stat-card--wide stat-card--interactive stat-card--connection" id="connectionStatusCard" role="button" tabindex="0" onclick="checkConnectionQuality()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();checkConnectionQuality();}">
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                  <line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="connection_status">{{ i18n.connection_status }}</div>
+              </div>
+              <div class="stat-card__connection-meta">
+                <div class="stat-card__value" id="connection-status-val">--</div>
+                <span class="stat-card__hint" data-i18n="check_now">{{ i18n.check_now }}</span>
+              </div>
             </div>
 
             {% if config.features.enableSmartAssistant %}
             <!-- Smart Usage Card -->
             <div class="stat-card stat-card--wide" id="smartUsageCard">
-              <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
-              </svg>
-              <div class="stat-card__label" data-i18n="smart_usage_assistant">{{ i18n.smart_usage_assistant }}</div>
+              <div class="stat-card__head">
+                <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+                </svg>
+                <div class="stat-card__label" data-i18n="smart_usage_assistant">{{ i18n.smart_usage_assistant }}</div>
+              </div>
               <div class="stat-card__value smart-usage-value" id="smart-usage-tip">
                 --
               </div>

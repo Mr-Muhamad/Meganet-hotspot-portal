@@ -361,4 +361,33 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     expect(hoverStyles.bgImg).toContain('linear-gradient');
     expect(hoverStyles.bg).not.toBe(hoverStyles.color);
   });
+
+  test('status page cards stay compact, avoid orphan grid slots, keep mobile actions side-by-side, and use dir="auto" for uptime BIDI', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/status.html`);
+
+    const metrics = await page.evaluate(() => {
+      const card = document.querySelector('.card').getBoundingClientRect();
+      const grid = document.querySelector('.status-grid').getBoundingClientRect();
+      const conn = document.getElementById('connectionStatusCard').getBoundingClientRect();
+      const logoutBtn = document.getElementById('logout-btn').getBoundingClientRect();
+      const refreshBtn = document.querySelector('.status-actions button.btn-primary').getBoundingClientRect();
+      const uptimeBdi = document.querySelector('#uptime bdi');
+      return {
+        cardHeight: Math.round(card.height),
+        gridWidth: Math.round(grid.width),
+        connWidth: Math.round(conn.width),
+        connHeight: Math.round(conn.height),
+        logoutTop: Math.round(logoutBtn.top),
+        refreshTop: Math.round(refreshBtn.top),
+        uptimeDir: uptimeBdi ? uptimeBdi.getAttribute('dir') : null
+      };
+    });
+
+    expect(metrics.cardHeight).toBeLessThanOrEqual(920);
+    expect(Math.abs(metrics.connWidth - metrics.gridWidth)).toBeLessThanOrEqual(2);
+    expect(metrics.connHeight).toBeLessThanOrEqual(60);
+    expect(Math.abs(metrics.logoutTop - metrics.refreshTop)).toBeLessThanOrEqual(2);
+    expect(metrics.uptimeDir).toBe('auto');
+  });
 });

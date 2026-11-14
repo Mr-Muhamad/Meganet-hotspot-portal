@@ -63,19 +63,6 @@
   height: 14px;
 }
 
-/* Button Text */
-.btn-text {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-}
-
-.btn-text__icon {
-  width: 16px;
-  height: 16px;
-}
-
 /* Toast Notifications */
 .toast {
   position: fixed;
@@ -127,26 +114,6 @@
     opacity: 0;
     transform: translateX(-50%) translateY(20px);
   }
-}
-
-/* Loading Overlay */
-.loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--scrim-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 400;
-}
-
-.loading-overlay__spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid transparent;
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
 /* Status Grid */
@@ -297,41 +264,15 @@
 }
 
 .progress-bar__fill--animated {
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 0%,
-    var(--color-primary-bright) 50%,
-    var(--color-primary) 100%
-  );
-  background-size: 200% 100%;
-  animation: shine-bar 2s linear infinite;
+  background: var(--color-primary);
 }
 
 .progress-bar__fill--animated.progress-bar__fill--warning {
-  background: linear-gradient(
-    90deg,
-    var(--color-warning) 0%,
-    var(--color-warning-bright) 50%,
-    var(--color-warning) 100%
-  );
+  background: var(--color-warning);
 }
 
 .progress-bar__fill--animated.progress-bar__fill--danger {
-  background: linear-gradient(
-    90deg,
-    var(--color-error) 0%,
-    var(--color-error-bright) 50%,
-    var(--color-error) 100%
-  );
-}
-
-@keyframes shine-bar {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  background: var(--color-error);
 }
 
 .session-countdown__percentage {
@@ -488,6 +429,7 @@
 
 .tech-details__trigger {
   width: 100%;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -524,6 +466,9 @@
 
 /* Interactive Connection Status Card */
 .stat-card--interactive {
+  width: 100%;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
@@ -531,6 +476,11 @@
 .stat-card--interactive:hover {
   background: var(--color-surface-hover);
   transform: translateY(-2px);
+}
+
+.stat-card--interactive:active {
+  transform: translateY(0);
+  background: var(--color-surface-hover);
 }
 
 .stat-card__hint {
@@ -593,7 +543,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding-inline-end: 42px;
+  padding-inline-end: 46px;
 }
 .pwa-banner__icon-wrapper {
   background: var(--color-primary-bg);
@@ -631,8 +581,8 @@
 .pwa-banner__btn {
   margin-top: 3px;
   width: fit-content;
-  min-height: 34px;
-  padding: 5px 14px;
+  min-height: 44px;
+  padding: 6px 14px;
   font-size: var(--font-size-xs);
   border-radius: var(--radius-sm);
 }
@@ -644,8 +594,8 @@
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -670,7 +620,7 @@
 }
 .activities-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 6px;
   width: 100%;
 }
@@ -702,13 +652,13 @@
   gap: 4px;
 }
 .activity-badge__icon {
-  filter: drop-shadow(0 0 3px var(--color-primary-alpha-40));
+  color: var(--color-primary);
 }
 .activity-badge--warning .activity-badge__icon {
-  filter: drop-shadow(0 0 3px var(--color-warning-alpha-40));
+  color: var(--color-warning-icon);
 }
 .activity-badge--danger .activity-badge__icon {
-  filter: drop-shadow(0 0 3px var(--color-error-alpha-40));
+  color: var(--color-error);
 }
 .activity-badge__value {
   font-size: var(--font-size-xs);
@@ -746,7 +696,7 @@
   border: 0;
   padding: 0;
   font-family: inherit;
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;

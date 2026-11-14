@@ -116,36 +116,6 @@ describe('Hotspot.util', () => {
     });
   });
 
-  describe('parseUptimeToSeconds', () => {
-    test('parses empty string', () => {
-      expect(util.parseUptimeToSeconds('')).toBe(0);
-    });
-
-    test('parses null', () => {
-      expect(util.parseUptimeToSeconds(null)).toBe(0);
-    });
-
-    test('parses seconds only', () => {
-      expect(util.parseUptimeToSeconds('30s')).toBe(30);
-    });
-
-    test('parses minutes and seconds', () => {
-      expect(util.parseUptimeToSeconds('1m30s')).toBe(90);
-    });
-
-    test('parses hours, minutes and seconds', () => {
-      expect(util.parseUptimeToSeconds('1h1m1s')).toBe(3661);
-    });
-
-    test('parses days', () => {
-      expect(util.parseUptimeToSeconds('1d')).toBe(86400);
-    });
-
-    test('parses weeks', () => {
-      expect(util.parseUptimeToSeconds('1w')).toBe(604800);
-    });
-  });
-
   describe('getCookie', () => {
     beforeEach(() => {
       document.cookie = 'test_cookie=test_value; path=/';

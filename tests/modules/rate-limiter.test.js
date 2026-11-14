@@ -125,25 +125,4 @@ describe('Hotspot.rateLimiter', () => {
       expect(rateLimiter.formatBlockTime(0)).toBe('0 seconds');
     });
   });
-
-  describe('getStatusMessage', () => {
-    test('returns empty for no attempts', () => {
-      expect(rateLimiter.getStatusMessage('testuser')).toBe('');
-    });
-
-    test('returns remaining attempts message', () => {
-      rateLimiter.recordAttempt('testuser');
-      var message = rateLimiter.getStatusMessage('testuser');
-      expect(message).toContain('remaining');
-    });
-
-    test('returns block message when blocked', () => {
-      for (var i = 0; i < 5; i++) {
-        rateLimiter.recordAttempt('testuser');
-      }
-
-      var message = rateLimiter.getStatusMessage('testuser');
-      expect(message).toContain('Too many attempts');
-    });
-  });
 });

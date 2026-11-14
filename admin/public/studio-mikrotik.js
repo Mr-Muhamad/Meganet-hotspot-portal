@@ -15,7 +15,7 @@ function formMikrotik(c) {
   const rscCard = document.createElement('div');
   rscCard.className = 'card';
   rscCard.innerHTML =
-    '<h3>📜 مولّد سكربت إعداد المايكروتك التلقائي (hotspot-setup.rsc)</h3>' +
+    '<h3>مولّد سكربت إعداد المايكروتك التلقائي (hotspot-setup.rsc)</h3>' +
     '<div class="planshint">يولّد سكربت RouterOS v7 متكامل يشمل DHCP Option 114 (RFC 8910 CAPPORT لملف api.json)، وقواعد Walled Garden IP للنطاقات الخارجية مع <code>comment="meganet-studio"</code>، وإعداد بروفايل الهوتسبوت. يتم تضمين هذا الملف تلقائياً داخل كل ملف ZIP مبني.</div>';
 
   const rscGrid = document.createElement('div');
@@ -43,9 +43,9 @@ function formMikrotik(c) {
   rscBtns.style.gap = '8px';
   rscBtns.style.marginTop = '10px';
   rscBtns.innerHTML =
-    '<button class="btn ghost" onclick="refreshRscPreview()">🔄 توليد / معاينة التغييرات</button>' +
-    '<button class="btn ghost" onclick="copyRscScript()">📋 نسخ السكربت</button>' +
-    '<button class="btn primary" onclick="downloadRscScript()">⬇ تحميل hotspot-setup.rsc</button>';
+    '<button type="button" class="btn ghost" onclick="refreshRscPreview()">توليد / معاينة التغييرات</button>' +
+    '<button type="button" class="btn ghost" onclick="copyRscScript()">نسخ السكربت</button>' +
+    '<button type="button" class="btn primary" onclick="downloadRscScript()">تحميل hotspot-setup.rsc</button>';
   rscCard.appendChild(rscBtns);
   wrap.appendChild(rscCard);
 
@@ -53,7 +53,7 @@ function formMikrotik(c) {
   const depCard = document.createElement('div');
   depCard.className = 'card';
   depCard.innerHTML =
-    '<h3>🚀 رفع مباشر إلى MikroTik (One-Click Router Upload)</h3>' +
+    '<h3>رفع مباشر إلى MikroTik (One-Click Router Upload)</h3>' +
     '<div class="planshint">يرفع الملفات النصية عبر REST API والصور والملفات الثنائية بشكل خام وسليم عبر <code>/tool/fetch</code>، مع فحص مساحة الفلاش وأخذ نسخة احتياطية اختيارية. يتم حفظ إعدادات هذا الراوتر تلقائياً لكل بروفايل (بدون تخزين كلمة المرور).</div>';
 
   const depGrid = document.createElement('div');
@@ -83,7 +83,7 @@ function formMikrotik(c) {
   depCard.appendChild(applyWrap);
 
   const tlsFpWrap = field(
-    'بصمة شهادة TLS (SHA-256) — مطلوبة لـ HTTPS فقط',
+    'بصمة شهادة TLS (SHA-256) - مطلوبة لـ HTTPS فقط',
     '<input id="mk-tls-fp" data-ignore-dirty="1" dir="ltr" placeholder="AA:BB:CC:... (/certificate print detail)" value="' + esc(mk.tlsFingerprint || state.lastRouterFingerprint || '') + '">'
   );
   tlsFpWrap.id = 'mk-tls-fp-wrap';
@@ -96,8 +96,8 @@ function formMikrotik(c) {
   tlsBadge.className = 'planshint';
   tlsBadge.style.marginTop = '10px';
   tlsBadge.innerHTML = (mk.tlsFingerprint || state.lastRouterFingerprint)
-    ? '🔒 بصمة TLS المثبّتة: <code>' + esc(mk.tlsFingerprint || state.lastRouterFingerprint) + '</code>'
-    : '🔓 لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
+    ? 'بصمة TLS المثبّتة: <code>' + esc(mk.tlsFingerprint || state.lastRouterFingerprint) + '</code>'
+    : 'لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
   depCard.appendChild(tlsBadge);
 
   const depBtns = document.createElement('div');
@@ -107,23 +107,26 @@ function formMikrotik(c) {
   depBtns.style.marginTop = '12px';
 
   const saveMkBtn = document.createElement('button');
+  saveMkBtn.type = 'button';
   saveMkBtn.className = 'btn ghost';
   saveMkBtn.id = 'mk-save-btn';
-  saveMkBtn.textContent = '💾 حفظ إعدادات الراوتر';
+  saveMkBtn.textContent = 'حفظ إعدادات الراوتر';
   saveMkBtn.onclick = () => saveMikrotikSettings(false);
   depBtns.appendChild(saveMkBtn);
 
   const testBtn = document.createElement('button');
+  testBtn.type = 'button';
   testBtn.className = 'btn ghost';
   testBtn.id = 'mk-test-btn';
-  testBtn.textContent = '🔍 فحص الاتصال ومساحة الراوتر';
+  testBtn.textContent = 'فحص الاتصال ومساحة الراوتر';
   testBtn.onclick = testMikrotikConnection;
   depBtns.appendChild(testBtn);
 
   const depBtn = document.createElement('button');
+  depBtn.type = 'button';
   depBtn.className = 'btn primary';
   depBtn.id = 'mk-deploy-btn';
-  depBtn.textContent = '🚀 بناء ورفع مباشر إلى الراوتر الآن';
+  depBtn.textContent = 'بناء ورفع مباشر إلى الراوتر الآن';
   depBtn.onclick = deployToMikrotik;
   depBtns.appendChild(depBtn);
   depCard.appendChild(depBtns);
@@ -218,14 +221,14 @@ function updateTlsBadge(fp) {
   const badge = $('#mk-tls-badge');
   if (!badge) return;
   badge.innerHTML = fp
-    ? '🔒 بصمة TLS المثبّتة: <code>' + esc(fp) + '</code>'
-    : '🔓 لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
+    ? 'بصمة TLS المثبّتة: <code>' + esc(fp) + '</code>'
+    : 'لا توجد بصمة TLS محفوظة بعد (مطلوبة فقط عند استخدام HTTPS).';
 }
 
 async function saveMikrotikSettings(silent = false, overrideMikrotik = null) {
   if (!state.current) return null;
   const btn = $('#mk-save-btn');
-  if (!silent && btn) { btn.disabled = true; btn.textContent = '⏳ جاري الحفظ…'; }
+  if (!silent && btn) { btn.disabled = true; btn.textContent = 'جاري الحفظ…'; }
   try {
     const mikrotik = overrideMikrotik || ($('#mk-host') ? collectMikrotikSettings() : (state.current.mikrotik || {}));
     const res = await api('/profiles/' + encodeURIComponent(state.current.id) + '/mikrotik', {
@@ -248,7 +251,7 @@ async function saveMikrotikSettings(silent = false, overrideMikrotik = null) {
     if (!silent) toast('فشل حفظ إعدادات الراوتر: ' + e.message, true);
     return null;
   } finally {
-    if (!silent && btn) { btn.disabled = false; btn.textContent = '💾 حفظ إعدادات الراوتر'; }
+    if (!silent && btn) { btn.disabled = false; btn.textContent = 'حفظ إعدادات الراوتر'; }
   }
 }
 
@@ -300,7 +303,7 @@ function downloadRscScript() {
 async function testMikrotikConnection() {
   const btn = $('#mk-test-btn');
   const box = $('#mk-test-info');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الفحص…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الفحص…'; }
   try {
     const proto = $('#mk-proto')?.value === 'https' ? 'https' : 'http';
     const payload = {
@@ -364,7 +367,7 @@ async function testMikrotikConnection() {
     }
     toast('فشل فحص الراوتر: ' + e.message, true);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔍 فحص الاتصال ومساحة الراوتر'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'فحص الاتصال ومساحة الراوتر'; }
   }
 }
 
@@ -415,7 +418,7 @@ async function deployToMikrotik() {
     if (statusEl) { statusEl.textContent = '✗ فشل الرفع: ' + e.message; statusEl.className = 'status'; }
     toast('فشل الرفع إلى الراوتر: ' + e.message, true);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🚀 بناء ورفع مباشر إلى الراوتر الآن'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'بناء ورفع مباشر إلى الراوتر الآن'; }
   }
 }
 

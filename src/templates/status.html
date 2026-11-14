@@ -27,13 +27,13 @@
             </svg>
             <h1 class="card-header__title" data-i18n="status_title">{{ i18n.status_title }}</h1>
           </div>
-          <p class="card-header__subtitle"><span id="stat-username"><bdi dir="auto">$(username-esc)</bdi></span> &mdash; <span id="device-os-display">--</span> &mdash; <span id="stat-ip"><bdi dir="ltr">$(ip)</bdi></span></p>
+          <p class="card-header__subtitle"><span id="stat-username"><bdi dir="auto">$(username-esc)</bdi></span> · <span id="device-os-display">--</span> · <span id="stat-ip"><bdi dir="ltr">$(ip)</bdi></span></p>
         </div>
 
         <div class="card-body">
           <!-- Session / quota warning (revealed by statusModule.showWarnings; data-logout-url feeds the auto-logout at countdown zero) -->
           <div id="session-warning" class="alert alert-warning" role="alert" data-logout-url="$(link-logout)" hidden>
-            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -140,7 +140,7 @@
             </div>
 
             <!-- Connection Quality Card -->
-            <div class="stat-card stat-card--wide stat-card--interactive stat-card--connection" id="connectionStatusCard" role="button" tabindex="0" onclick="checkConnectionQuality()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();checkConnectionQuality();}">
+            <button type="button" class="stat-card stat-card--wide stat-card--interactive stat-card--connection" id="connectionStatusCard" onclick="checkConnectionQuality()">
               <div class="stat-card__head">
                 <svg class="stat-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
@@ -154,7 +154,7 @@
                 <div class="stat-card__value" id="connection-status-val">--</div>
                 <span class="stat-card__hint" data-i18n="check_now">{{ i18n.check_now }}</span>
               </div>
-            </div>
+            </button>
 
             {% if config.features.enableSmartAssistant %}
             <!-- Smart Usage Card -->
@@ -173,7 +173,7 @@
                   <!-- Social & Chatting Badge -->
                   <div class="activity-badge">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
                       <span data-i18n="browsing_estimate">{{ i18n.browsing_estimate }}</span>
@@ -183,7 +183,7 @@
                   <!-- Eco SD Video Badge -->
                   <div class="activity-badge activity-badge--warning">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
                         <polygon points="23 7 16 12 23 17 23 7"></polygon>
                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                       </svg>
@@ -194,8 +194,10 @@
                   <!-- HD Video Badge -->
                   <div class="activity-badge activity-badge--danger">
                     <span class="activity-badge__label">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="activity-badge__icon" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
                       </svg>
                       <span data-i18n="video_hd_estimate">{{ i18n.video_hd_estimate }}</span>
                     </span>

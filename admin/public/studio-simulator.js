@@ -53,7 +53,7 @@ function renderSimPagesBar() {
   const bar = $('#simPagesBar');
   if (!bar) return;
   bar.innerHTML = SIM_PAGES.map(p =>
-    '<button class="sim-page-btn' + (state.sim.page === p.id ? ' active' : '') + '" onclick="setSimPage(\'' + p.id + '\')">' + p.label + '</button>'
+    '<button type="button" class="sim-page-btn' + (state.sim.page === p.id ? ' active' : '') + '" aria-pressed="' + (state.sim.page === p.id ? 'true' : 'false') + '" onclick="setSimPage(\'' + p.id + '\')">' + p.label + '</button>'
   ).join('');
 }
 
@@ -65,8 +65,10 @@ function setSimPage(pageId) {
 
 async function toggleSimulator() {
   const panel = $('#simulatorPanel');
+  const toggleBtn = $('#simToggleBtn');
   state.sim.open = !state.sim.open;
   panel.classList.toggle('open', state.sim.open);
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', state.sim.open ? 'true' : 'false');
   if (state.sim.open) {
     applySimZoom();
     await refreshSimulator(true);

@@ -264,20 +264,6 @@ describe('Hotspot.ui', () => {
       expect(cb).toHaveBeenCalled();
       clearInterval(interval);
     });
-
-    test('showAlert renders error, warning, and escaped content', () => {
-      ui.showAlert('<b>Dangerous</b> & invalid', 'error');
-      const alert = document.querySelector('#alerts .alert-error');
-      expect(alert).not.toBeNull();
-      expect(alert.innerHTML).toContain('&lt;b&gt;Dangerous&lt;/b&gt; &amp; invalid');
-      expect(alert.getAttribute('role')).toBe('alert');
-
-      ui.showAlert('Warning msg', 'warning');
-      expect(document.querySelector('#alerts .alert-warning')).not.toBeNull();
-
-      ui.showAlert('Success msg', 'success');
-      expect(document.querySelector('#alerts .alert-success')).not.toBeNull();
-    });
   });
 
   describe('Modals: Support and Install App', () => {

@@ -21,7 +21,7 @@ function renderTabs() {
   $('#tabs').innerHTML = TABS.map(t => {
     const sep = (prevGroup && prevGroup !== t.group) ? '<span class="tab-sep" aria-hidden="true"></span>' : '';
     prevGroup = t.group;
-    return sep + '<button class="tab' + (state.tab === t.id ? ' active' : '') + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>';
+    return sep + '<button type="button" class="tab' + (state.tab === t.id ? ' active' : '') + '" aria-pressed="' + (state.tab === t.id ? 'true' : 'false') + '" onclick="setTab(\'' + t.id + '\')">' + t.label + '</button>';
   }).join('');
 }
 
@@ -313,7 +313,7 @@ function formTheme(c) {
   galleryCard.className = 'card';
   galleryCard.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
-      '<h3 style="margin:0;font-size:15px;color:var(--text)">🎨 شخصيات القوالب والبريسيتات الجاهزة (' + presets.length + ' شخصية)</h3>' +
+      '<h3 style="margin:0;font-size:15px;color:var(--text)">شخصيات القوالب والبريسيتات الجاهزة (' + presets.length + ' شخصية)</h3>' +
       '<span style="font-size:12px;color:var(--muted)">اضغط على أي شخصية لمعاينتها وتطبيق ألوانها وحوافها فوراً</span>' +
     '</div>';
 
@@ -322,8 +322,10 @@ function formTheme(c) {
 
   for (const p of presets) {
     const isAct = (t.preset === p.id);
-    const pEl = document.createElement('div');
+    const pEl = document.createElement('button');
+    pEl.type = 'button';
     pEl.className = 'preset-card' + (isAct ? ' active' : '');
+    pEl.setAttribute('aria-pressed', isAct ? 'true' : 'false');
     pEl.dataset.presetId = p.id;
     pEl.onclick = () => applyPresetToInputs(p.id);
 
@@ -364,12 +366,12 @@ function formTheme(c) {
       (p.custom ? '★ ' : '') + esc(p.label) + '</option>').join('') +
     '</select>' +
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-      '<button class="rowbtn" type="button" style="color:var(--acc);border-color:var(--acc)" onclick="applyPresetToInputs()">⚡ تطبيق هذا البريسيت</button>' +
-      '<button class="rowbtn" type="button" onclick="saveCurrentAsPreset()">💾 احفظ كشخصية مخصصة</button>' +
+      '<button class="rowbtn" type="button" style="color:var(--acc);border-color:var(--acc)" onclick="applyPresetToInputs()">تطبيق هذا البريسيت</button>' +
+      '<button class="rowbtn" type="button" onclick="saveCurrentAsPreset()">احفظ كشخصية مخصصة</button>' +
     '</div>' +
     '<div id="preset-preview" style="margin-top:4px"></div>' +
     '</div>';
-  grid.appendChild(field('بريسيت الشخصية النشط', presetSel, 'يحدد الشخصية التجارية للقالب — تملأ الثيم والكلمات'));
+  grid.appendChild(field('بريسيت الشخصية النشط', presetSel, 'يحدد الشخصية التجارية للقالب (الألوان والنصوص الافتراضية)'));
 
   const renderPreview = () => {
     const sel = $('#t-preset');
@@ -383,7 +385,7 @@ function formTheme(c) {
   };
 
   grid.appendChild(field('الثيم الافتراضي',
-    '<select id="t-default"><option value=""' + (!t.defaultTheme ? ' selected' : '') + '>(حسب البريسيت — ودارك بدونه)</option>' +
+    '<select id="t-default"><option value=""' + (!t.defaultTheme ? ' selected' : '') + '>(حسب البريسيت، وداكن بدونه)</option>' +
     '<option value="dark"' + (t.defaultTheme === 'dark' ? ' selected' : '') + '>داكن</option>' +
     '<option value="light"' + (t.defaultTheme === 'light' ? ' selected' : '') + '>نهاري</option></select>',
     'أول زيارة للزائر'));
@@ -397,7 +399,7 @@ function formTheme(c) {
 
   grid.appendChild(field('استدارة الحواف',
     '<input id="t-radius" type="text" value="' + esc(t.cardRadius || '') + '" placeholder="اتركها فارغة ليحددها البريسيت">',
-    'مثال: 0px حاد · 16px متوسط · 24px ودود — فارغة = من البريسيت'));
+    'مثال: 0px حاد · 16px متوسط · 24px ودود (فارغة = من البريسيت)'));
 
   grid.appendChild(field('الخلفية المتحركة',
     '<select id="t-canvas"><option value=""' + (t.enableNetworkBackground === undefined ? ' selected' : '') + '>(حسب البريسيت)</option>' +
@@ -426,7 +428,9 @@ function formTheme(c) {
   $('#t-preset').addEventListener('change', () => {
     const val = $('#t-preset').value;
     document.querySelectorAll('.preset-card').forEach(c => {
-      c.classList.toggle('active', c.dataset.presetId === val);
+      const match = c.dataset.presetId === val;
+      c.classList.toggle('active', match);
+      c.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
     sync();
   });
@@ -456,7 +460,9 @@ function applyPresetToInputs(presetId) {
     }
   }
   document.querySelectorAll('.preset-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.presetId === id);
+    const match = c.dataset.presetId === id;
+    c.classList.toggle('active', match);
+    c.setAttribute('aria-pressed', match ? 'true' : 'false');
   });
   const prim = $('#t-primary')?.value;
   const bg = $('#t-bg')?.value;
@@ -492,7 +498,7 @@ async function saveCurrentAsPreset() {
     if (!saved) return;
     const data = await api('/presets', {
       method: 'POST',
-      body: JSON.stringify({ slug: state.current.id, id, label: state.current.name + ' — شخصية مخصصة' })
+      body: JSON.stringify({ slug: state.current.id, id, label: state.current.name + ' - شخصية مخصصة' })
     });
     toast('تم حفظ الشخصية: ' + data.id);
     state.meta = await api('/meta'); // refresh the presets list
@@ -522,7 +528,7 @@ function formFeatures(c) {
   grid.appendChild(field('كلمة مرور الكوبونات',
     '<select id="f-pass"><option value="same"' + (f.voucherPasswordMode !== 'empty' ? ' selected' : '') + '>نفس الكود</option>' +
     '<option value="empty"' + (f.voucherPasswordMode === 'empty' ? ' selected' : '') + '>بدون كلمة مرور</option></select>',
-    'حسب نظام كروت شبكتك — الخطأ هنا يمنع الدخول'));
+    'حسب نظام كروت شبكتك؛ الخطأ هنا يمنع الدخول'));
 
   grid.appendChild(field('صيغة كود الكارت',
     '<select id="f-vfmt"><option value="numeric"' + (f.voucherFormat !== 'alphanumeric' ? ' selected' : '') + '>أرقام فقط (لوحة أرقام)</option>' +
@@ -535,7 +541,7 @@ function formFeatures(c) {
 
   grid.appendChild(field('ماسح QR خارجي (اختياري)',
     '<input id="f-qrurl" type="text" value="' + esc(f.qrScannerUrl || '') + '" placeholder="اتركه فارغاً للماسح المدمج">',
-    'رابط ماسح خارجي يستبدل الماسح المدمج — يُضاف تلقائياً إلى Walled Garden في ملف .rsc'));
+    'رابط ماسح خارجي يستبدل الماسح المدمج، ويُضاف تلقائياً إلى Walled Garden في ملف .rsc'));
 
   grid.appendChild(field('أدنى طول لكود الشحن',
     '<input id="f-min" type="number" min="1" value="' + (f.voucherMinLength || '') + '">',
@@ -759,7 +765,7 @@ function formWords(c) {
   };
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = '<h3>قاموس العميل — استبدال كلمات البوابة (i18nOverrides)</h3>' +
+  card.innerHTML = '<h3>قاموس العميل: استبدال كلمات البوابة (i18nOverrides)</h3>' +
     '<div class="planshint">اختر مفتاحاً من القائمة الرسمية، واترك النصوص فارغة لحذف التخصيص.</div>';
   const output = document.createElement('div');
   output.id = 'words-list';
@@ -932,7 +938,7 @@ function formQrTester(c) {
   const testerCard = document.createElement('div');
   testerCard.className = 'card';
   testerCard.innerHTML =
-    '<h3>🔍 مختبر رمز QR لتسجيل الدخول (Portal QR Login Tester)</h3>' +
+    '<h3>مختبر رمز QR لتسجيل الدخول (Portal QR Login Tester)</h3>' +
     '<div class="planshint">اختبر مسح رمز الـ QR بكاميرا الهاتف للتأكد من توافق رابط الدخول أو كود الكرت مع ماسح القالب (<code>jsQR</code>) وإعدادات كلمة المرور الحالية.</div>';
 
   const defaultDns = (state.current.mikrotik && state.current.mikrotik.dnsName) ? state.current.mikrotik.dnsName : 'login.meganet.local';
@@ -995,7 +1001,7 @@ function formAssets() {
   const makerCard = document.createElement('div');
   makerCard.className = 'card';
   makerCard.innerHTML =
-    '<h3>✨ مولّد الشعارات والهوية البصرية الذكي (Built-in SVG Logo Maker)</h3>' +
+    '<h3>مولّد الشعارات والهوية البصرية (Built-in SVG Logo Maker)</h3>' +
     '<div class="planshint">يولّد تلقائياً <code>logo.svg</code> و <code>prand-title.svg</code> و <code>icon.png</code> من اسم الشبكة ولون الثيم والأيقونة المختارة ويحفظها في أصول البروفايل بضغطة واحدة.</div>';
 
   const makerGrid = document.createElement('div');
@@ -1011,8 +1017,9 @@ function formAssets() {
   makerCard.appendChild(makerGrid);
 
   const genBtn = document.createElement('button');
+  genBtn.type = 'button';
   genBtn.className = 'btn primary addbtn';
-  genBtn.textContent = '✨ توليد وحفظ الشعارات (logo.svg + prand-title.svg + icon.png)';
+  genBtn.textContent = 'توليد وحفظ الشعارات (logo.svg + prand-title.svg + icon.png)';
   genBtn.onclick = generateBrandIdentity;
   makerCard.appendChild(genBtn);
 

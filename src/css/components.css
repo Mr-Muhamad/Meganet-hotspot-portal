@@ -118,7 +118,6 @@
   background: var(--color-primary-alpha-05);
   color: var(--color-primary);
   border: 1px solid var(--color-primary-alpha-25);
-  backdrop-filter: blur(4px);
 }
 
 .btn-secondary:hover {
@@ -203,14 +202,6 @@
   border-color: var(--color-input-focus);
   background-color: var(--color-primary-alpha-02); /* Extremely subtle glowing background fill */
   box-shadow: 0 0 0 3px var(--color-primary-alpha-15), 0 4px 12px var(--color-primary-alpha-05);
-}
-
-.form-input--error {
-  border-color: var(--color-error);
-}
-
-.form-input--error:focus {
-  box-shadow: 0 0 0 3px var(--color-error-bg);
 }
 
 /* Tab Panel Fade Transition */
@@ -457,41 +448,6 @@
   line-height: 1.4;
 }
 
-/* Divider */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin: var(--space-lg) 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--color-border);
-}
-
-/* Link Buttons */
-.link-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
-}
-
-.link-btn:hover {
-  background: var(--color-primary-bg);
-}
 /* Auth Tabs */
 .auth-tabs {
   display: flex;

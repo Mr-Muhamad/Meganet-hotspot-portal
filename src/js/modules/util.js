@@ -91,31 +91,6 @@ var util = {
   },
 
   /**
-   * Parse uptime string to seconds
-   * @param {string} str - Uptime string (e.g., "1w2d3h4m5s")
-   * @returns {number} Seconds
-   */
-  parseUptimeToSeconds: function(str) {
-    if (!str) return 0;
-    var total = 0;
-    var matches = str.match(/(\d+)\s*([wdhms])/g);
-    if (matches) {
-      matches.forEach(function(match) {
-        var val = parseInt(match);
-        var unit = match.slice(-1);
-        switch (unit) {
-          case 'w': total += val * 604800; break;
-          case 'd': total += val * 86400; break;
-          case 'h': total += val * 3600; break;
-          case 'm': total += val * 60; break;
-          case 's': total += val; break;
-        }
-      });
-    }
-    return total;
-  },
-
-  /**
    * Get cookie value by name
    * @param {string} name - Cookie name
    * @returns {string|null} Cookie value

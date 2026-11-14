@@ -158,27 +158,6 @@ var rateLimiter = {
     }
 
     return seconds + ' second' + (seconds > 1 ? 's' : '');
-  },
-
-  /**
-   * Get status message for user
-   * @param {string} key - Rate limit key
-   * @returns {string} User-friendly message
-   */
-  getStatusMessage: function(key) {
-    var status = this.check(key);
-
-    if (status.blocked) {
-      var timeStr = this.formatBlockTime(status.remainingTime);
-      return 'Too many attempts. Please try again in ' + timeStr + '.';
-    }
-
-    if (status.attemptsRemaining < this.config.maxAttempts) {
-      return status.attemptsRemaining + ' attempt' + 
-             (status.attemptsRemaining > 1 ? 's' : '') + ' remaining.';
-    }
-
-    return '';
   }
 };
 

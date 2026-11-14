@@ -112,6 +112,30 @@ async function studioPrompt(label, defaultVal = '', { title = 'إدخال بيا
   return val.trim() ? val : null;
 }
 
+function toggleSidebar(force) {
+  const sidebar = $('#studioSidebar');
+  const toggleBtn = $('#sidebarToggleBtn');
+  if (!sidebar) return;
+  const next = typeof force === 'boolean' ? force : !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', next);
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+  if (next) {
+    const closeBtn = $('#sidebarCloseBtn');
+    if (closeBtn) closeBtn.focus();
+  } else if (toggleBtn && document.activeElement && sidebar.contains(document.activeElement)) {
+    toggleBtn.focus();
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const sidebar = $('#studioSidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+      toggleSidebar(false);
+    }
+  }
+});
+
 // Track form edits in #content to light up Dirty State indicator & auto-refresh simulator
 function onContentEdited(e) {
   if (state.current && $('#content') && $('#content').contains(e.target)) {
@@ -177,17 +201,38 @@ function renderProfileList(selectId) {
   const filtered = state.profiles.filter(p =>
     !query || p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query)
   );
+  if (filtered.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = query
+      ? 'لا توجد بروفايلات تطابق البحث. امسح عبارة البحث أو أنشئ بريفايل جديد.'
+      : 'لا توجد بروفايلات بعد. اضغط على "+ بريفايل جديد" للبدء.';
+    list.appendChild(empty);
+  }
   for (const p of filtered) {
+    const isActive = Boolean(state.current && state.current.id === p.id);
     const row = document.createElement('div');
-    row.className = 'profile-item' + (state.current && state.current.id === p.id ? ' active' : '');
-    row.innerHTML =
-      '<span class="pname" title="' + esc(p.name) + ' (' + esc(p.id) + ')">' + esc(p.name) + '</span>' +
-      '<span class="pact">' +
-      '<button class="iconbtn" title="نسخ" onclick="event.stopPropagation();duplicateProfile(\'' + p.id + '\')">⧉</button>' +
-      '<button class="iconbtn" title="إعادة تسمية" onclick="event.stopPropagation();renameProfile(\'' + p.id + '\')">✎</button>' +
-      '<button class="iconbtn danger" title="حذف" onclick="event.stopPropagation();deleteProfile(\'' + p.id + '\')">🗑</button>' +
-      '</span>';
-    row.onclick = () => selectProfile(p.id);
+    row.className = 'profile-item' + (isActive ? ' active' : '');
+
+    const selBtn = document.createElement('button');
+    selBtn.type = 'button';
+    selBtn.className = 'profile-item__select';
+    if (isActive) selBtn.setAttribute('aria-current', 'true');
+    selBtn.innerHTML = '<span class="pname" title="' + esc(p.name) + ' (' + esc(p.id) + ')">' + esc(p.name) + '</span>';
+    selBtn.onclick = () => {
+      toggleSidebar(false);
+      selectProfile(p.id);
+    };
+
+    const act = document.createElement('span');
+    act.className = 'pact';
+    act.innerHTML =
+      '<button type="button" class="iconbtn" title="نسخ" aria-label="نسخ ' + esc(p.name) + '" onclick="duplicateProfile(\'' + p.id + '\')">⧉</button>' +
+      '<button type="button" class="iconbtn" title="إعادة تسمية" aria-label="إعادة تسمية ' + esc(p.name) + '" onclick="renameProfile(\'' + p.id + '\')">✎</button>' +
+      '<button type="button" class="iconbtn danger" title="حذف" aria-label="حذف ' + esc(p.name) + '" onclick="deleteProfile(\'' + p.id + '\')">🗑</button>';
+
+    row.appendChild(selBtn);
+    row.appendChild(act);
     list.appendChild(row);
   }
   const targetId = selectId || (!state.current && state.profiles.length > 0 ? state.profiles[0].id : null);
@@ -260,7 +305,7 @@ async function saveConfig() {
     state.drafts = {};
     state.mikrotikDirty = false;
     markDirty(false);
-    toast('تم الحفظ — الإعدادات سليمة');
+    toast('تم الحفظ: الإعدادات سليمة');
     $('#profileMeta').textContent = state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
     if (state.sim.open) refreshSimulator(true);
     return true;
@@ -286,7 +331,7 @@ function renderBundleMeter(buildResult, labelPrefix) {
   const zipKb = Math.max(1, Math.round(buildResult.zipSize / 1024));
   const rawKb = Math.max(1, Math.round((buildResult.totalRawSize || buildResult.zipSize) / 1024));
   const pct = Math.min(100, buildResult.flashUsagePercent || Math.round((rawKb / 1024) * 100));
-  $('#bm-title').textContent = (labelPrefix || '📦 حجم الحزمة') + ':';
+  $('#bm-title').textContent = (labelPrefix || 'حجم الحزمة') + ':';
   $('#bm-zip').textContent = 'ZIP: ' + zipKb + ' KB';
   $('#bm-raw').textContent = 'الذاكرة: ' + rawKb + ' KB (' + pct + '% من 1MB)';
   const bar = $('#bm-bar');
@@ -312,7 +357,7 @@ async function buildAndDownload() {
     const saved = await saveConfig();
     if (!saved) return;
     const data = await api('/profiles/' + encodeURIComponent(state.current.id) + '/build', { method: 'POST' });
-    renderBundleMeter(data, '📦 حجم حزمة ' + state.current.name);
+    renderBundleMeter(data, 'حجم حزمة ' + state.current.name);
     const a = document.createElement('a');
     a.href = data.downloadUrl;
     a.download = '';
@@ -332,20 +377,20 @@ async function batchBuildAll() {
   if (state.buildBusy) return;
   state.buildBusy = true;
   const btn = $('#batchBuildBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري بناء الكل…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري بناء الكل…'; }
   try {
     if (state.current && state.dirty) await saveConfig();
     const res = await api('/profiles/build-all', { method: 'POST', body: '{}' });
     if (res.built && res.built.length) {
       const last = res.built[res.built.length - 1];
-      renderBundleMeter(last, `⚡ تم بناء ${res.count} بروفايلات (آخرها ${last.name})`);
+      renderBundleMeter(last, `تم بناء ${res.count} بروفايلات (آخرها ${last.name})`);
     }
     toast(`تم بناء جميع البروفايلات بنجاح (${res.count} بروفايل)`);
   } catch (e) {
     toast('فشل البناء الجماعي: ' + e.message, true);
   } finally {
     state.buildBusy = false;
-    if (btn) { btn.disabled = false; btn.textContent = '⚡ بناء جميع البروفايلات'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'بناء جميع البروفايلات'; }
   }
 }
 
@@ -361,7 +406,7 @@ async function createProfile() {
     { id: 'hotel', label: 'Hotel' },
     { id: 'clinic', label: 'Clinic' }
   ];
-  const presetOpts = presets.map(p => '<option value="' + esc(p.id) + '">' + esc(p.id + ' — ' + p.label) + '</option>').join('');
+  const presetOpts = presets.map(p => '<option value="' + esc(p.id) + '">' + esc(p.id + ' - ' + p.label) + '</option>').join('');
   const res = await openStudioModal({
     title: 'إنشاء بريفايل جديد',
     confirmLabel: 'إنشاء',

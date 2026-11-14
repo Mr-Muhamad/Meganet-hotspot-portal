@@ -425,15 +425,17 @@
   .stat-card {
     padding: var(--space-sm) var(--space-md);
   }
-
-  .page-shell--wide {
-    --max-width: 680px;
-  }
 }
 
 /* Wide status page */
 .page-shell--wide {
   --max-width: var(--max-width-wide);
+}
+
+@media (min-width: 768px) and (max-width: 900px) {
+  .page-shell--wide {
+    --max-width: min(var(--max-width-wide), calc(100vw - 180px));
+  }
 }
 
 /* Technical Details Accordion */
@@ -1088,14 +1090,6 @@
 .qr-scan-btn--attn { animation: qr-scan-pulse 1.6s ease-out 3; }
 @media (prefers-reduced-motion: reduce) {
   .qr-scan-btn--attn { animation: none; }
-}
-
-@media (max-width: 640px) {
-  body:focus-within .support-trigger {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(10px) scale(0.9);
-  }
 }
 
 /* Field helper (voucher input) — quiet, muted, clearly tied to typing */

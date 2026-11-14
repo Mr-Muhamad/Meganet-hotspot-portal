@@ -282,34 +282,85 @@ var ui = {
     }
   },
 
+  _syncModalTriggersExpanded: function(modalId, expanded) {
+    if (typeof document === 'undefined' || !document.querySelectorAll) return;
+    var triggers = document.querySelectorAll('[aria-controls="' + modalId + '"]');
+    for (var i = 0; i < triggers.length; i++) {
+      triggers[i].setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+  },
+
+  _syncModalBodyLock: function() {
+    if (typeof document === 'undefined' || !document.body) return;
+    var anyOpen = !!document.querySelector('.support-modal--open');
+    if (anyOpen) {
+      if (!ui._modalScrollLocked) {
+        ui._prevBodyOverflow = document.body.style.overflow;
+        ui._modalScrollLocked = true;
+      }
+      document.body.style.overflow = 'hidden';
+    } else if (ui._modalScrollLocked) {
+      document.body.style.overflow = ui._prevBodyOverflow || '';
+      ui._prevBodyOverflow = '';
+      ui._modalScrollLocked = false;
+    }
+  },
+
+  _toggleDialogModal: function(modalId, statePrefix, toggleFn, onBeforeOpen) {
+    var modal = typeof document !== 'undefined' ? document.getElementById(modalId) : null;
+    if (!modal) return;
+
+    var escKey = statePrefix + 'Esc';
+    var trigKey = statePrefix + 'Trigger';
+    var isOpen = modal.classList.contains('support-modal--open');
+
+    if (isOpen) {
+      modal.classList.remove('support-modal--open');
+      ui._syncModalTriggersExpanded(modalId, false);
+      if (ui[escKey]) {
+        document.removeEventListener('keydown', ui[escKey]);
+        ui[escKey] = null;
+      }
+      if (ui[trigKey] && typeof ui[trigKey].focus === 'function') {
+        ui[trigKey].focus();
+      }
+      ui[trigKey] = null;
+      ui._syncModalBodyLock();
+      return;
+    }
+
+    var nextTrigger = typeof document !== 'undefined' ? document.activeElement : null;
+
+    // Close any sibling modal that is currently open so dialogs never stack
+    var siblingIds = modalId === 'supportModal' ? ['installModal'] : ['supportModal'];
+    for (var i = 0; i < siblingIds.length; i++) {
+      var sib = document.getElementById(siblingIds[i]);
+      if (sib && sib.classList.contains('support-modal--open')) {
+        if (siblingIds[i] === 'installModal') ui.toggleInstallModal();
+        else ui.toggleSupportModal();
+      }
+    }
+
+    ui[trigKey] = nextTrigger;
+    if (typeof onBeforeOpen === 'function') {
+      onBeforeOpen();
+    }
+    modal.classList.add('support-modal--open');
+    ui._syncModalTriggersExpanded(modalId, true);
+    ui._syncModalBodyLock();
+    ui[escKey] = function(e) {
+      ui._handleModalKeydown(e, modal, toggleFn);
+    };
+    document.addEventListener('keydown', ui[escKey]);
+    var focusable = ui._getModalFocusable(modal);
+    if (focusable.length && typeof focusable[0].focus === 'function') {
+      focusable[0].focus();
+    }
+  },
+
   toggleSupportModal: function() {
     try {
-      var modal = document.getElementById('supportModal');
-      if (!modal) return;
-
-      var isOpen = modal.classList.contains('support-modal--open');
-      if (isOpen) {
-        modal.classList.remove('support-modal--open');
-        if (ui._onSupportModalEsc) {
-          document.removeEventListener('keydown', ui._onSupportModalEsc);
-          ui._onSupportModalEsc = null;
-        }
-        if (ui._supportModalTrigger && typeof ui._supportModalTrigger.focus === 'function') {
-          ui._supportModalTrigger.focus();
-        }
-        ui._supportModalTrigger = null;
-      } else {
-        ui._supportModalTrigger = typeof document !== 'undefined' ? document.activeElement : null;
-        modal.classList.add('support-modal--open');
-        ui._onSupportModalEsc = function(e) {
-          ui._handleModalKeydown(e, modal, ui.toggleSupportModal);
-        };
-        document.addEventListener('keydown', ui._onSupportModalEsc);
-        var focusable = ui._getModalFocusable(modal);
-        if (focusable.length && typeof focusable[0].focus === 'function') {
-          focusable[0].focus();
-        }
-      }
+      ui._toggleDialogModal('supportModal', '_onSupportModal', ui.toggleSupportModal);
     } catch (err) {
       console.error('Toggle support modal error:', err);
     }
@@ -866,22 +917,7 @@ var ui = {
 
   toggleInstallModal: function() {
     try {
-      var modal = document.getElementById('installModal');
-      if (!modal) return;
-
-      var isOpen = modal.classList.contains('support-modal--open');
-      if (isOpen) {
-        modal.classList.remove('support-modal--open');
-        if (ui._onInstallModalEsc) {
-          document.removeEventListener('keydown', ui._onInstallModalEsc);
-          ui._onInstallModalEsc = null;
-        }
-        if (ui._installModalTrigger && typeof ui._installModalTrigger.focus === 'function') {
-          ui._installModalTrigger.focus();
-        }
-        ui._installModalTrigger = null;
-      } else {
-        ui._installModalTrigger = typeof document !== 'undefined' ? document.activeElement : null;
+      ui._toggleDialogModal('installModal', '_onInstallModal', ui.toggleInstallModal, function() {
         var ua = navigator.userAgent.toLowerCase();
         var isIos = /iphone|ipad|ipod/.test(ua);
         var isAndroid = /android/.test(ua);
@@ -903,17 +939,7 @@ var ui = {
             genericGuide.style.display = 'flex';
           }
         }
-
-        modal.classList.add('support-modal--open');
-        ui._onInstallModalEsc = function(e) {
-          ui._handleModalKeydown(e, modal, ui.toggleInstallModal);
-        };
-        document.addEventListener('keydown', ui._onInstallModalEsc);
-        var focusable = ui._getModalFocusable(modal);
-        if (focusable.length && typeof focusable[0].focus === 'function') {
-          focusable[0].focus();
-        }
-      }
+      });
     } catch (err) {
       console.error('Toggle install modal error:', err);
     }

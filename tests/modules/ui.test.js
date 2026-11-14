@@ -253,7 +253,9 @@ describe('Hotspot.ui', () => {
 
   describe('Modals: Support and Install App', () => {
     beforeEach(() => {
+      document.body.style.overflow = '';
       document.body.innerHTML = `
+        <button type="button" class="support-trigger" aria-controls="supportModal" aria-expanded="false">Support</button>
         <div class="support-modal" id="supportModal">
           <div class="support-modal__content">Inner</div>
         </div>
@@ -269,17 +271,29 @@ describe('Hotspot.ui', () => {
 
     afterEach(() => {
       document.body.innerHTML = '';
+      document.body.style.overflow = '';
     });
 
-    test('toggleSupportModal opens, closes on re-toggle or Escape key', () => {
+    test('toggleSupportModal opens, updates aria-expanded and body overflow, closes sibling modal, and closes cleanly on Esc', () => {
       const modal = document.getElementById('supportModal');
+      const installModal = document.getElementById('installModal');
+      const trigger = document.querySelector('.support-trigger');
+
+      ui.toggleInstallModal();
+      expect(installModal.classList.contains('support-modal--open')).toBe(true);
+
       ui.toggleSupportModal();
       expect(modal.classList.contains('support-modal--open')).toBe(true);
+      expect(installModal.classList.contains('support-modal--open')).toBe(false);
+      expect(trigger.getAttribute('aria-expanded')).toBe('true');
+      expect(document.body.style.overflow).toBe('hidden');
 
       // Trigger Escape key
       const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
       document.dispatchEvent(escEvent);
       expect(modal.classList.contains('support-modal--open')).toBe(false);
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(document.body.style.overflow).toBe('');
     });
 
     test('closeSupportModalOnClickOutside only closes when clicking backdrop', () => {

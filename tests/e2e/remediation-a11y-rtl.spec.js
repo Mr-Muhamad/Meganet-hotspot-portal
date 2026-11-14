@@ -261,4 +261,44 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     expect(metrics.cardLeft - metrics.supportRight).toBeGreaterThanOrEqual(16);
     expect(metrics.cardLeft - metrics.supportRight).toBeLessThanOrEqual(120);
   });
+
+  test('mobile floating support trigger stays clickable with #voucher autofocus, opens/closes repeatedly, and does not overlap card on 768px status page', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${DEFAULT}/ar/login.html`);
+
+    const trigger = page.locator('.support-trigger');
+    const modal = page.locator('#supportModal');
+
+    await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(trigger).toHaveCSS('pointer-events', 'auto');
+
+    // First real tap/click even while #voucher is autofocused
+    await trigger.click();
+    await expect(modal).toHaveClass(/support-modal--open/);
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    // Close via X button — focus returns to trigger, yet trigger stays visible & clickable
+    await page.locator('#supportModal .support-modal__close').click();
+    await expect(modal).not.toHaveClass(/support-modal--open/);
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(trigger).toHaveCSS('pointer-events', 'auto');
+    await expect(trigger).toHaveCSS('opacity', '1');
+
+    // Second real click opens the modal again reliably
+    await trigger.click();
+    await expect(modal).toHaveClass(/support-modal--open/);
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toHaveClass(/support-modal--open/);
+
+    // Tablet 768x1024 wide status page: floating trigger must clear the card
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto(`${DEFAULT}/ar/status.html`);
+    const tabletOverlap = await page.evaluate(() => {
+      const btn = document.querySelector('.support-trigger').getBoundingClientRect();
+      const card = document.querySelector('.card').getBoundingClientRect();
+      return !(btn.right <= card.left || btn.left >= card.right || btn.bottom <= card.top || btn.top >= card.bottom);
+    });
+    expect(tabletOverlap).toBe(false);
+  });
 });

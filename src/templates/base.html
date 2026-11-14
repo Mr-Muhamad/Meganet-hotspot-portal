@@ -71,7 +71,7 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
-        <button type="button" class="install-toggle" onclick="toggleInstallModal()" aria-label="{{ i18n.install_app_btn }}" data-i18n-aria="install_app_btn" data-i18n-title="install_app_btn" title="{{ i18n.install_app_btn }}">
+        <button type="button" class="install-toggle" onclick="toggleInstallModal()" aria-haspopup="dialog" aria-controls="installModal" aria-expanded="false" aria-label="{{ i18n.install_app_btn }}" data-i18n-aria="install_app_btn" data-i18n-title="install_app_btn" title="{{ i18n.install_app_btn }}">
           <svg class="install-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -220,7 +220,7 @@
   </script>
 
   <!-- Floating Support Button -->
-  <button type="button" class="support-trigger" onclick="toggleSupportModal()" data-i18n-aria="technical_support" aria-label="{{ i18n.technical_support }}" data-i18n-title="technical_support" title="{{ i18n.technical_support }}">
+  <button type="button" class="support-trigger" onclick="toggleSupportModal()" aria-haspopup="dialog" aria-controls="supportModal" aria-expanded="false" data-i18n-aria="technical_support" aria-label="{{ i18n.technical_support }}" data-i18n-title="technical_support" title="{{ i18n.technical_support }}">
     <svg class="support-trigger__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>

@@ -187,9 +187,9 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
   });
 
   test('Studio UI exposes #mk-tls-fp input for HTTPS connections', () => {
-    const html = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'public', 'index.html'), 'utf8');
-    expect(html).toContain('id="mk-tls-fp"');
-    expect(html).toContain("tlsFpWrap.id = 'mk-tls-fp-wrap'");
+    const mkJs = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'public', 'studio-mikrotik.js'), 'utf8');
+    expect(mkJs).toContain('id="mk-tls-fp"');
+    expect(mkJs).toContain("tlsFpWrap.id = 'mk-tls-fp-wrap'");
   });
 
   test('deployToRouter rejects invalid host or path traversal in targetDir', async () => {
@@ -433,10 +433,19 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(batch.json.built[0].zipSize).toBeGreaterThan(5000);
   });
 
-  test('admin/public/index.html contains all 5 Studio feature packages in the UI', async () => {
+  test('admin/public Studio UI and split modules expose all 5 Studio feature packages', async () => {
     const htmlRes = await request('GET', `${base}/index.html`);
     expect(htmlRes.status).toBe(200);
     const html = htmlRes.text;
+    const [cssRes, coreRes, tabsRes, mkRes, simRes] = await Promise.all([
+      request('GET', `${base}/studio.css`),
+      request('GET', `${base}/studio-core.js`),
+      request('GET', `${base}/studio-tabs.js`),
+      request('GET', `${base}/studio-mikrotik.js`),
+      request('GET', `${base}/studio-simulator.js`)
+    ]);
+    expect([cssRes.status, coreRes.status, tabsRes.status, mkRes.status, simRes.status]).toEqual([200, 200, 200, 200, 200]);
+    const bundle = html + '\n' + coreRes.text + '\n' + tabsRes.text + '\n' + mkRes.text + '\n' + simRes.text;
 
     // Package 1: Simulator, Zoom/Resize, Theme Switcher, Device Presets & WCAG Contrast Badge
     expect(html).toContain('id="simulatorPanel"');
@@ -447,31 +456,31 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     expect(html).toContain('id="sim-theme"');
     expect(html).toContain('id="sim-device"');
     expect(html).toContain('id="simBezel"');
-    expect(html).toContain('setSimTheme');
-    expect(html).toContain('setSimDevice');
-    expect(html).toContain('SIM_DEVICES');
-    expect(html).toContain('id="wcag-badge"');
-    expect(html).toContain('computeWcag');
+    expect(bundle).toContain('setSimTheme');
+    expect(bundle).toContain('setSimDevice');
+    expect(bundle).toContain('SIM_DEVICES');
+    expect(bundle).toContain('id="wcag-badge"');
+    expect(bundle).toContain('computeWcag');
 
     // Package 2: MikroTik .rsc & Direct Deploy
-    expect(html).toContain('id="mk-rsc-output"');
-    expect(html).toContain('id="mk-dhcp-server"');
-    expect(html).toContain('testMikrotikConnection');
-    expect(html).toContain('deployToMikrotik');
+    expect(bundle).toContain('id="mk-rsc-output"');
+    expect(bundle).toContain('id="mk-dhcp-server"');
+    expect(bundle).toContain('testMikrotikConnection');
+    expect(bundle).toContain('deployToMikrotik');
 
     // Package 3: RADIUS Error Translations & Portal QR Login Tester
-    expect(html).toContain('radius-errors-list');
-    expect(html).toContain('formQrTester');
-    expect(html).not.toContain('generateAndPrintVouchers');
+    expect(bundle).toContain('radius-errors-list');
+    expect(bundle).toContain('formQrTester');
+    expect(bundle).not.toContain('generateAndPrintVouchers');
 
     // Package 4: Smart SVG Logo Maker & Auto-Crop/Compress
-    expect(html).toContain('generateBrandIdentity');
-    expect(html).toContain('autoCropAndCompressImage');
+    expect(bundle).toContain('generateBrandIdentity');
+    expect(bundle).toContain('autoCropAndCompressImage');
 
     // Package 5: Dirty State, Ctrl+S, Profile Search, Batch Build, Flash Meter
     expect(html).toContain('id="dirtyBadge"');
     expect(html).toContain('id="profileSearch"');
-    expect(html).toContain('batchBuildAll');
+    expect(bundle).toContain('batchBuildAll');
     expect(html).toContain('id="bundleMeter"');
   });
 

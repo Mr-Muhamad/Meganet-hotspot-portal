@@ -16,9 +16,12 @@ const rules = {
 
   // Check for XSS-safe escaping — NOTE: no `g` flag. A global regex keeps
   // lastIndex across .test() calls, silently skipping matches in later
-  // files (stateful regex bug).
+  // files (stateful regex bug). $(error) is HTML-escaped by RouterOS in HTML
+  // text bodies and keeps UTF-8 Arabic intact without $(error-esc) %FFF
+  // corruption, so warn only when $(error) is placed inside attributes/scripts.
   unsafePatterns: [
-    { pattern: /\$\(error\)(?!-esc)/, message: 'Use $(error-esc) instead of $(error)' },
+    { pattern: /\b(?:href|src|action|on\w+)\s*=\s*(?:"[^"]*\$\(error\)(?!-esc)|'[^']*\$\(error\)(?!-esc))/i, message: 'Use $(error-esc) instead of $(error) inside HTML attributes' },
+    { pattern: /<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?\$\(error\)(?!-esc)/i, message: 'Use $(error-esc) instead of $(error) inside inline <script>' },
     { pattern: /\$\(username\)(?!-esc)/, message: 'Use $(username-esc) instead of $(username)' },
     { pattern: /\$\(mac\)(?!-esc)/, message: 'Use $(mac-esc) instead of $(mac)' }
   ],

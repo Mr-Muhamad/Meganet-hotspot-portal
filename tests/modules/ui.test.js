@@ -108,6 +108,35 @@ describe('Hotspot.ui', () => {
         .toBe('لا يُسمح بجلسات إضافية للمستخدم ahmed');
       delete global.i18n;
     });
+
+    test('preserves <bdi dir="auto"> child element inside #errorMessage', () => {
+      window.HotspotErrorMap = map;
+      document.documentElement.setAttribute('lang', 'ar');
+      document.body.innerHTML = '<span id="errorMessage"><bdi dir="auto">no more sessions are allowed for user 8118</bdi></span>';
+
+      ui.translateRouterError();
+
+      const bdi = document.querySelector('#errorMessage bdi');
+      expect(bdi).not.toBeNull();
+      expect(bdi.getAttribute('dir')).toBe('auto');
+      expect(bdi.textContent).toBe('لا يُسمح بجلسات إضافية للمستخدم 8118');
+    });
+
+    test('provides readable Arabic fallback when corrupted %FFF input yields empty text or bare card digits', () => {
+      window.HotspotErrorMap = map;
+      document.documentElement.setAttribute('lang', 'ar');
+
+      document.body.innerHTML = '<span id="errorMessage"><bdi dir="auto">%FFF%FFF%FFF+%FFF%FFF</bdi></span>';
+      ui.translateRouterError();
+      expect(document.getElementById('errorMessage').textContent.length).toBeGreaterThan(10);
+      expect(document.getElementById('errorMessage').textContent).not.toContain('%FFF');
+
+      document.body.innerHTML = '<span id="errorMessage"><bdi dir="auto">%FFF%FFF+%FFF%FFF+8118</bdi></span>';
+      ui.translateRouterError();
+      const digitFallback = document.getElementById('errorMessage').textContent;
+      expect(digitFallback).toContain('8118');
+      expect(digitFallback.trim()).not.toBe('8118');
+    });
   });
 
   describe('Theme management', () => {

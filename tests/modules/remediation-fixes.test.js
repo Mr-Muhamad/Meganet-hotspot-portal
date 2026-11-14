@@ -414,9 +414,13 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(arLogout).toContain(',20,"redirect-countdown")');
     });
 
-    test('error.html removes duplicate $(error-esc) and includes login/support actions', () => {
+    test('error.html and login.html use $(error) instead of $(error-esc) so UTF-8 Arabic is never corrupted to %FFF', () => {
       const arError = fs.readFileSync(path.join(DIST, 'ar', 'error.html'), 'utf8');
-      expect(arError.match(/\$\(error-esc\)/g).length).toBe(1);
+      const arLogin = fs.readFileSync(path.join(DIST, 'ar', 'login.html'), 'utf8');
+      expect(arError.match(/\$\(error\)(?!-esc)/g).length).toBe(1);
+      expect(arError).not.toContain('$(error-esc)');
+      expect(arLogin.match(/\$\(error\)(?!-esc)/g).length).toBe(1);
+      expect(arLogin).not.toContain('$(error-esc)');
       expect(arError).toContain('href="./login.html"');
       expect(arError).toContain('toggleSupportModal()');
     });

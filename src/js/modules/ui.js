@@ -164,7 +164,18 @@ var ui = {
 
       var currentLang = document.documentElement.getAttribute('lang') || 'en';
       var map = (typeof window !== 'undefined' && window.HotspotErrorMap) || {};
-      errorEl.textContent = util.translateError(rawError, map, currentLang);
+      var translated = util.translateError(rawError, map, currentLang);
+      if (!translated && rawError && rawError.indexOf('$(') === -1) {
+        translated = currentLang === 'ar'
+          ? 'تعذّر إتمام تسجيل الدخول. تأكد من صلاحية البطاقة أو تواصل مع الدعم الفني.'
+          : 'Login failed. Please check your voucher or contact support.';
+      } else if (rawError && /%[fF]{2,}/.test(rawError) && /^\d+$/.test(translated)) {
+        translated = currentLang === 'ar'
+          ? 'فشل تسجيل الدخول للبطاقة (' + translated + '). تأكد من الصلاحية أو تواصل مع الدعم الفني.'
+          : 'Login failed for card (' + translated + '). Please check validity or contact support.';
+      }
+      var targetEl = (errorEl.querySelector && errorEl.querySelector('bdi')) || errorEl;
+      targetEl.textContent = translated;
     } catch (err) {
       console.error('Translate router error error:', err);
     }

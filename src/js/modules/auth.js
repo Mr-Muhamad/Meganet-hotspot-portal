@@ -127,13 +127,19 @@ var auth = {
       // Pardon transient system/session errors in rate limiter (stored secrets were already cleared above)
       if (hasInitError) {
         var initErrorEl = document.getElementById('errorMessage') || document.getElementById('error-message');
-        var lowerErr = (initErrorEl ? initErrorEl.textContent.trim() : '').toLowerCase();
+        var lowerErr = (initErrorEl ? (initErrorEl.getAttribute('data-raw-error') || initErrorEl.textContent.trim()) : '').toLowerCase();
         var isSystemOrSessionErr = lowerErr.indexOf('not responding') !== -1 ||
           lowerErr.indexOf('already logged in') !== -1 ||
           lowerErr.indexOf('simultaneous') !== -1 ||
           lowerErr.indexOf('shutting down') !== -1 ||
           lowerErr.indexOf('no more sessions') !== -1 ||
-          lowerErr.indexOf('internal error') !== -1;
+          lowerErr.indexOf('internal error') !== -1 ||
+          lowerErr.indexOf('لا يستجيب') !== -1 ||
+          lowerErr.indexOf('جلسة نشطة بالفعل') !== -1 ||
+          lowerErr.indexOf('المصادقة بالفعل') !== -1 ||
+          lowerErr.indexOf('إيقاف خدمة') !== -1 ||
+          lowerErr.indexOf('جلسات إضافية') !== -1 ||
+          lowerErr.indexOf('خطأ داخلي') !== -1;
         if (isSystemOrSessionErr && typeof rateLimiter !== 'undefined' && rateLimiter.reset) {
           rateLimiter.reset('device');
         }
@@ -572,7 +578,15 @@ var auth = {
       'byte limit',
       'credit limit',
       'no valid profile',
-      'not allowed to log in from this mac'
+      'not allowed to log in from this mac',
+      'غير صحيحة',
+      'لا يمكن استخدام هذا الحساب',
+      'غير مسموح من عنوان',
+      'حد وقت الاستخدام',
+      'حد البيانات',
+      'انتهى حساب المستخدم',
+      'انتهت صلاحية',
+      'استهلكت كامل سعة'
     ];
     for (var i = 0; i < patterns.length; i++) {
       if (err.indexOf(patterns[i]) !== -1) return true;

@@ -301,6 +301,8 @@ describe('Hotspot.util', () => {
       test('user <270029> not found keeps the username in the output', () => {
         expect(util.translateError('user <270029> not found', configMap, 'ar'))
           .toBe('عذراً، الحساب <270029> غير مسجل في نظامنا.');
+        expect(util.translateError('رسالة من خادم المصادقة: user <270029> not found', configMap, 'ar'))
+          .toBe('عذراً، الحساب <270029> غير مسجل في نظامنا.');
       });
 
       test('your traffic limit is reached gets the full message, not the short key', () => {

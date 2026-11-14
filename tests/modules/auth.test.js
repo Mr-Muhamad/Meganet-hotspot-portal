@@ -650,10 +650,14 @@ describe('Hotspot.auth', () => {
       errEl.id = 'errorMessage';
       document.body.appendChild(errEl);
 
-      ['invalid password', 'invalid username', 'invalid Calling-Station-Id', 'MAC address is not yours'].forEach((msg) => {
+      ['invalid password', 'invalid username', 'invalid Calling-Station-Id', 'MAC address is not yours',
+        'اسم المستخدم أو كلمة المرور غير صحيحة', 'انتهى حساب المستخدم 8118', 'المستخدم 8118 وصل إلى حد وقت الاستخدام'].forEach((msg) => {
         errEl.textContent = msg;
         expect(auth._isPermanentCredentialError()).toBe(true);
       });
+
+      errEl.textContent = 'خادم المصادقة لا يستجيب';
+      expect(auth._isPermanentCredentialError()).toBe(false);
 
       errEl.textContent = '$(error)';
       expect(auth._isPermanentCredentialError()).toBe(false);

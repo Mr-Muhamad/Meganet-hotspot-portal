@@ -149,7 +149,7 @@ function substitute(html, scenario) {
       // RouterOS -esc: URL-encode; error text is HTML-escaped for safe inline display.
       return name === 'error' ? htmlEscape(value) : encodeURIComponent(value);
     }
-    return value;
+    return name === 'error' ? htmlEscape(value) : value;
   });
 
   // Safety net: strip any unmatched RouterOS conditional markers.

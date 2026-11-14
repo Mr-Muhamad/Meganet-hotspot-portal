@@ -164,7 +164,11 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
       expect(nativeDialogOpened).toBe(false);
     } finally {
       if (studio.stopPreview) studio.stopPreview();
-      if (studio.server) await new Promise((r) => studio.server.close(r));
+      if (studio.server) {
+        const closed = new Promise((r) => studio.server.close(r));
+        if (typeof studio.server.closeAllConnections === 'function') studio.server.closeAllConnections();
+        await closed;
+      }
       delete require.cache[serverModPath];
       if (prevAdminDir === undefined) delete process.env.ADMIN_DATA_DIR;
       else process.env.ADMIN_DATA_DIR = prevAdminDir;
@@ -466,5 +470,29 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
       });
       expect(overlap).toBe(false);
     }
+  });
+
+  test('login error alert preserves <bdi dir="auto"> Arabic UTF-8 without %FFF and gracefully recovers corrupted %FFF errors', async ({ page }) => {
+    await page.route('**/ar/login.html?simerr=*', async (route) => {
+      const reqUrl = new URL(route.request().url());
+      const errMsg = reqUrl.searchParams.get('simerr') || '';
+      const cleanRes = await route.fetch({ url: `${DEFAULT}/ar/login.html` });
+      let html = await cleanRes.text();
+      html = html.replace('<div id="alerts">', `<div id="alerts"><div class="alert alert-error" role="alert"><span class="alert__text" id="errorMessage"><bdi dir="auto">${errMsg}</bdi></span></div>`);
+      await route.fulfill({ response: cleanRes, body: html });
+    });
+
+    // 1. Direct UTF-8 Arabic from ar/errors.txt via $(error) displays intact with <bdi dir="auto">
+    await page.goto(`${DEFAULT}/ar/login.html?simerr=${encodeURIComponent('المستخدم 8118 وصل إلى حد وقت الاستخدام')}`);
+    const bdi = page.locator('#errorMessage bdi');
+    await expect(bdi).toHaveAttribute('dir', 'auto');
+    await expect(bdi).toHaveText('المستخدم 8118 وصل إلى حد وقت الاستخدام');
+
+    // 2. Corrupted %FFF + card number never collapses to empty box or bare "8118"
+    await page.goto(`${DEFAULT}/ar/login.html?simerr=${encodeURIComponent('%FFF%FFF+%FFF%FFF+8118')}`);
+    const text = await page.locator('#errorMessage').textContent();
+    expect(text).toContain('8118');
+    expect(text.trim()).not.toBe('8118');
+    expect(text).not.toContain('%FFF');
   });
 });

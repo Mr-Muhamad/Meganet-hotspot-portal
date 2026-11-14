@@ -233,9 +233,10 @@ var util = {
       [/configuration error \(([^)]+)\)/i, 'خطأ في الإعدادات ($1)'],
       [/web browser did not send challenge response \(([^)]+)\)/i, 'المتصفح لم يرسل استجابة التشفير ($1)']
     ];
+    var patternInput = cleaned.replace(/^رسالة من خادم المصادقة:\s*/i, '');
     for (var i = 0; i < patterns.length; i++) {
-      if (patterns[i][0].test(cleaned)) {
-        return cleaned.replace(patterns[i][0], patterns[i][1]);
+      if (patterns[i][0].test(patternInput)) {
+        return patternInput.replace(patterns[i][0], patterns[i][1]);
       }
     }
 

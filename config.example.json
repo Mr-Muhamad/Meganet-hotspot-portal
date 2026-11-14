@@ -2,12 +2,15 @@
   "_comment_general": "=== إعدادات عامة للشبكة ===",
   "general": {
     "networkName": "MyHotspot",
+    "networkName_ar": "شبكتي",
     "poweredByText": "Powered by ",
-    "poweredByText_hints": "نص الفوتر الترحيبي (مثال: 'بدعم من ' أو 'تطوير شبكة '، اتركه فارغاً أو احذفه للعودة لترجمة النظام التلقائية)",
+    "poweredByText_ar": "بدعم من ",
+    "poweredByText_hints": "نص الفوتر الترحيبي (مثال: 'Powered by '، اتركه فارغاً أو احذفه للعودة لترجمة النظام التلقائية؛ وأضف poweredByText_ar للعربي)",
     "poweredByUrl": "https://mikrotik.com",
     "poweredByUrl_hints": "رابط توجيه الفوتر عند الضغط عليه (مثال: رابط شركتك أو موقع المايكروتك)",
     "poweredByName": "MikroTik Hotspot",
-    "poweredByName_hints": "الاسم الظاهر للرابط في الفوتر (مثال: 'MikroTik' أو اسم شركتك)"
+    "poweredByName_ar": "ميجا نت للحلول التقنية",
+    "poweredByName_hints": "الاسم الظاهر للرابط في الفوتر (مثال: 'MikroTik' أو اسم شركتك؛ وأضف poweredByName_ar للعربي)"
   },
   "_comment_theme": "=== إعدادات التصميم البصري والألوان (ألوان نيون فخمة) ===",
   "theme": {
@@ -182,8 +185,10 @@
   "support": {
     "agents": [
       {
-        "name": "الدعم الفني",
-        "role": "خدمة العملاء",
+        "name": "Technical Support",
+        "name_ar": "الدعم الفني",
+        "role": "Customer Service",
+        "role_ar": "خدمة العملاء",
         "phone": "+201000000000",
         "whatsapp": "201000000000",
         "image": "mohamed.png",

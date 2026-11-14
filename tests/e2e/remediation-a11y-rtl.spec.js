@@ -301,4 +301,33 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     });
     expect(tabletOverlap).toBe(false);
   });
+
+  test('renders primary EN vs optional _ar header, footer, and support agent labels by language', async ({ browser }) => {
+    const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'config.json'), 'utf8'));
+    const agent = cfg.support.agents[0];
+
+    const enContext = await browser.newContext({ locale: 'en-US' });
+    await enContext.addCookies([{ name: 'hotspot_lang', value: 'en', url: DEFAULT }]);
+    const enPage = await enContext.newPage();
+    await enPage.goto(`${DEFAULT}/login.html`);
+    await expect(enPage).toHaveURL(/\/login\.html$/);
+    await expect(enPage.locator('.header__name')).toHaveText(cfg.general.networkName);
+    await expect(enPage.locator('.footer__text')).toContainText(cfg.general.poweredByText.trim());
+    await expect(enPage.locator('.footer__link')).toHaveText(cfg.general.poweredByName);
+    await expect(enPage.locator('.support-person-card__name').first()).toHaveText(agent.name);
+    await expect(enPage.locator('.support-person-card__role').first()).toHaveText(agent.role);
+    await enContext.close();
+
+    const arContext = await browser.newContext({ locale: 'ar-EG' });
+    await arContext.addCookies([{ name: 'hotspot_lang', value: 'ar', url: DEFAULT }]);
+    const arPage = await arContext.newPage();
+    await arPage.goto(`${DEFAULT}/ar/login.html`);
+    await expect(arPage).toHaveURL(/\/ar\/login\.html$/);
+    await expect(arPage.locator('.header__name')).toHaveText(cfg.general.networkName_ar || cfg.general.networkName);
+    await expect(arPage.locator('.footer__text')).toContainText((cfg.general.poweredByText_ar || cfg.general.poweredByText).trim());
+    await expect(arPage.locator('.footer__link')).toHaveText(cfg.general.poweredByName_ar || cfg.general.poweredByName);
+    await expect(arPage.locator('.support-person-card__name').first()).toHaveText(agent.name_ar || agent.name);
+    await expect(arPage.locator('.support-person-card__role').first()).toHaveText(agent.role_ar || agent.role);
+    await arContext.close();
+  });
 });

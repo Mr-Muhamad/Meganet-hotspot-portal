@@ -41,8 +41,11 @@ function captureDraft(tab) {
     if (tab === 'general') {
       state.drafts.general = {
         networkName: $('#g-network').value.trim(),
+        networkName_ar: $('#g-network-ar').value.trim(),
         poweredByText: $('#g-powered-text').value,
+        poweredByText_ar: $('#g-powered-text-ar').value,
         poweredByName: $('#g-powered-name').value,
+        poweredByName_ar: $('#g-powered-name-ar').value,
         poweredByUrl: $('#g-powered-url').value
       };
     } else if (tab === 'theme') {
@@ -93,7 +96,9 @@ function captureDraft(tab) {
         agents.push({
           i,
           name: $('#s-name-' + i).value.trim(),
+          name_ar: $('#s-name-ar-' + i).value.trim(),
           role: $('#s-role-' + i).value.trim(),
+          role_ar: $('#s-role-ar-' + i).value.trim(),
           phone: $('#s-phone-' + i).value.trim(),
           whatsapp: $('#s-wa-' + i).value.trim(),
           image: $('#s-img-' + i).value
@@ -143,8 +148,14 @@ function applyDrafts(c) {
 
   if (d.general) {
     if (d.general.networkName) c.general.networkName = d.general.networkName;
+    if (d.general.networkName_ar) c.general.networkName_ar = d.general.networkName_ar;
+    else delete c.general.networkName_ar;
     c.general.poweredByText = d.general.poweredByText;
+    if (d.general.poweredByText_ar) c.general.poweredByText_ar = d.general.poweredByText_ar;
+    else delete c.general.poweredByText_ar;
     c.general.poweredByName = d.general.poweredByName;
+    if (d.general.poweredByName_ar) c.general.poweredByName_ar = d.general.poweredByName_ar;
+    else delete c.general.poweredByName_ar;
     c.general.poweredByUrl = d.general.poweredByUrl;
   }
 
@@ -200,7 +211,9 @@ function applyDrafts(c) {
       const agent = c.support.agents[a.i];
       if (!agent) continue;
       agent.name = a.name;
+      if (a.name_ar) agent.name_ar = a.name_ar; else delete agent.name_ar;
       agent.role = a.role;
+      if (a.role_ar) agent.role_ar = a.role_ar; else delete agent.role_ar;
       agent.phone = a.phone;
       agent.whatsapp = a.whatsapp;
       if (a.image) agent.image = a.image; else delete agent.image;
@@ -275,12 +288,15 @@ function computeWcag(hex1, hex2) {
 function formGeneral(c) {
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = '<h3>معلومات الشبكة</h3>';
+  card.innerHTML = '<h3>معلومات الشبكة والفوتر</h3>';
   const grid = document.createElement('div');
   grid.className = 'grid';
-  grid.appendChild(field('اسم الشبكة', '<input id="g-network" value="' + esc(c.general.networkName) + '">'));
-  grid.appendChild(field('نص الفوتر', '<input id="g-powered-text" value="' + esc(c.general.poweredByText) + '">'));
-  grid.appendChild(field('اسم الفوتر', '<input id="g-powered-name" value="' + esc(c.general.poweredByName) + '">'));
+  grid.appendChild(field('اسم الشبكة (EN / الافتراضي)', '<input id="g-network" value="' + esc(c.general.networkName) + '">'));
+  grid.appendChild(field('اسم الشبكة (AR - اختياري)', '<input id="g-network-ar" value="' + esc(c.general.networkName_ar || '') + '" placeholder="مثال: ميجا نت للحلول التقنية">'));
+  grid.appendChild(field('نص الفوتر (EN / الافتراضي)', '<input id="g-powered-text" value="' + esc(c.general.poweredByText) + '">'));
+  grid.appendChild(field('نص الفوتر (AR - اختياري)', '<input id="g-powered-text-ar" value="' + esc(c.general.poweredByText_ar || '') + '" placeholder="مثال: تطوير وتشغيل ">'));
+  grid.appendChild(field('اسم رابط الفوتر (EN / الافتراضي)', '<input id="g-powered-name" value="' + esc(c.general.poweredByName) + '">'));
+  grid.appendChild(field('اسم رابط الفوتر (AR - اختياري)', '<input id="g-powered-name-ar" value="' + esc(c.general.poweredByName_ar || '') + '" placeholder="مثال: ميجا نت للحلول التقنية">'));
   grid.appendChild(field('رابط الفوتر', '<input id="g-powered-url" value="' + esc(c.general.poweredByUrl) + '">'));
   card.appendChild(grid);
   return card;
@@ -645,8 +661,10 @@ function formSupport(c) {
       .concat(imageAssets.map(a =>
         '<option value="' + esc(a.name) + '"' + (agent.image === a.name ? ' selected' : '') + '>' + esc(a.name) + '</option>'))
       .join('');
-    agentGrid.appendChild(field('الاسم', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">'));
-    agentGrid.appendChild(field('الدور', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">'));
+    agentGrid.appendChild(field('الاسم (EN / الافتراضي)', '<input id="s-name-' + i + '" value="' + esc(agent.name) + '">'));
+    agentGrid.appendChild(field('الاسم (AR - اختياري)', '<input id="s-name-ar-' + i + '" value="' + esc(agent.name_ar || '') + '" placeholder="مثال: الدعم الفني">'));
+    agentGrid.appendChild(field('الدور (EN / الافتراضي)', '<input id="s-role-' + i + '" value="' + esc(agent.role) + '">'));
+    agentGrid.appendChild(field('الدور (AR - اختياري)', '<input id="s-role-ar-' + i + '" value="' + esc(agent.role_ar || '') + '" placeholder="مثال: خدمة العملاء">'));
     agentGrid.appendChild(field('التليفون', '<input id="s-phone-' + i + '" value="' + esc(agent.phone || '') + '">'));
     agentGrid.appendChild(field('واتساب (بكود الدولة)', '<input id="s-wa-' + i + '" value="' + esc(agent.whatsapp || '') + '">'));
     agentGrid.appendChild(field('صورة (من ملفات الهوية المرفوعة)',
@@ -671,7 +689,7 @@ function formSupport(c) {
     applyDrafts(state.current.config);
     delete state.drafts.support;
     state.current.config.support = state.current.config.support || { agents: [] };
-    state.current.config.support.agents.push({ name: 'الاسم', role: 'الدور', phone: '+201000000000', whatsapp: '201000000000' });
+    state.current.config.support.agents.push({ name: 'Technical Support', name_ar: 'الدعم الفني', role: 'Customer Service', role_ar: 'خدمة العملاء', phone: '+201000000000', whatsapp: '201000000000' });
     markDirty(true);
     renderTab();
   };

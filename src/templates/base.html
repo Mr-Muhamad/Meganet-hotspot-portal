@@ -1,3 +1,6 @@
+{% set headerNetworkName = config.general.networkName_ar if (lang == 'ar' and config.general and config.general.networkName_ar) else config.general.networkName %}
+{% set footerText = config.general.poweredByText_ar if (lang == 'ar' and config.general and config.general.poweredByText_ar) else config.general.poweredByText %}
+{% set footerName = config.general.poweredByName_ar if (lang == 'ar' and config.general and config.general.poweredByName_ar) else config.general.poweredByName %}
 <!DOCTYPE html>
 <html lang="{{ lang }}" dir="{{ dir }}" data-theme="dark">
 <head>
@@ -6,7 +9,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="WiFi Portal">
+  <meta name="apple-mobile-web-app-title" content="{% if headerNetworkName %}{{ headerNetworkName | e }}{% else %}WiFi Portal{% endif %}">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" id="metaThemeColor" content="{% if config.theme and config.theme.backgroundColor %}{{ config.theme.backgroundColor | e }}{% else %}#020617{% endif %}">
   <script>
@@ -44,7 +47,7 @@
     <header class="header">
       <div class="header__brand">
         <span class="header__logo">{{ logoInline | safe }}</span>
-        <span class="header__name">{% if config.general.networkName %}{{ config.general.networkName | e }}{% else %}$(identity){% endif %}</span>
+        <span class="header__name">{% if headerNetworkName %}{{ headerNetworkName | e }}{% else %}$(identity){% endif %}</span>
         {% if page == 'status' or page == 'alogin' %}
         <!-- Mini Status Dot Indicator — shown only where the connection is
              genuinely active (status: authenticated session, alogin: right
@@ -89,15 +92,24 @@
     <!-- Footer -->
     <footer class="footer">
       <p class="footer__text">
-        {% if config.general.poweredByText %}
-          {{ config.general.poweredByText | e }}
+        {% if footerText %}
+          {{ footerText | e }}
           {% if config.general.poweredByUrl %}
             <a href="{{ config.general.poweredByUrl | e }}" class="footer__link" target="_blank" rel="noopener noreferrer">
-              {% if config.general.poweredByName %}{{ config.general.poweredByName | e }}{% else %}{{ config.general.poweredByUrl | e }}{% endif %}
+              {% if footerName %}{{ footerName | e }}{% else %}{{ config.general.poweredByUrl | e }}{% endif %}
             </a>
+          {% elif footerName %}
+            {{ footerName | e }}
           {% endif %}
         {% else %}
-          {{ i18n.footer_powered_by }} <a href="https://mikrotik.com" class="footer__link" target="_blank" rel="noopener noreferrer">{{ i18n.footer_mikrotik }}</a>
+          {{ i18n.footer_powered_by }}
+          {% if config.general.poweredByUrl %}
+            <a href="{{ config.general.poweredByUrl | e }}" class="footer__link" target="_blank" rel="noopener noreferrer">
+              {% if footerName %}{{ footerName | e }}{% else %}{{ i18n.footer_mikrotik }}{% endif %}
+            </a>
+          {% else %}
+            <a href="https://mikrotik.com" class="footer__link" target="_blank" rel="noopener noreferrer">{{ i18n.footer_mikrotik }}</a>
+          {% endif %}
         {% endif %}
       </p>
     </footer>
@@ -243,19 +255,21 @@
         <p class="support-modal__offline-note" data-i18n="support_call_guaranteed">{{ i18n.support_call_guaranteed }}</p>
         <div class="support-grid-cards">
           {% for agent in config.support.agents %}
-          <!-- Card: {{ agent.name }} -->
+          {% set agentName = agent.name_ar if (lang == 'ar' and agent.name_ar) else agent.name %}
+          {% set agentRole = agent.role_ar if (lang == 'ar' and agent.role_ar) else agent.role %}
+          <!-- Card: {{ agentName }} -->
           <div class="support-person-card">
             <div class="support-person-card__avatar">
               {% if agent.image %}
-              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image | e }}" alt="{{ agent.name | e }}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <img src="{% if lang == 'ar' %}../{% endif %}assets/{{ agent.image | e }}" alt="{{ agentName | e }}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
               {% endif %}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="support-person-card__avatar-fallback" aria-hidden="true" style="{% if agent.image %}display: none;{% endif %}">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
             </div>
             <div class="support-person-card__info">
-              <span class="support-person-card__name">{{ agent.name | e }}</span>
-              <span class="support-person-card__role">{{ agent.role | e }}</span>
+              <span class="support-person-card__name">{{ agentName | e }}</span>
+              <span class="support-person-card__role">{{ agentRole | e }}</span>
             </div>
             <div class="support-person-card__actions">
               {% if agent.phone %}

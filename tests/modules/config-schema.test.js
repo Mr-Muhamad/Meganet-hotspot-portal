@@ -116,4 +116,20 @@ describe('config schema validation', () => {
     expect(errors).toEqual([]);
     expect(warnings.some(w => w.includes('does-not-exist.png'))).toBe(true);
   });
+
+  test('optional bilingual _ar fields for general and support are optional and type-checked', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    delete config.general.networkName_ar;
+    delete config.general.poweredByText_ar;
+    delete config.general.poweredByName_ar;
+    delete config.support.agents[0].name_ar;
+    delete config.support.agents[0].role_ar;
+    expect(validate(config).errors).toEqual([]);
+  });
+
+  mistake('a non-string general.networkName_ar', 'general.networkName_ar', c => { c.general.networkName_ar = 123; });
+  mistake('a non-string general.poweredByText_ar', 'general.poweredByText_ar', c => { c.general.poweredByText_ar = 123; });
+  mistake('a non-string general.poweredByName_ar', 'general.poweredByName_ar', c => { c.general.poweredByName_ar = 123; });
+  mistake('a non-string support.agents[0].name_ar', 'support.agents[0].name_ar', c => { c.support.agents[0].name_ar = 123; });
+  mistake('a non-string support.agents[0].role_ar', 'support.agents[0].role_ar', c => { c.support.agents[0].role_ar = 123; });
 });

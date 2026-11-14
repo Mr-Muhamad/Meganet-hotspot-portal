@@ -38,8 +38,11 @@ const SCHEMA = {
     type: 'object',
     fields: {
       networkName: { type: 'string', required: true },
+      networkName_ar: { type: 'string' },
       poweredByText: { type: 'string', required: true },
+      poweredByText_ar: { type: 'string' },
       poweredByName: { type: 'string', required: true },
+      poweredByName_ar: { type: 'string' },
       poweredByUrl: { type: 'string', required: true, pattern: /^https?:\/\/[^\s"'<>]+$/ , hint: 'absolute http(s) URL' }
     }
   },
@@ -106,7 +109,9 @@ const SCHEMA = {
         required: true,
         itemFields: {
           name: { type: 'string', required: true },
+          name_ar: { type: 'string' },
           role: { type: 'string', required: true },
+          role_ar: { type: 'string' },
           phone: { type: 'string', required: true, pattern: /^\+?[\d\s-]+$/, hint: 'phone number, digits with optional +/spaces' },
           whatsapp: { type: 'string', required: true, pattern: /^\d{6,}$/, hint: 'digits only, country code without + (e.g. 201212208788)' },
           image: { type: 'string' } // cross-checked against src/assets below

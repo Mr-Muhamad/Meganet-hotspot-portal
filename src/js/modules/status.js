@@ -3,6 +3,8 @@
  * @module Hotspot.status
  */
 var statusModule = {
+  _pwaHideTimer: null,
+
   init: function() {
     try {
       statusModule.startCountdowns();
@@ -71,13 +73,21 @@ var statusModule = {
         }
       }
 
-      // Check PWA banner status
+      // Show PWA banner on every page load for a 5-second grace period
       var pwaBanner = document.getElementById('pwaBanner');
       if (pwaBanner) {
-        var isDismissed = localStorage.getItem('pwa_banner_dismissed') === 'true';
-        if (!isDismissed) {
-          pwaBanner.style.display = 'block';
+        if (statusModule._pwaHideTimer) {
+          clearTimeout(statusModule._pwaHideTimer);
+          statusModule._pwaHideTimer = null;
         }
+        pwaBanner.style.display = 'block';
+        statusModule._pwaHideTimer = setTimeout(function() {
+          statusModule._pwaHideTimer = null;
+          var activeBanner = document.getElementById('pwaBanner');
+          if (activeBanner) {
+            activeBanner.style.display = 'none';
+          }
+        }, 5000);
       }
 
       // Two-step logout confirmation guard to prevent accidental disconnects
@@ -324,10 +334,13 @@ var statusModule = {
 
   dismissPwaBanner: function() {
     try {
+      if (statusModule._pwaHideTimer) {
+        clearTimeout(statusModule._pwaHideTimer);
+        statusModule._pwaHideTimer = null;
+      }
       var pwaBanner = document.getElementById('pwaBanner');
       if (pwaBanner) {
         pwaBanner.style.display = 'none';
-        localStorage.setItem('pwa_banner_dismissed', 'true');
       }
     } catch (err) {
       console.error('Dismiss PWA banner error:', err);

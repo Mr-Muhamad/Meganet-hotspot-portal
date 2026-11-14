@@ -183,6 +183,10 @@ document.body.appendChild(mockSmartUsageCard);
   });
 
   describe('init', () => {
+    afterEach(() => {
+      statusModule.dismissPwaBanner();
+    });
+
     test('clears auth rate limits on load', () => {
       global.rateLimiter = {
         clearAll: jest.fn()
@@ -575,25 +579,49 @@ document.body.appendChild(mockSmartUsageCard);
   describe('dismissPwaBanner & init', () => {
     beforeEach(() => {
       localStorage.clear();
+      jest.useFakeTimers();
     });
 
-    test('shows banner on init if not dismissed', () => {
+    afterEach(() => {
+      statusModule.dismissPwaBanner();
+      jest.useRealTimers();
+    });
+
+    test('shows banner on init and auto-hides after 5 seconds', () => {
       expect(mockPwaBanner.style.display).toBe('none');
       statusModule.init();
       expect(mockPwaBanner.style.display).toBe('block');
+
+      jest.advanceTimersByTime(4999);
+      expect(mockPwaBanner.style.display).toBe('block');
+
+      jest.advanceTimersByTime(1);
+      expect(mockPwaBanner.style.display).toBe('none');
     });
 
-    test('hides banner on init if already dismissed', () => {
+    test('shows banner on every load even if previously dismissed', () => {
       localStorage.setItem('pwa_banner_dismissed', 'true');
       statusModule.init();
+      expect(mockPwaBanner.style.display).toBe('block');
+
+      statusModule.dismissPwaBanner();
+      expect(mockPwaBanner.style.display).toBe('none');
+
+      // Subsequent page load re-shows banner for a fresh 5-second window
+      statusModule.init();
+      expect(mockPwaBanner.style.display).toBe('block');
+      jest.advanceTimersByTime(5000);
       expect(mockPwaBanner.style.display).toBe('none');
     });
 
-    test('dismissPwaBanner hides banner and sets localStorage flag', () => {
-      mockPwaBanner.style.display = 'block';
+    test('dismissPwaBanner hides banner immediately and clears pending timer', () => {
+      statusModule.init();
+      expect(mockPwaBanner.style.display).toBe('block');
+      expect(statusModule._pwaHideTimer).not.toBeNull();
+
       statusModule.dismissPwaBanner();
       expect(mockPwaBanner.style.display).toBe('none');
-      expect(localStorage.getItem('pwa_banner_dismissed')).toBe('true');
+      expect(statusModule._pwaHideTimer).toBeNull();
     });
   });
 });

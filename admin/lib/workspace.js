@@ -275,11 +275,13 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
       const stageDist = path.join(stageDir, 'dist');
 
       try {
-        try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }
+        if (!options.skipZip && zipPath) {
+          try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }
+        }
 
         applyProfileToDir(profile, stageAssets, stageConfig, stageAnnouncements);
 
-        const rscContent = generateRscScript(profile.config, {
+        const rscContent = options.skipZip ? '' : generateRscScript(profile.config, {
           profileName: options.profileName || (profile.id ? `${profile.id}-hs-profile` : 'meganet-hs-profile'),
           htmlDir: options.htmlDir || 'hotspot',
           dnsName: options.dnsName || 'login.meganet.local',
@@ -295,12 +297,28 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
           announcementsPath: stageAnnouncements,
           assetsDir: stageAssets,
           distDir: stageDist,
+          minify: options.minify !== false,
           throwOnError: true
         });
 
         if (options.previewDistDir) {
           fs.rmSync(options.previewDistDir, { recursive: true, force: true });
           fs.cpSync(stageDist, options.previewDistDir, { recursive: true, force: true });
+        }
+
+        if (options.skipZip) {
+          return {
+            zipPath: null,
+            distFiles: 0,
+            zipSize: 0,
+            totalRawSize: 0,
+            breakdown: null,
+            flashBudgetBytes: FLASH_BUDGET_BYTES,
+            flashUsagePercent: 0,
+            overBudget: false,
+            rscContent: '',
+            files: []
+          };
         }
 
         const built = await zipDistDir(stageDist, {

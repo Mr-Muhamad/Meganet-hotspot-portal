@@ -1,4 +1,4 @@
-/* global renderTabs, renderTab, captureDraft, applyDrafts, collectMikrotikSettings, saveMikrotikSettings, refreshSimulator, renderSimPagesBar, scheduleSimulatorAutoRefresh */
+/* global renderTabs, renderTab, captureDraft, applyDrafts, collectMikrotikSettings, saveMikrotikSettings, refreshSimulator, renderSimPagesBar */
 'use strict';
 // ---------------------------------------------------------------------------
 // State
@@ -136,12 +136,11 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Track form edits in #content to light up Dirty State indicator & auto-refresh simulator
+// Track form edits in #content to light up Dirty State indicator (never auto-rebuild while typing)
 function onContentEdited(e) {
   if (state.current && $('#content') && $('#content').contains(e.target)) {
     if (!e.target.dataset.ignoreDirty) {
       markDirty(true);
-      scheduleSimulatorAutoRefresh();
     }
   }
 }

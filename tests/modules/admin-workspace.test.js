@@ -97,4 +97,24 @@ describe('admin build pipeline', () => {
     expect(fs.readdirSync(assetsDir).sort()).toEqual(before);
     expect(fileBytes(CONFIG_FILE)).toBe(configBefore);
   });
+
+  test('preview build mode (skipZip + minify:false) populates previewDistDir without creating a zip', async () => {
+    const profileDir = path.join(tmp, 'preview-profile');
+    fs.mkdirSync(profileDir, { recursive: true });
+    const previewDistDir = path.join(tmp, 'preview-dist');
+    const skippedZip = path.join(tmp, 'should-not-exist.zip');
+    const cfg = JSON.parse(fileBytes(CONFIG_FILE));
+
+    const result = await workspace.runBuildCycle(
+      { config: cfg, announcements: null, assets: [], dir: profileDir },
+      skippedZip,
+      { previewDistDir, skipZip: true, minify: false }
+    );
+
+    expect(result.zipPath).toBeNull();
+    expect(result.zipSize).toBe(0);
+    expect(fs.existsSync(skippedZip)).toBe(false);
+    expect(fs.existsSync(path.join(previewDistDir, 'ar', 'login.html'))).toBe(true);
+    expect(fs.existsSync(path.join(previewDistDir, 'login.html'))).toBe(true);
+  });
 });

@@ -520,11 +520,10 @@ async function handleApi(req, res, url, method) {
             : p.config;
           const previewAnnouncements = body.announcements !== undefined ? body.announcements : p.announcements;
           const effective = resolveEffectiveConfig(rawConfig, loadCustomPresets());
-          const previewZip = path.join(ADMIN_DIR, 'tmp', `${targetSlug}-preview.zip`);
           await workspace.runBuildCycle(
             { ...p, config: effective, announcements: previewAnnouncements, dir: path.join(store.profilesDir, targetSlug) },
-            previewZip,
-            { previewDistDir: PREVIEW_DIST_DIR, customPresetsPath: CUSTOM_PRESETS_FILE }
+            null,
+            { previewDistDir: PREVIEW_DIST_DIR, customPresetsPath: CUSTOM_PRESETS_FILE, skipZip: true, minify: false }
           );
         }
       }

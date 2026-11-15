@@ -17,35 +17,6 @@ const SIM_PAGES = [
   { id: 'index', label: 'الرئيسية' }
 ];
 
-
-let simRefreshTimer = null;
-function scheduleSimulatorAutoRefresh() {
-  if (!state.sim.open || !state.current) return;
-  clearTimeout(simRefreshTimer);
-  simRefreshTimer = setTimeout(async () => {
-    try {
-      if (!state.sim.open || !state.current) return;
-      const previewCfg = JSON.parse(JSON.stringify(state.current.config));
-      captureDraft(state.tab);
-      applyDrafts(previewCfg);
-      const data = await api('/preview', {
-        method: 'POST',
-        body: JSON.stringify({
-          slug: state.current.id,
-          port: state.sim.port,
-          config: previewCfg,
-          announcements: state.drafts.announcements !== undefined ? state.drafts.announcements : state.current.announcements
-        })
-      });
-      state.sim.baseUrl = data.baseUrl || data.url.replace(/\/login\.html$/, '');
-      state.sim.port = data.port;
-      updateSimulatorFrame();
-    } catch {
-      // Quiet skip while editing incomplete draft values
-    }
-  }, 800);
-}
-
 // ---------------------------------------------------------------------------
 // Split-Screen Live Simulator & External Preview (Package 1)
 // ---------------------------------------------------------------------------
@@ -171,7 +142,14 @@ function toggleSimExpand() {
 async function refreshSimulator(rebuild) {
   try {
     const body = {};
-    if (rebuild && state.current) body.slug = state.current.id;
+    if (rebuild && state.current) {
+      const previewCfg = JSON.parse(JSON.stringify(state.current.config));
+      captureDraft(state.tab);
+      applyDrafts(previewCfg);
+      body.slug = state.current.id;
+      body.config = previewCfg;
+      body.announcements = state.drafts.announcements !== undefined ? state.drafts.announcements : state.current.announcements;
+    }
     if (state.sim.port) body.port = state.sim.port;
     const data = await api('/preview', { method: 'POST', body: JSON.stringify(body) });
     state.sim.baseUrl = data.baseUrl || data.url.replace(/\/login\.html$/, '');
@@ -223,7 +201,7 @@ async function togglePreview() {
 boot();
 
 window.Studio = Object.assign(window.Studio || {}, {
-  scheduleSimulatorAutoRefresh,
+  refreshSimulator,
   setSimPage,
   toggleSimulator,
   setSimDevice,

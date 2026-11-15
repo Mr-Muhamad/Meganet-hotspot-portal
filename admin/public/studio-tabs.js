@@ -1,4 +1,4 @@
-/* global state, $, $$, esc, toast, markDirty, api, studioPrompt, renderProfileList, saveConfig, formMikrotik, scheduleSimulatorAutoRefresh */
+/* global state, $, $$, esc, toast, markDirty, api, studioPrompt, renderProfileList, saveConfig, formMikrotik, refreshSimulator */
 'use strict';
 // ---------------------------------------------------------------------------
 // Tabs
@@ -482,7 +482,6 @@ function applyPresetToInputs(presetId) {
     ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
   }
   markDirty(true);
-  scheduleSimulatorAutoRefresh();
   toast('تم تطبيق بريسيت: ' + p.label);
 }
 
@@ -788,7 +787,7 @@ function formWords(c) {
         '<div class="field"><label>عربية</label><input class="w-ar" value="' + esc(ar) + '"></div>' +
         '</div><button class="rowbtn" style="margin-top:8px">إزالة</button>';
       const del = row.querySelector('.rowbtn');
-      del.onclick = () => { delete ov[key]; syncWordsDraft(); markDirty(true); renderWords(); scheduleSimulatorAutoRefresh(); };
+      del.onclick = () => { delete ov[key]; syncWordsDraft(); markDirty(true); renderWords(); };
       row.querySelector('.w-key').onchange = (e) => {
         const nk = e.target.value;
         if (nk === key) return;
@@ -867,7 +866,6 @@ function formWords(c) {
         syncRadiusDraft();
         markDirty(true);
         renderRadiusErrors();
-        scheduleSimulatorAutoRefresh();
       };
       row.querySelector('.r-key').onchange = (e) => {
         const nk = e.target.value.trim();
@@ -917,7 +915,6 @@ function formWords(c) {
       state.drafts.radiusErrors = JSON.parse(JSON.stringify(state.meta.template.radiusErrorTranslations));
       markDirty(true);
       renderTab();
-      scheduleSimulatorAutoRefresh();
     }
   };
 
@@ -1172,7 +1169,7 @@ async function refreshAssetsInPlace() {
     state.current.assets.length + ' أصول · آخر تحديث ' + (state.current.updatedAt || '').slice(0, 10);
   renderAssetsList();
   renderProfileList();
-  if (state.sim.open) scheduleSimulatorAutoRefresh();
+  if (state.sim.open) refreshSimulator(true);
 }
 
 async function uploadAsset() {

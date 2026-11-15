@@ -33,7 +33,7 @@ describe('Hotspot.ui', () => {
 
       const el = document.getElementById('errorMessage');
       // documented RouterOS format is handled cleanly without exposing the username
-      expect(el.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(el.textContent).toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
       expect(el.textContent).not.toContain('testuser');
     });
 
@@ -55,7 +55,7 @@ describe('Hotspot.ui', () => {
       // And back to Arabic again — works from the cached raw, not the translated text
       document.documentElement.setAttribute('lang', 'ar');
       ui.translateRouterError();
-      expect(el.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(el.textContent).toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
     });
 
     test('leaves unknown messages unchanged', () => {
@@ -88,7 +88,7 @@ describe('Hotspot.ui', () => {
 
       ui.translateRouterError();
       expect(document.getElementById('error-message').textContent)
-        .toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+        .toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
     });
 
     test('initLang translates RouterOS error in-place instead of redirecting and losing $(error-esc)', () => {
@@ -105,7 +105,7 @@ describe('Hotspot.ui', () => {
 
       expect(document.documentElement.getAttribute('lang')).toBe('ar');
       expect(document.getElementById('errorMessage').textContent)
-        .toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+        .toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
       delete global.i18n;
     });
 
@@ -119,7 +119,7 @@ describe('Hotspot.ui', () => {
       const bdi = document.querySelector('#errorMessage bdi');
       expect(bdi).not.toBeNull();
       expect(bdi.getAttribute('dir')).toBe('auto');
-      expect(bdi.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(bdi.textContent).toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
     });
 
     test('provides readable Arabic fallback when corrupted %FFF input yields empty text or bare card digits', () => {

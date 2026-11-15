@@ -172,21 +172,20 @@ describe('Hotspot.util', () => {
 
     test('translates documented RouterOS uptime-limit format cleanly without exposing username', () => {
       const result = util.translateError('user alice has reached uptime limit', map, 'ar');
-      expect(result).toBe('انتهى الوقت المتاح لهذه البطاقة. يرجى استخدام كارت جديد.');
+      expect(result).toBe('انتهى الوقت المتاح.');
       expect(result).not.toContain('alice');
     });
 
     test('translates documented RouterOS session-limit format cleanly without exposing username', () => {
       const result = util.translateError('no more sessions are allowed for user bob', map, 'ar');
-      expect(result).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(result).toBe('لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.');
       expect(result).not.toContain('bob');
     });
 
-    test('translates documented MAC-address format cleanly without exposing username or MAC jargon', () => {
+    test('translates documented MAC-address format cleanly without exposing username', () => {
       const result = util.translateError('user eve is not allowed to log in from this MAC address', map, 'ar');
-      expect(result).toBe('هذا الكارت مرتبط بجهاز آخر ولا يمكن استخدامه من هذا الهاتف.');
+      expect(result).toBe('هذا الكارت مرتبط بجهاز آخر، أو أن ميزة العنوان العشوائي (MAC العشوائي) مفعّلة في الواي فاي.');
       expect(result).not.toContain('eve');
-      expect(result).not.toContain('MAC');
     });
 
     test('translates "you are not logged in" cleanly without exposing IP', () => {
@@ -275,9 +274,9 @@ describe('Hotspot.util', () => {
 
       test('user <270029> not found hides card/username and strips server prefix', () => {
         expect(util.translateError('user <270029> not found', configMap, 'ar'))
-          .toBe('هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.');
+          .toBe('هذا الكارت غير موجود أو تم إيقافه؛ تأكد من الأرقام.');
         expect(util.translateError('رسالة من خادم المصادقة: user <270029> not found', configMap, 'ar'))
-          .toBe('هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.');
+          .toBe('هذا الكارت غير موجود أو تم إيقافه؛ تأكد من الأرقام.');
       });
 
       test('your traffic limit is reached gets the full message, not the short key', () => {

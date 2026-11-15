@@ -196,13 +196,13 @@ var util = {
 
     // 1. Documented RouterOS error formats (generalized without exposing card numbers, usernames, or IPs)
     var patterns = [
-      [/user\s+[^\s]+\s+has reached uptime limit/i, 'انتهى الوقت المتاح لهذه البطاقة. يرجى استخدام كارت جديد.'],
-      [/user\s+[^\s]+\s+has reached traffic limit/i, 'انتهى الرصيد (سعة التحميل) المتاح. يرجى استخدام كارت جديد.'],
-      [/no more sessions are allowed for user\s+[^\s]+/i, 'هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.'],
-      [/user\s+[^\s]+\s+is not allowed to log in from this MAC address/i, 'هذا الكارت مرتبط بجهاز آخر ولا يمكن استخدامه من هذا الهاتف.'],
-      [/user\s+<[^>]+>\s+not found/i, 'هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.'],
+      [/user\s+[^\s]+\s+has reached uptime limit/i, 'انتهى الوقت المتاح.'],
+      [/user\s+[^\s]+\s+has reached traffic limit/i, 'انتهى الرصيد المتاح.'],
+      [/no more sessions are allowed for user\s+[^\s]+/i, 'لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.'],
+      [/user\s+[^\s]+\s+is not allowed to log in from this MAC address/i, 'هذا الكارت مرتبط بجهاز آخر، أو أن ميزة العنوان العشوائي (MAC العشوائي) مفعّلة في الواي فاي.'],
+      [/user\s+<[^>]+>\s+not found/i, 'هذا الكارت غير موجود أو تم إيقافه؛ تأكد من الأرقام.'],
       [/you are not logged in \(ip\s+[^)]+\)/i, 'يرجى تسجيل الدخول أولاً لفتح هذه الصفحة.'],
-      [/session limit reached \([^)]+\)/i, 'تم الوصول للحد الأقصى من المتصلين حالياً، يرجى الانتظار والمحاولة بعد قليل.'],
+      [/session limit reached \([^)]+\)/i, 'لا يمكن استخدام الكارت على أكثر من جهاز في نفس الوقت.'],
       [/internal error \([^)]+\)/i, 'حدث خطأ تقني مؤقت أثناء الاتصال، يرجى المحاولة مرة أخرى.'],
       [/configuration error \([^)]+\)/i, 'تعذر الاتصال بسبب إعدادات الشبكة، يرجى التواصل مع الدعم الفني.'],
       [/web browser did not send challenge response \([^)]+\)/i, 'المتصفح لم يكمل التحقق الأمني؛ فعّل JavaScript أو افتح الصفحة في Chrome.']

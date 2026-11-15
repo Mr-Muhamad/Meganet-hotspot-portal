@@ -164,19 +164,45 @@ var qrScanner = {
     }
   },
 
+  _getLinkParam: function(parsed, names) {
+    var hashParams = null;
+    if (parsed.hash && parsed.hash.indexOf('=') !== -1) {
+      try {
+        hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+      } catch (e) {
+        hashParams = null;
+      }
+    }
+    for (var i = 0; i < names.length; i++) {
+      var val = parsed.searchParams.get(names[i]);
+      if (val) return val;
+      if (hashParams) {
+        val = hashParams.get(names[i]);
+        if (val) return val;
+      }
+    }
+    return '';
+  },
+
   /**
    * Decide what a decoded QR payload means. Pure function (unit-tested).
-   *  - A URL payload is a link card (mikhmon format): navigate only if it is
-   *    a valid hotspot login URL (same host, private IP, or contains login path/query).
-   *    If it carries a voucher query, extract the code for auto-login safely.
-   *    Untrusted/malicious external URLs are rejected.
-   *  - Anything else is a bare voucher code: digits only.
+   * Supports BOTH card formats:
+   *  - Bare code cards: digits / alphanumeric codes (with optional "=" prefix or Arabic numerals).
+   *  - Link cards (with or without http(s):// scheme): Mikhmon/RouterOS links carrying
+   *    ?voucher= / ?code= / ?pin= or ?username= / ?user= (with optional &password= / &pass=),
+   *    or plain same-host / private-IP portal URLs. Untrusted external URLs without credentials
+   *    are rejected.
    * @param {string} text - decoded QR content
-   * @returns {Object} {action:'navigate', url} or {action:'autologin', code}
+   * @returns {Object} {action:'navigate', url} or {action:'autologin', code[, password]}
    */
   routeScan: function(text) {
     var cleaned = String(text || '').trim();
-    if (/^https?:\/\//i.test(cleaned)) {
+    var hasScheme = /^https?:\/\//i.test(cleaned);
+    var isProtocolRelative = /^\/\/[^\s/]+/.test(cleaned);
+    var isSchemelessUrl = !hasScheme && !isProtocolRelative &&
+      /^(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[a-z0-9-]+(?:\.[a-z0-9-]+)+)(?::\d+)?(?:\/[^\s]*|\?[^\s]*|#[^\s]*=[^\s]*)/i.test(cleaned);
+
+    if (hasScheme || isProtocolRelative || isSchemelessUrl) {
       // Security guard: the portal never navigates to a foreign host because
       // of a scanned payload — a swapped QR sticker pointing at a phishing
       // page must not leave the portal. Credential links (mikhmon prints
@@ -186,22 +212,23 @@ var qrScanner = {
       // $dnsname no longer resolves or does not match how the user reached
       // the portal (IP vs name).
       try {
-        var parsed = new URL(cleaned);
+        var urlToParse = hasScheme ? cleaned : (isProtocolRelative ? ('http:' + cleaned) : ('http://' + cleaned));
+        var parsed = new URL(urlToParse);
         var hostname = parsed.hostname;
         var currentHost = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
 
         // 1. Credential links: extract and log in in-place. The username is
         //    kept RAW (usernames may contain letters — normalizing to digits
-        //    would corrupt it); only the voucher parameter is normalized.
-        var voucherParam = parsed.searchParams.get('voucher');
-        var usernameParam = parsed.searchParams.get('username');
+        //    would corrupt it); voucher/code/pin parameters are normalized.
+        var voucherParam = this._getLinkParam(parsed, ['voucher', 'code', 'pin']);
+        var usernameParam = this._getLinkParam(parsed, ['username', 'user']);
         var voucherFmt = (typeof auth !== 'undefined' && auth.getVoucherFormat) ? auth.getVoucherFormat() : 'numeric';
         if (voucherParam || usernameParam) {
           var code = voucherParam
             ? auth.normalizeVoucherText(voucherParam, voucherFmt)
             : String(usernameParam).trim();
           var route = { action: 'autologin', code: code };
-          var passwordParam = parsed.searchParams.get('password');
+          var passwordParam = this._getLinkParam(parsed, ['password', 'pass']);
           if (passwordParam) {
             route.password = passwordParam;
           }
@@ -214,7 +241,7 @@ var qrScanner = {
         var isSameHost = currentHost && (hostname === currentHost);
         var isPrivateIp = /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)$/.test(hostname);
         if (isSameHost || isPrivateIp) {
-          return { action: 'navigate', url: cleaned };
+          return { action: 'navigate', url: hasScheme ? cleaned : parsed.href };
         }
 
         // Foreign URL without credentials — reject
@@ -262,12 +289,44 @@ var qrScanner = {
     this._decodeFile(file);
   },
 
+  _detectCenterWithNative: function(detector, bitmap) {
+    if (!bitmap || bitmap.width <= 1200 || bitmap.height <= 1200) {
+      return Promise.resolve(null);
+    }
+    try {
+      var cw = Math.min(bitmap.width, 1400);
+      var ch = Math.min(bitmap.height, 1400);
+      var sx = Math.round((bitmap.width - cw) / 2);
+      var sy = Math.round((bitmap.height - ch) / 2);
+      var canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, sx, sy, cw, ch, 0, 0, cw, ch);
+      return detector.detect(canvas).then(function(barcodes) {
+        canvas.width = 0;
+        canvas.height = 0;
+        return (barcodes && barcodes.length > 0 && barcodes[0].rawValue)
+          ? barcodes[0].rawValue
+          : null;
+      }).catch(function() {
+        canvas.width = 0;
+        canvas.height = 0;
+        return null;
+      });
+    } catch (e) {
+      return Promise.resolve(null);
+    }
+  },
+
   _decodeFile: function(file) {
     var self = this;
     util.showToast(i18n.t('qr_scan_reading'), 'info');
 
     // 1. Fast Native Path: BarcodeDetector API (Android Chrome 83+ & modern WebViews)
-    // Uses Google Play services / OS-level Barcode Scanner (fast, robust, supports tilted/curved shots)
+    // Uses Google Play services / OS-level Barcode Scanner (fast, robust, supports tilted/curved shots).
+    // On dense link QRs shot from comfortable distance in a 12MP frame, retry on a 1:1 native
+    // center crop so surrounding card text does not cause MLKit downscaling to blur fine modules.
     if (typeof window !== 'undefined' && window.BarcodeDetector) {
       try {
         var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
@@ -275,18 +334,26 @@ var qrScanner = {
         if (imageBitmapPromise) {
           imageBitmapPromise.then(function(bitmap) {
             return detector.detect(bitmap).then(function(barcodes) {
-              if (bitmap && bitmap.close) bitmap.close();
               if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                return barcodes[0].rawValue;
+              }
+              return self._detectCenterWithNative(detector, bitmap);
+            }).then(function(rawValue) {
+              if (bitmap && bitmap.close) bitmap.close();
+              if (rawValue) {
                 var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
                 inputs.forEach(function(inp) { inp.value = ''; });
-                self._handleResult(barcodes[0].rawValue);
+                self._handleResult(rawValue);
                 return true;
               }
               return false;
+            }).catch(function(err) {
+              if (bitmap && bitmap.close) bitmap.close();
+              throw err;
             });
           }).then(function(detected) {
             if (!detected) {
-              // Fallback to vendored decoder if native found nothing in full image
+              // Fallback to vendored decoder if native found nothing
               self._decodeWithJsQR(file);
             }
           }).catch(function() {
@@ -303,10 +370,43 @@ var qrScanner = {
   },
 
   /**
-   * jsQR decode on a canvas. Runs multi-scale (full, then half) so a small QR
-   * inside a large camera photo is still found, with both inversion attempts
-   * for dark-on-light and light-on-dark codes. Both hidden pickers are always
-   * reset so re-picking the same photo fires the change event again.
+   * Build lightweight scale and native 1:1 tile passes for jsQR.
+   * Dense link cards photographed from comfortable distance (~20-30cm) become
+   * blurry when scaled down; native 1:1 center + quadrant crops preserve raw
+   * camera pixels without heavy pixel-contrast distortion.
+   * @param {number} w
+   * @param {number} h
+   * @returns {Array<Object>}
+   */
+  _buildDecodeAttempts: function(w, h) {
+    var maxDim = Math.max(w, h);
+    var attempts = [
+      { x: 0, y: 0, w: 1, h: 1, cap: 1200 },
+      { x: 0, y: 0, w: 1, h: 1, cap: 600 }
+    ];
+    if (maxDim > 1200) {
+      // Native 1:1 center slice (no downscaling) catches dense link QRs cleanly
+      var cfW = Math.min(1, 1400 / w);
+      var cfH = Math.min(1, 1400 / h);
+      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1400 });
+      attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 2200 });
+    }
+    if (w > 1800 || h > 1800) {
+      // Native 1:1 quadrant slices catch small corner QRs on large 12MP card shots
+      var qW = Math.min(1, 1400 / w);
+      var qH = Math.min(1, 1400 / h);
+      attempts.push({ x: 0, y: 0, w: qW, h: qH, cap: 1400 });
+      attempts.push({ x: 1 - qW, y: 0, w: qW, h: qH, cap: 1400 });
+      attempts.push({ x: 0, y: 1 - qH, w: qW, h: qH, cap: 1400 });
+      attempts.push({ x: 1 - qW, y: 1 - qH, w: qW, h: qH, cap: 1400 });
+    }
+    return attempts;
+  },
+
+  /**
+   * jsQR decode on a canvas. Runs progressive full-frame scales and native 1:1
+   * center/quadrant tiles so both close-up codes and dense link cards shot at
+   * comfortable distances decode reliably, with both inversion attempts.
    */
   _decodeWithJsQR: function(file) {
     var self = this;
@@ -330,45 +430,34 @@ var qrScanner = {
       };
 
       var tryScales = function(source, w, h, release) {
-        var maxDim = Math.max(w, h);
-        // Escalating passes: fast 1200px & 600px first; if a dense link card
-        // occupies a small fraction of a 12MP camera frame, retry at 2200px and
-        // a native-resolution center crop before giving up.
-        var attempts = [
-          { cap: 1200, crop: 1 },
-          { cap: 600, crop: 1 }
-        ];
-        if (maxDim > 1200) {
-          attempts.push({ cap: 2200, crop: 1 });
-        }
-        if (w > 800 && h > 800) {
-          attempts.push({ cap: 1600, crop: 0.55 });
-        }
+        var attempts = self._buildDecodeAttempts(w, h);
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
+        var found = null;
 
         for (var i = 0; i < attempts.length; i++) {
           var cfg = attempts[i];
-          var sw = Math.max(1, Math.round(w * cfg.crop));
-          var sh = Math.max(1, Math.round(h * cfg.crop));
-          var sx = Math.round((w - sw) / 2);
-          var sy = Math.round((h - sh) / 2);
+          var sx = Math.round(w * cfg.x);
+          var sy = Math.round(h * cfg.y);
+          var sw = Math.max(1, Math.round(w * cfg.w));
+          var sh = Math.max(1, Math.round(h * cfg.h));
           var scale = Math.min(1, cfg.cap / Math.max(sw, sh));
           var cw = Math.max(1, Math.round(sw * scale));
           var ch = Math.max(1, Math.round(sh * scale));
-          var canvas = document.createElement('canvas');
           canvas.width = cw;
           canvas.height = ch;
-          var ctx = canvas.getContext('2d');
           ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
           var imageData = ctx.getImageData(0, 0, cw, ch);
           var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
           if (code && code.data) {
-            if (release) release();
-            finish(code.data);
-            return;
+            found = code.data;
+            break;
           }
         }
+        canvas.width = 0;
+        canvas.height = 0;
         if (release) release();
-        finish(null);
+        finish(found);
       };
 
       if (typeof window !== 'undefined' && window.createImageBitmap) {

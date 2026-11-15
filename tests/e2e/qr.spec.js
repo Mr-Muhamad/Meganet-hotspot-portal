@@ -79,6 +79,43 @@ test('a small QR inside a simulated camera photo still decodes (jsQR upgrade)', 
   expect(request.postData()).toContain('username=1234567890');
 });
 
+test('a corner-placed dense link QR at comfortable distance on a large photo decodes in place', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+
+  const fixtureB64 = fs.readFileSync(path.join(FIXTURES, 'voucher-link.png')).toString('base64');
+  const photoB64 = await page.evaluate(async (b64) => {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = 'data:image/png;base64,' + b64;
+    });
+    const photo = document.createElement('canvas');
+    photo.width = 3000;
+    photo.height = 2250;
+    const px = photo.getContext('2d');
+    px.fillStyle = '#e5e5e5';
+    px.fillRect(0, 0, photo.width, photo.height);
+    const w = Math.round(photo.width * 0.08);
+    const h = Math.round(img.height * w / img.width);
+    px.drawImage(img, photo.width - w - 260, photo.height - h - 260, w, h);
+    return photo.toDataURL('image/jpeg', 0.72);
+  }, fixtureB64);
+
+  await page.evaluate((b64) => {
+    const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const file = new File([buf], 'link-card-corner.jpg', { type: 'image/jpeg' });
+    const input = document.getElementById('qr-file-input');
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, photoB64.split(',')[1]);
+
+  const request = await page.waitForRequest((req) => req.method() === 'POST');
+  expect(request.postData()).toContain('username=1234567890');
+});
+
 test('a scanned mikhmon credential link logs in IN PLACE even on a foreign host', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/login.html`);
   // The card's printed $dnsname may be stale or differ from how the user

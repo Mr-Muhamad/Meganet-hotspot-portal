@@ -96,6 +96,39 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner.routeScan('')).toEqual({ action: 'autologin', code: '' });
       expect(qrScanner.routeScan(null).code).toBe('');
     });
+
+    test('supports schemeless hotspot links and alternate credential params', () => {
+      expect(qrScanner.routeScan('10.5.50.1/login?voucher=987654')).toEqual({
+        action: 'autologin',
+        code: '987654'
+      });
+      expect(qrScanner.routeScan('wifi.meganet.local/login?username=u1&password=p1')).toEqual({
+        action: 'autologin',
+        code: 'u1',
+        password: 'p1'
+      });
+      expect(qrScanner.routeScan('https://portal.example.net/login?user=ahmed&pass=pw123')).toEqual({
+        action: 'autologin',
+        code: 'ahmed',
+        password: 'pw123'
+      });
+      expect(qrScanner.routeScan('http://192.168.88.1/login#pin=445566')).toEqual({
+        action: 'autologin',
+        code: '445566'
+      });
+      expect(qrScanner.routeScan('evil-site.com/phishing')).toEqual({
+        action: 'autologin',
+        code: ''
+      });
+    });
+
+    test('_buildDecodeAttempts builds full-frame scales and native 1:1 center/corner tiles for large photos', () => {
+      const attempts = qrScanner._buildDecodeAttempts(4000, 3000);
+      expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1200 });
+      expect(attempts.some(a => a.cap === 2200 && a.w === 1)).toBe(true);
+      const nativeTiles = attempts.filter(a => a.w < 1 && a.h < 1 && a.cap === 1400);
+      expect(nativeTiles.length).toBe(5);
+    });
   });
 
   describe('buildEscapeIntentUrl', () => {

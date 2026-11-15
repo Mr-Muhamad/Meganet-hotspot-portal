@@ -32,9 +32,9 @@ describe('Hotspot.ui', () => {
       ui.translateRouterError();
 
       const el = document.getElementById('errorMessage');
-      // documented RouterOS format is handled by the built-in regex first
-      // (preserves the username), the config map applies to other messages
-      expect(el.textContent).toBe('لا يُسمح بجلسات إضافية للمستخدم testuser');
+      // documented RouterOS format is handled cleanly without exposing the username
+      expect(el.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(el.textContent).not.toContain('testuser');
     });
 
     test('caches raw error in data-raw-error for re-translation', () => {
@@ -55,7 +55,7 @@ describe('Hotspot.ui', () => {
       // And back to Arabic again — works from the cached raw, not the translated text
       document.documentElement.setAttribute('lang', 'ar');
       ui.translateRouterError();
-      expect(el.textContent).toBe('لا يُسمح بجلسات إضافية للمستخدم testuser');
+      expect(el.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
     });
 
     test('leaves unknown messages unchanged', () => {
@@ -88,7 +88,7 @@ describe('Hotspot.ui', () => {
 
       ui.translateRouterError();
       expect(document.getElementById('error-message').textContent)
-        .toBe('لا يُسمح بجلسات إضافية للمستخدم testuser');
+        .toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
     });
 
     test('initLang translates RouterOS error in-place instead of redirecting and losing $(error-esc)', () => {
@@ -105,7 +105,7 @@ describe('Hotspot.ui', () => {
 
       expect(document.documentElement.getAttribute('lang')).toBe('ar');
       expect(document.getElementById('errorMessage').textContent)
-        .toBe('لا يُسمح بجلسات إضافية للمستخدم ahmed');
+        .toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
       delete global.i18n;
     });
 
@@ -119,7 +119,7 @@ describe('Hotspot.ui', () => {
       const bdi = document.querySelector('#errorMessage bdi');
       expect(bdi).not.toBeNull();
       expect(bdi.getAttribute('dir')).toBe('auto');
-      expect(bdi.textContent).toBe('لا يُسمح بجلسات إضافية للمستخدم 8118');
+      expect(bdi.textContent).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
     });
 
     test('provides readable Arabic fallback when corrupted %FFF input yields empty text or bare card digits', () => {

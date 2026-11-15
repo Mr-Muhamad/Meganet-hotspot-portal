@@ -170,24 +170,29 @@ describe('Hotspot.util', () => {
         .toBe('حد وقت الاستخدام');
     });
 
-    test('translates documented RouterOS uptime-limit format with username', () => {
-      expect(util.translateError('user alice has reached uptime limit', map, 'ar'))
-        .toBe('المستخدم alice وصل إلى حد وقت الاستخدام');
+    test('translates documented RouterOS uptime-limit format cleanly without exposing username', () => {
+      const result = util.translateError('user alice has reached uptime limit', map, 'ar');
+      expect(result).toBe('انتهى الوقت المتاح لهذه البطاقة. يرجى استخدام كارت جديد.');
+      expect(result).not.toContain('alice');
     });
 
-    test('translates documented RouterOS session-limit format with username', () => {
-      expect(util.translateError('no more sessions are allowed for user bob', map, 'ar'))
-        .toBe('لا يُسمح بجلسات إضافية للمستخدم bob');
+    test('translates documented RouterOS session-limit format cleanly without exposing username', () => {
+      const result = util.translateError('no more sessions are allowed for user bob', map, 'ar');
+      expect(result).toBe('هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.');
+      expect(result).not.toContain('bob');
     });
 
-    test('translates documented MAC-address format with username', () => {
-      expect(util.translateError('user eve is not allowed to log in from this MAC address', map, 'ar'))
-        .toBe('المستخدم eve غير مسموح بتسجيل الدخول من عنوان MAC هذا');
+    test('translates documented MAC-address format cleanly without exposing username or MAC jargon', () => {
+      const result = util.translateError('user eve is not allowed to log in from this MAC address', map, 'ar');
+      expect(result).toBe('هذا الكارت مرتبط بجهاز آخر ولا يمكن استخدامه من هذا الهاتف.');
+      expect(result).not.toContain('eve');
+      expect(result).not.toContain('MAC');
     });
 
-    test('translates "you are not logged in" with IP', () => {
-      expect(util.translateError('you are not logged in (ip 10.0.0.5)', map, 'ar'))
-        .toBe('أنت غير مسجل الدخول (IP: 10.0.0.5)');
+    test('translates "you are not logged in" cleanly without exposing IP', () => {
+      const result = util.translateError('you are not logged in (ip 10.0.0.5)', map, 'ar');
+      expect(result).toBe('يرجى تسجيل الدخول أولاً لفتح هذه الصفحة.');
+      expect(result).not.toContain('10.0.0.5');
     });
 
     test('returns original for unknown messages (safe fallback)', () => {
@@ -202,12 +207,12 @@ describe('Hotspot.util', () => {
 
     test('longest key wins over generic keys', () => {
       const nestedMap = {
-        'session': 'جلسة',
-        'no more sessions': 'لا يُسمح بجلسات إضافية',
-        'no more sessions are allowed for user': 'لا يُسمح بجلسات إضافية للمستخدم'
+        'limit': 'حد',
+        'credit limit': 'حد الرصيد',
+        'credit limit reached for plan': 'انتهى الرصيد المحدد لهذه الباقة.'
       };
-      expect(util.translateError('no more sessions are allowed for user carol', nestedMap, 'ar'))
-        .toBe('لا يُسمح بجلسات إضافية للمستخدم carol');
+      expect(util.translateError('credit limit reached for plan gold', nestedMap, 'ar'))
+        .toBe('انتهى الرصيد المحدد لهذه الباقة.');
     });
 
     test('ignores _-prefixed comment keys', () => {
@@ -268,16 +273,22 @@ describe('Hotspot.util', () => {
         expect(result).toMatch(/[\u0600-\u06FF]/); // Arabic output
       });
 
-      test('user <270029> not found keeps the username in the output', () => {
+      test('user <270029> not found hides card/username and strips server prefix', () => {
         expect(util.translateError('user <270029> not found', configMap, 'ar'))
-          .toBe('عذراً، الحساب <270029> غير مسجل في نظامنا.');
+          .toBe('هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.');
         expect(util.translateError('رسالة من خادم المصادقة: user <270029> not found', configMap, 'ar'))
-          .toBe('عذراً، الحساب <270029> غير مسجل في نظامنا.');
+          .toBe('هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.');
       });
 
       test('your traffic limit is reached gets the full message, not the short key', () => {
         expect(util.translateError('your traffic limit is reached', configMap, 'ar'))
           .toBe(util.translateError('traffic limit reached', configMap, 'ar'));
+      });
+
+      test('covers extended RADIUS phrases cleanly in Arabic', () => {
+        expect(util.translateError('voucher expired', configMap, 'ar')).toContain('انتهت مدة صلاحية الكارت');
+        expect(util.translateError('quota exceeded', configMap, 'ar')).toContain('انتهى الرصيد');
+        expect(util.translateError('unknown user profile', configMap, 'ar')).toContain('الدعم الفني');
       });
     });
   });

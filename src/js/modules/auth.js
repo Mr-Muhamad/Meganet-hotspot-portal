@@ -135,11 +135,19 @@ var auth = {
           lowerErr.indexOf('no more sessions') !== -1 ||
           lowerErr.indexOf('internal error') !== -1 ||
           lowerErr.indexOf('لا يستجيب') !== -1 ||
+          lowerErr.indexOf('بطء الخادم') !== -1 ||
           lowerErr.indexOf('جلسة نشطة بالفعل') !== -1 ||
+          lowerErr.indexOf('اتصال نشط بالفعل') !== -1 ||
           lowerErr.indexOf('المصادقة بالفعل') !== -1 ||
+          lowerErr.indexOf('التحقق من الكارت بالفعل') !== -1 ||
           lowerErr.indexOf('إيقاف خدمة') !== -1 ||
+          lowerErr.indexOf('متوقفة مؤقتاً') !== -1 ||
           lowerErr.indexOf('جلسات إضافية') !== -1 ||
-          lowerErr.indexOf('خطأ داخلي') !== -1;
+          lowerErr.indexOf('الحد الأقصى من الأجهزة') !== -1 ||
+          lowerErr.indexOf('الحد الأقصى من المتصلين') !== -1 ||
+          lowerErr.indexOf('مزدحمة') !== -1 ||
+          lowerErr.indexOf('خطأ داخلي') !== -1 ||
+          lowerErr.indexOf('خطأ تقني مؤقت') !== -1;
         if (isSystemOrSessionErr && typeof rateLimiter !== 'undefined' && rateLimiter.reset) {
           rateLimiter.reset('device');
         }
@@ -581,10 +589,19 @@ var auth = {
       'not allowed to log in from this mac',
       'غير صحيحة',
       'لا يمكن استخدام هذا الحساب',
+      'مرتبط بجهاز آخر',
+      'غير مسموح باستخدامه',
       'غير مسموح من عنوان',
+      'غير مسجل في النظام',
+      'موقوف حالياً',
+      'غير مفعّل محلياً',
+      'رفض الدخول',
       'حد وقت الاستخدام',
+      'انتهى الوقت المتاح',
       'حد البيانات',
+      'انتهى الرصيد',
       'انتهى حساب المستخدم',
+      'انتهت مدة صلاحية',
       'انتهت صلاحية',
       'استهلكت كامل سعة'
     ];

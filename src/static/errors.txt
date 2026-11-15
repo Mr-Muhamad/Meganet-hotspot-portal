@@ -2,32 +2,32 @@
 # MikroTik Hotspot Portal 2026
 
 # Internal errors
-internal-error = Internal error: $(error-orig)
-config-error = Configuration error: $(error-orig)
+internal-error = Temporary connection error occurred. Please try again.
+config-error = Connection failed due to network settings. Please contact support.
 
 # Authentication errors
-not-logged-in = You are not logged in (IP: $(ip))
-invalid-username = Invalid username or password
-wrong-mac-username = This account cannot be used from this device
-invalid-mac = User $(username) is not allowed from this MAC address
-chap-missing = JavaScript is required for secure login. Please enable JavaScript.
+not-logged-in = Please sign in first to continue.
+invalid-username = Invalid voucher code or password. Please check and try again.
+wrong-mac-username = This card is linked to another device and cannot be used here.
+invalid-mac = This card is not allowed on this device. Please contact support.
+chap-missing = JavaScript is required for secure sign-in. Please enable it or use Chrome.
 
 # Session limits
-user-session-limit = No more sessions allowed for user $(username)
-license-session-limit = Session limit reached: $(error-orig)
+user-session-limit = This card is already active on another device. Disconnect it first and try again.
+license-session-limit = Network connection limit reached. Please wait a moment and try again.
 
 # Account limits
-uptime-limit = User $(username) has reached uptime limit
-traffic-limit = User $(username) has reached traffic limit
-account-expired = Account expired for user $(username)
+uptime-limit = Time balance has ended. Please use a new voucher card.
+traffic-limit = Data balance has ended. Please use a new voucher card.
+account-expired = This voucher card has expired. Please use a new card.
 
 # Network errors
-ippool-empty = Cannot assign IP address - no free addresses
-shutting-down = Hotspot service is shutting down
+ippool-empty = Network is currently full. Please wait a moment and try again.
+shutting-down = Hotspot service is temporarily down for maintenance. Please try again shortly.
 
 # RADIUS errors
-radius-timeout = Authentication server is not responding
-auth-in-progress = Already authorizing, please wait
+radius-timeout = Verification server is taking too long to respond. Please try again in a moment.
+auth-in-progress = Already signing in, please wait a moment.
 # The raw reply text is shown; this template also translates known
 # RADIUS/User Manager messages client-side (see config.json
 # radiusErrorTranslations).

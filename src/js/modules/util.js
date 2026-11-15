@@ -194,19 +194,18 @@ var util = {
 
     if (lang !== 'ar' || !map || typeof map !== 'object') return cleaned;
 
-    // 1. Documented RouterOS error formats carrying a username
+    // 1. Documented RouterOS error formats (generalized without exposing card numbers, usernames, or IPs)
     var patterns = [
-      [/user\s+([^\s]+)\s+has reached uptime limit/i, 'المستخدم $1 وصل إلى حد وقت الاستخدام'],
-      [/user\s+([^\s]+)\s+has reached traffic limit/i, 'المستخدم $1 وصل إلى حد البيانات'],
-      [/no more sessions are allowed for user\s+([^\s]+)/i, 'لا يُسمح بجلسات إضافية للمستخدم $1'],
-      [/user\s+([^\s]+)\s+is not allowed to log in from this MAC address/i, 'المستخدم $1 غير مسموح بتسجيل الدخول من عنوان MAC هذا'],
-      // User Manager reject format: user <270029> not found
-      [/user\s+<([^>]+)>\s+not found/i, 'عذراً، الحساب <$1> غير مسجل في نظامنا.'],
-      [/you are not logged in \(ip\s+([^)]+)\)/i, 'أنت غير مسجل الدخول (IP: $1)'],
-      [/session limit reached \(([^)]+)\)/i, 'تم الوصول إلى حد الجلسات ($1)'],
-      [/internal error \(([^)]+)\)/i, 'خطأ داخلي ($1)'],
-      [/configuration error \(([^)]+)\)/i, 'خطأ في الإعدادات ($1)'],
-      [/web browser did not send challenge response \(([^)]+)\)/i, 'المتصفح لم يرسل استجابة التشفير ($1)']
+      [/user\s+[^\s]+\s+has reached uptime limit/i, 'انتهى الوقت المتاح لهذه البطاقة. يرجى استخدام كارت جديد.'],
+      [/user\s+[^\s]+\s+has reached traffic limit/i, 'انتهى الرصيد (سعة التحميل) المتاح. يرجى استخدام كارت جديد.'],
+      [/no more sessions are allowed for user\s+[^\s]+/i, 'هذا الكارت متصل حالياً على الحد الأقصى من الأجهزة؛ افصل الجهاز الآخر أولاً.'],
+      [/user\s+[^\s]+\s+is not allowed to log in from this MAC address/i, 'هذا الكارت مرتبط بجهاز آخر ولا يمكن استخدامه من هذا الهاتف.'],
+      [/user\s+<[^>]+>\s+not found/i, 'هذا الكارت غير مسجل في النظام؛ تأكد من الأرقام أو تواصل مع الدعم الفني.'],
+      [/you are not logged in \(ip\s+[^)]+\)/i, 'يرجى تسجيل الدخول أولاً لفتح هذه الصفحة.'],
+      [/session limit reached \([^)]+\)/i, 'تم الوصول للحد الأقصى من المتصلين حالياً، يرجى الانتظار والمحاولة بعد قليل.'],
+      [/internal error \([^)]+\)/i, 'حدث خطأ تقني مؤقت أثناء الاتصال، يرجى المحاولة مرة أخرى.'],
+      [/configuration error \([^)]+\)/i, 'تعذر الاتصال بسبب إعدادات الشبكة، يرجى التواصل مع الدعم الفني.'],
+      [/web browser did not send challenge response \([^)]+\)/i, 'المتصفح لم يكمل التحقق الأمني؛ فعّل JavaScript أو افتح الصفحة في Chrome.']
     ];
     var patternInput = cleaned.replace(/^رسالة من خادم المصادقة:\s*/i, '');
     for (var i = 0; i < patterns.length; i++) {

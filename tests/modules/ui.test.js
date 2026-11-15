@@ -209,6 +209,19 @@ describe('Hotspot.ui', () => {
 
       window.history.pushState({}, '', '/ar/login.html');
       expect(ui.getRedirectPath('en')).toBe('/login.html');
+
+      // Extensionless RouterOS servlet paths normalize to .html template files
+      window.history.pushState({}, '', '/login');
+      expect(ui.getRedirectPath('ar')).toBe('/ar/login.html');
+
+      window.history.pushState({}, '', '/status');
+      expect(ui.getRedirectPath('ar')).toBe('/ar/status.html');
+
+      window.history.pushState({}, '', '/');
+      expect(ui.getRedirectPath('ar')).toBe('/ar/login.html');
+
+      window.history.pushState({}, '', '/ar/login');
+      expect(ui.getRedirectPath('en')).toBe('/login.html');
     });
 
     test('toggleLang toggles between en and ar', () => {

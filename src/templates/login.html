@@ -63,6 +63,9 @@
                  A double quote in that URL can still terminate the attribute. -->
             <input type="hidden" name="dst" value="$(link-orig)">
             <input type="hidden" name="popup" value="$(popup)">
+            {% if lang == 'ar' %}
+            <input type="hidden" name="target" value="ar">
+            {% endif %}
 
             $(if chap-id)
             <!-- CHAP mode: hidden fields for challenge data -->

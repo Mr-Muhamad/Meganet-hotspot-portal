@@ -128,14 +128,23 @@ var ui = {
       var path = window.location.pathname;
       var isAr = path.indexOf('/ar/') !== -1;
 
+      var ensureHtml = function(p) {
+        var lastSlash = p.lastIndexOf('/');
+        var seg = p.substring(lastSlash + 1);
+        if (!seg) return p + 'login.html';
+        if (seg.indexOf('.') === -1) return p + '.html';
+        return p;
+      };
+
       if (targetLang === 'ar' && !isAr) {
-        var lastSlashIdx = path.lastIndexOf('/');
+        var arPath = ensureHtml(path);
+        var lastSlashIdx = arPath.lastIndexOf('/');
         if (lastSlashIdx !== -1) {
-          return path.substring(0, lastSlashIdx) + '/ar' + path.substring(lastSlashIdx);
+          return arPath.substring(0, lastSlashIdx) + '/ar' + arPath.substring(lastSlashIdx);
         }
-        return '/ar' + path;
+        return '/ar' + arPath;
       } else if (targetLang === 'en' && isAr) {
-        return path.replace('/ar/', '/');
+        return ensureHtml(path.replace('/ar/', '/'));
       }
     } catch (err) {
       console.error('Get redirect path error:', err);

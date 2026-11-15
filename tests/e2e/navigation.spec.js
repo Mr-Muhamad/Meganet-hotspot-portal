@@ -56,12 +56,22 @@ test('the language toggle switches to the English portal', async ({ context, pag
   expect(cookies.find((c) => c.name === 'hotspot_lang')?.value).toBe('en');
 });
 
-test('alogin shows the connected state and a countdown before redirecting', async ({ page }) => {
+test('alogin shows the connected state, balance button, and redirects to status after countdown', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/alogin.html`);
   // the countdown is LIVE (3→2→1) — assert a live digit, not a snapshot of "3"
   await expect(page.locator('#countdown')).toHaveText(/[1-3]/);
   await expect(page.locator('[data-i18n="connected"]')).toBeVisible();
-  // the manual escape hatch (Continue Now) targets the demo redirect URL —
-  // scope to the card so the support modal's buttons don't match.
-  await expect(page.locator('.card a.btn-primary')).toHaveAttribute('href', 'http://www.example.com/');
+  // Primary button navigates straight to the balance/status page
+  await expect(page.locator('.card #viewStatusBtn.btn-primary')).toHaveAttribute('href', './status.html');
+  // Secondary button targets the demo external redirect URL when present
+  await expect(page.locator('.card #continueNow.btn-secondary')).toHaveAttribute('href', 'http://www.example.com/');
+  // Countdown automatically lands on the Arabic status page
+  await expect(page).toHaveURL(`${DEFAULT}/ar/status.html`, { timeout: 6000 });
+});
+
+test('alogin in English redirects to English status.html', async ({ page, context }) => {
+  await context.addCookies([{ name: 'hotspot_lang', value: 'en', domain: '127.0.0.1', path: '/' }]);
+  await page.goto(`${DEFAULT}/alogin.html`);
+  await expect(page.locator('.card #viewStatusBtn.btn-primary')).toHaveAttribute('href', './status.html');
+  await expect(page).toHaveURL(`${DEFAULT}/status.html`, { timeout: 6000 });
 });

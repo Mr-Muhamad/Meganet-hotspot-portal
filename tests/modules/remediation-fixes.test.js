@@ -458,10 +458,12 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       document.body.innerHTML = '';
     });
 
-    test('prand-title.svg disables animated layers under reduced-motion and avoids feDropShadow filters', () => {
+    test('prand-title.svg uses CSS keyframe motion layers without SMIL or feDropShadow filters', () => {
       const svg = fs.readFileSync(path.join(ROOT, 'src', 'assets', 'prand-title.svg'), 'utf8');
       expect(svg).toContain('.svg-motion-layer');
       expect(svg).toContain('.svg-static-layer');
+      expect(svg).toContain('@keyframes');
+      expect(svg).not.toMatch(/<animate(?:Transform|Motion)?\b/);
       expect(svg).not.toContain('<feDropShadow');
     });
   });

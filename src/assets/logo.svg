@@ -15,7 +15,7 @@
         fill: #ffffff;
       }
     }
-    
+
     .core-m {
       fill: #48ff00;
       filter: url(#green-glow-logo);
@@ -31,6 +31,35 @@
         filter: none;
       }
     }
+
+    .logo-ring-outer {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: logo-spin-cw 10s linear infinite;
+    }
+    .logo-ring-inner {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: logo-spin-ccw 8s linear infinite;
+    }
+    .logo-pulse-ring {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: logo-pulse 2s linear infinite;
+    }
+
+    @keyframes logo-spin-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes logo-spin-ccw {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes logo-pulse {
+      from { transform: scale(1); opacity: 1; }
+      to { transform: scale(2.667); opacity: 0; }
+    }
   </style>
 
   <defs>
@@ -39,7 +68,7 @@
       <stop offset="50%" style="stop-color:#ff0080;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
     </linearGradient>
-    
+
     <!-- Glowing green shadow filter -->
     <filter id="green-glow-logo" x="-30%" y="-30%" width="160%" height="160%">
       <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#48ff00" flood-opacity="0.85"/>
@@ -48,22 +77,15 @@
 
   <g class="core-hub-header" transform="translate(60, 60)">
     <!-- Rotating outer rings -->
-    <circle cx="0" cy="0" r="54" fill="none" stroke="url(#cyber-grad-logo)" stroke-width="6" stroke-dasharray="35 15">
-      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="0" cy="0" r="44" fill="none" stroke="#00d4ff" stroke-width="4" stroke-dasharray="25 20">
-      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="8s" repeatCount="indefinite"/>
-    </circle>
-    
+    <circle class="logo-ring-outer" cx="0" cy="0" r="54" fill="none" stroke="url(#cyber-grad-logo)" stroke-width="6" stroke-dasharray="35 15" />
+    <circle class="logo-ring-inner" cx="0" cy="0" r="44" fill="none" stroke="#00d4ff" stroke-width="4" stroke-dasharray="25 20" />
+
     <!-- Pulse ring -->
-    <circle cx="0" cy="0" r="30" fill="none" stroke="#48ff00" stroke-width="4">
-      <animate attributeName="r" values="30; 80" dur="2s" repeatCount="indefinite" />
-      <animate attributeName="opacity" values="1; 0" dur="2s" repeatCount="indefinite" />
-    </circle>
-    
+    <circle class="logo-pulse-ring" cx="0" cy="0" r="30" fill="none" stroke="#48ff00" stroke-width="4" />
+
     <!-- Solid core background -->
     <circle class="core-bg" cx="0" cy="0" r="34" />
-    
+
     <!-- The Letter M inside the core -->
     <text class="core-m" x="0" y="18" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="52" text-anchor="middle" text-rendering="geometricPrecision">M</text>
   </g>

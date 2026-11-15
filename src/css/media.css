@@ -842,34 +842,34 @@
 
 /* Device info chips (IP / MAC in login footer) */
 .footer__device-info {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: nowrap;
   width: 100%;
   border-top: 1px dashed var(--color-border);
-  padding-top: 6px;
+  padding-top: 8px;
 }
 .device-chip {
   cursor: pointer;
-  padding: 2px 6px;
-  min-height: 24px;
+  padding: 4px 8px;
+  min-height: 36px;
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   font-family: inherit;
-  font-size: clamp(9px, 2.5vw, 10.5px);
+  font-size: clamp(10.5px, 2.7vw, 11.5px);
   white-space: nowrap;
   overflow: hidden;
   color: inherit;
   border-radius: var(--radius-sm);
   background: var(--color-surface-hover);
   border: 1px solid var(--color-border);
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .device-chip__value {
   color: var(--color-text);
@@ -878,9 +878,9 @@
   text-overflow: ellipsis;
 }
 .mac-type-display {
-  font-size: 8px;
+  font-size: 9.5px;
   font-weight: bold;
-  margin-inline-start: 1px;
+  margin-inline-start: 2px;
   flex-shrink: 0;
 }
 /* JS sets one of these classes instead of inline style colors so the hues
@@ -1074,7 +1074,6 @@
 
 /* ===== Plans page: CTA section (migration 2026-11) ===== */
 .plans-empty {
-  grid-column: 1/-1;
   text-align: center;
   color: var(--color-text-muted);
 }
@@ -1170,6 +1169,7 @@
   margin-top: var(--space-xs);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  text-align: center;
 }
 
 /* Camera→browser instruction (stripped WebView only) — a loud blue info

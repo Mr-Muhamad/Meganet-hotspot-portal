@@ -50,15 +50,150 @@
       display: none;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .svg-glitch-layer,
-      .svg-pulse-ring,
-      .svg-motion-layer {
-        display: none;
-      }
-      .svg-static-layer {
-        display: block;
-      }
+    .svg-motion-layer {
+      display: block;
+    }
+
+    /* Motion layer CSS animations (compositor-friendly replacement for SMIL) */
+    .prand-net-line-1 {
+      animation: prand-dash-rev 2s linear infinite;
+    }
+    .prand-net-line-2 {
+      animation: prand-dash-fwd 3s linear infinite;
+    }
+    .prand-node {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: prand-node-pulse 3s ease-in-out infinite;
+    }
+    .prand-node--alt {
+      animation-delay: 1.5s;
+    }
+    .core-hub-prand {
+      animation: prand-hub-float 6s ease-in-out infinite;
+    }
+    .prand-ring-outer {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: prand-spin-cw 10s linear infinite;
+    }
+    .prand-ring-inner {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: prand-spin-ccw 8s linear infinite;
+    }
+    .svg-pulse-ring {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: prand-pulse 2s linear infinite;
+    }
+
+    .prand-clip-1 {
+      animation: prand-slice-1 6s steps(1, end) infinite;
+    }
+    .prand-clip-2 {
+      animation: prand-slice-2 6s steps(1, end) infinite;
+    }
+    .prand-glitch-cyan {
+      animation: prand-glitch-cyan 6s steps(1, end) infinite;
+    }
+    .prand-glitch-magenta {
+      animation: prand-glitch-magenta 6s steps(1, end) infinite;
+    }
+    .prand-glitch-base {
+      animation: prand-glitch-base 6s steps(1, end) infinite;
+    }
+    .prand-glitch-slice-1 {
+      animation: prand-glitch-slice-1 6s steps(1, end) infinite;
+    }
+    .prand-glitch-slice-2 {
+      animation: prand-glitch-slice-2 6s steps(1, end) infinite;
+    }
+
+    @keyframes prand-dash-rev {
+      from { stroke-dashoffset: 100; }
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes prand-dash-fwd {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: 100; }
+    }
+    @keyframes prand-node-pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.25); }
+    }
+    @keyframes prand-hub-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes prand-spin-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes prand-spin-ccw {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes prand-pulse {
+      from { transform: scale(1); opacity: 1; }
+      to { transform: scale(2.5); opacity: 0; }
+    }
+
+    @keyframes prand-slice-1 {
+      0%, 52%, 90%, 100% { transform: translateY(0); }
+      50% { transform: translateY(48px); }
+      51% { transform: translateY(60px); }
+      85% { transform: translateY(45px); }
+      86% { transform: translateY(65px); }
+      88% { transform: translateY(52px); }
+    }
+    @keyframes prand-slice-2 {
+      0%, 52%, 90%, 100% { transform: translateY(0); }
+      50% { transform: translateY(58px); }
+      51% { transform: translateY(45px); }
+      85% { transform: translateY(60px); }
+      86% { transform: translateY(48px); }
+      88% { transform: translateY(66px); }
+    }
+    @keyframes prand-glitch-cyan {
+      0%, 52%, 90%, 100% { opacity: 0; transform: translate(0, 0); }
+      50% { opacity: 0.8; transform: translate(-4px, 2px); }
+      51% { opacity: 0.5; transform: translate(3px, -1px); }
+      85% { opacity: 0.9; transform: translate(-6px, -2px); }
+      86% { opacity: 0.6; transform: translate(5px, 1px); }
+      88% { opacity: 0.8; transform: translate(-7px, 2px); }
+    }
+    @keyframes prand-glitch-magenta {
+      0%, 52%, 90%, 100% { opacity: 0; transform: translate(0, 0); }
+      50% { opacity: 0.7; transform: translate(4px, -2px); }
+      51% { opacity: 0.9; transform: translate(-3px, 1px); }
+      85% { opacity: 0.8; transform: translate(6px, 2px); }
+      86% { opacity: 0.9; transform: translate(-5px, -1px); }
+      88% { opacity: 0.5; transform: translate(7px, -2px); }
+    }
+    @keyframes prand-glitch-base {
+      0%, 52%, 90%, 100% { opacity: 1; transform: translate(0, 0); }
+      50% { opacity: 0.6; transform: translate(-2px, 1px); }
+      51% { opacity: 0.8; transform: translate(2px, -1px); }
+      85% { opacity: 0.4; transform: translate(-4px, 0); }
+      86% { opacity: 0.7; transform: translate(4px, 2px); }
+      88% { opacity: 0.5; transform: translate(-2px, -2px); }
+    }
+    @keyframes prand-glitch-slice-1 {
+      0%, 52%, 90%, 100% { opacity: 0; transform: translate(0, 0); }
+      50% { opacity: 1; transform: translate(-12px, 0); }
+      51% { opacity: 1; transform: translate(15px, 0); }
+      85% { opacity: 1; transform: translate(-20px, 0); }
+      86% { opacity: 1; transform: translate(18px, 0); }
+      88% { opacity: 1; transform: translate(-25px, 0); }
+    }
+    @keyframes prand-glitch-slice-2 {
+      0%, 52%, 90%, 100% { opacity: 0; transform: translate(0, 0); }
+      50% { opacity: 1; transform: translate(15px, 0); }
+      51% { opacity: 1; transform: translate(-10px, 0); }
+      85% { opacity: 1; transform: translate(25px, 0); }
+      86% { opacity: 1; transform: translate(-20px, 0); }
+      88% { opacity: 1; transform: translate(18px, 0); }
     }
   </style>
 
@@ -71,15 +206,11 @@
 
     <!-- Cyber Glitch Horizontal Slices -->
     <clipPath id="glitch-slice-1">
-      <rect x="0" y="0" width="400" height="8">
-        <animate attributeName="y" calcMode="discrete" values="0; 48; 60; 0; 45; 65; 52; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      </rect>
+      <rect class="prand-clip-1" x="0" y="0" width="400" height="8" />
     </clipPath>
-    
+
     <clipPath id="glitch-slice-2">
-      <rect x="0" y="0" width="400" height="5">
-        <animate attributeName="y" calcMode="discrete" values="0; 58; 45; 0; 60; 48; 66; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      </rect>
+      <rect class="prand-clip-2" x="0" y="0" width="400" height="5" />
     </clipPath>
   </defs>
 
@@ -105,87 +236,53 @@
   </g>
 
   <g class="svg-motion-layer" aria-hidden="true">
-  <!-- Network Background -->
-  <g stroke="#00d4ff" stroke-width="1.5" opacity="0.6" aria-hidden="true">
-    <path d="M40 60 L90 30 L160 80 L220 40 L290 90 L360 50" fill="none" stroke-dasharray="10 15">
-      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite" />
-    </path>
-    <path d="M40 60 L100 90 L180 30 L250 80 L310 30 L360 50" fill="none" stroke-dasharray="10 15">
-      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3s" repeatCount="indefinite" />
-    </path>
-  </g>
+    <!-- Network Background -->
+    <g stroke="#00d4ff" stroke-width="1.5" opacity="0.6" aria-hidden="true">
+      <path class="prand-net-line-1" d="M40 60 L90 30 L160 80 L220 40 L290 90 L360 50" fill="none" stroke-dasharray="10 15" />
+      <path class="prand-net-line-2" d="M40 60 L100 90 L180 30 L250 80 L310 30 L360 50" fill="none" stroke-dasharray="10 15" />
+    </g>
 
-  <!-- Network Nodes -->
-  <g fill="#00d4ff" aria-hidden="true">
-    <circle cx="40" cy="60" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
-    <circle cx="90" cy="30" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
-    <circle cx="100" cy="90" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
-    <circle cx="160" cy="80" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
-    <circle cx="180" cy="30" r="5"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="4;6;4" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
-    <circle cx="220" cy="40" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
-    <circle cx="250" cy="80" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
-    <circle cx="290" cy="90" r="3"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="2;4;2" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
-    <circle cx="310" cy="30" r="4"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="0s" /><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite" begin="0s" /></circle>
-    <circle cx="360" cy="50" r="5"><animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.5s" /><animate attributeName="r" values="4;6;4" dur="3s" repeatCount="indefinite" begin="1.5s" /></circle>
-  </g>
+    <!-- Network Nodes -->
+    <g fill="#00d4ff" aria-hidden="true">
+      <circle class="prand-node" cx="40" cy="60" r="4" />
+      <circle class="prand-node prand-node--alt" cx="90" cy="30" r="3" />
+      <circle class="prand-node" cx="100" cy="90" r="4" />
+      <circle class="prand-node prand-node--alt" cx="160" cy="80" r="3" />
+      <circle class="prand-node" cx="180" cy="30" r="5" />
+      <circle class="prand-node prand-node--alt" cx="220" cy="40" r="3" />
+      <circle class="prand-node" cx="250" cy="80" r="4" />
+      <circle class="prand-node prand-node--alt" cx="290" cy="90" r="3" />
+      <circle class="prand-node" cx="310" cy="30" r="4" />
+      <circle class="prand-node prand-node--alt" cx="360" cy="50" r="5" />
+    </g>
 
-  <!-- Central Digital Core -->
-  <g class="core-hub-prand" transform="translate(50, 60)" aria-hidden="true">
-    <animateTransform attributeName="transform" type="translate" values="50 60; 50 57; 50 60" dur="6s" repeatCount="indefinite" />
-    <!-- Rotating outer rings -->
-    <circle cx="0" cy="0" r="38" fill="none" stroke="url(#cyber-grad-prand)" stroke-width="3" stroke-dasharray="15 5">
-      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="0" cy="0" r="30" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="10 10">
-      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="8s" repeatCount="indefinite"/>
-    </circle>
-    <!-- Pulse ring -->
-    <circle class="svg-pulse-ring" cx="0" cy="0" r="20" fill="none" stroke="#48ff00" stroke-width="2">
-      <animate attributeName="r" values="20; 50" dur="2s" repeatCount="indefinite" />
-      <animate attributeName="opacity" values="1; 0" dur="2s" repeatCount="indefinite" />
-    </circle>
-    <circle class="core-bg" cx="0" cy="0" r="24" />
-    <text class="core-m" x="0" y="15" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" text-anchor="middle" text-rendering="geometricPrecision">M</text>
-  </g>
+    <!-- Central Digital Core (explicit coordinates avoid SVGO collapsing transform with CSS animation) -->
+    <g class="core-hub-prand" aria-hidden="true">
+      <!-- Rotating outer rings -->
+      <circle class="prand-ring-outer" cx="50" cy="60" r="38" fill="none" stroke="url(#cyber-grad-prand)" stroke-width="3" stroke-dasharray="15 5" />
+      <circle class="prand-ring-inner" cx="50" cy="60" r="30" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="10 10" />
+      <!-- Pulse ring -->
+      <circle class="svg-pulse-ring" cx="50" cy="60" r="20" fill="none" stroke="#48ff00" stroke-width="2" />
+      <circle class="core-bg" cx="50" cy="60" r="24" />
+      <text class="core-m" x="50" y="75" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" text-anchor="middle" text-rendering="geometricPrecision">M</text>
+    </g>
   </g>
 
   <!-- Cyber Glitch Effect Text Layers -->
   <g class="text-luxury text-en" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="42" text-rendering="geometricPrecision">
-    
     <!-- Layer 2: Cyan RGB Split -->
-    <text class="svg-glitch-layer" aria-hidden="true" x="108" y="73" fill="#00d4ff" opacity="0">
-      MEGA NET
-      <animate attributeName="opacity" calcMode="discrete" values="0; 0.8; 0.5; 0; 0.9; 0.6; 0.8; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -4 2; 3 -1; 0 0; -6 -2; 5 1; -7 2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-    </text>
+    <text class="svg-glitch-layer prand-glitch-cyan" aria-hidden="true" x="108" y="73" fill="#00d4ff" opacity="0">MEGA NET</text>
 
     <!-- Layer 3: Magenta RGB Split -->
-    <text class="svg-glitch-layer" aria-hidden="true" x="108" y="73" fill="#ff0080" opacity="0">
-      MEGA NET
-      <animate attributeName="opacity" calcMode="discrete" values="0; 0.7; 0.9; 0; 0.8; 0.9; 0.5; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; 4 -2; -3 1; 0 0; 6 2; -5 -1; 7 -2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-    </text>
+    <text class="svg-glitch-layer prand-glitch-magenta" aria-hidden="true" x="108" y="73" fill="#ff0080" opacity="0">MEGA NET</text>
 
     <!-- Layer 1: Base Text -->
-    <text x="108" y="73" fill="currentColor">
-      MEGA <tspan fill="#ff0080">NET</tspan>
-      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -2 1; 2 -1; 0 0; -4 0; 4 2; -2 -2; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      <animate attributeName="opacity" calcMode="discrete" values="1; 0.6; 0.8; 1; 0.4; 0.7; 0.5; 1; 1" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-    </text>
+    <text class="prand-glitch-base" x="108" y="73" fill="currentColor">MEGA <tspan fill="#ff0080">NET</tspan></text>
 
     <!-- Layer 4: Horizontal Slice 1 (Shifted Left) -->
-    <text class="svg-glitch-layer" aria-hidden="true" x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-1)" opacity="0">
-      MEGA <tspan fill="#ff0080">NET</tspan>
-      <animate attributeName="opacity" calcMode="discrete" values="0; 1; 1; 0; 1; 1; 1; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; -12 0; 15 0; 0 0; -20 0; 18 0; -25 0; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-    </text>
+    <text class="svg-glitch-layer prand-glitch-slice-1" aria-hidden="true" x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-1)" opacity="0">MEGA <tspan fill="#ff0080">NET</tspan></text>
 
     <!-- Layer 5: Horizontal Slice 2 (Shifted Right) -->
-    <text class="svg-glitch-layer" aria-hidden="true" x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-2)" opacity="0">
-      MEGA <tspan fill="#ff0080">NET</tspan>
-      <animate attributeName="opacity" calcMode="discrete" values="0; 1; 1; 0; 1; 1; 1; 0; 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-      <animateTransform attributeName="transform" type="translate" calcMode="discrete" values="0 0; 15 0; -10 0; 0 0; 25 0; -20 0; 18 0; 0 0; 0 0" keyTimes="0; 0.50; 0.51; 0.52; 0.85; 0.86; 0.88; 0.90; 1" dur="6s" repeatCount="indefinite" />
-    </text>
-    
+    <text class="svg-glitch-layer prand-glitch-slice-2" aria-hidden="true" x="108" y="73" fill="currentColor" clip-path="url(#glitch-slice-2)" opacity="0">MEGA <tspan fill="#ff0080">NET</tspan></text>
   </g>
 </svg>

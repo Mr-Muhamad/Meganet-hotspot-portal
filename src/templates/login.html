@@ -235,15 +235,17 @@
           voucherPanel.style.removeProperty('display');
         }
         var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
-        normalPanels.forEach(p => { p.hidden = true; });
+        for (var npIdx = 0; npIdx < normalPanels.length; npIdx++) {
+          normalPanels[npIdx].hidden = true;
+        }
         {% elif config.features.loginMode == 'normal_only' %}
         var voucherPanel = document.querySelector('[data-mode-panel="voucher"]');
         if (voucherPanel) { voucherPanel.hidden = true; }
         var normalPanels = document.querySelectorAll('[data-mode-panel="normal"]');
-        normalPanels.forEach(p => {
-          p.hidden = false;
-          p.style.removeProperty('display');
-        });
+        for (var npIdx = 0; npIdx < normalPanels.length; npIdx++) {
+          normalPanels[npIdx].hidden = false;
+          normalPanels[npIdx].style.removeProperty('display');
+        }
         {% endif %}
         auth.init();
 

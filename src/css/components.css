@@ -257,16 +257,16 @@
 
 .input-clear {
   position: absolute;
-  inset-inline-end: var(--space-sm);
+  inset-inline-end: var(--space-xs);
   top: 50%;
   transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-full);
   border: none;
-  background: var(--color-surface-hover);
+  background: transparent;
   color: var(--color-text-muted);
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -538,12 +538,12 @@
 }
 
 .plan-card__select-btn {
-  min-height: 32px;
-  padding: 4px 10px;
+  min-height: 44px;
+  padding: var(--space-xs) 12px;
   font-size: var(--font-size-xs);
 }
 
-.selected-plan-summary {
+.plans-selected-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -553,27 +553,8 @@
 }
 
 .plan-card:hover {
-  transform: translateY(-2px);
   border-color: var(--color-primary);
-  box-shadow: 0 4px 15px var(--color-primary-alpha-10);
-}
-
-/* Glassy background glow effect */
-.plan-card::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, var(--color-primary-alpha-05) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-  pointer-events: none;
-}
-
-.plan-card:hover::before {
-  opacity: 1;
+  box-shadow: 0 4px 12px var(--color-primary-alpha-10);
 }
 
 .plan-card__icon-wrapper {
@@ -585,12 +566,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--transition-fast);
   flex-shrink: 0;
-}
-
-.plan-card:hover .plan-card__icon-wrapper {
-  transform: scale(1.1);
 }
 
 .plan-card__icon {
@@ -622,7 +598,8 @@
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   padding: 2px var(--space-sm);
-  background: var(--color-primary-bg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-alpha-25);
   border-radius: var(--radius-md);
   display: inline-block;
   white-space: nowrap;

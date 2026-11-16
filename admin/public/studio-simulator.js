@@ -143,7 +143,7 @@ async function refreshSimulator(rebuild) {
   try {
     const body = {};
     if (rebuild && state.current) {
-      const previewCfg = JSON.parse(JSON.stringify(state.current.config));
+      const previewCfg = structuredClone(state.current.config);
       captureDraft(state.tab);
       applyDrafts(previewCfg);
       body.slug = state.current.id;

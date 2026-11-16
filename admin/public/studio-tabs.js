@@ -276,10 +276,10 @@ function applyDrafts(c) {
 }
 
 function renderTab() {
-  const c = JSON.parse(JSON.stringify(state.current.config));
+  const c = structuredClone(state.current.config);
   applyDrafts(c);
   const el = $('#content');
-  el.innerHTML = '';
+  el.replaceChildren();
   switch (state.tab) {
     case 'general': el.appendChild(formGeneral(c)); break;
     case 'theme': el.appendChild(formTheme(c)); break;
@@ -422,7 +422,7 @@ function formTheme(c) {
     const p = state.meta.presets.find(x => x.id === sel.value);
     const box = $('#preset-preview');
     if (!box) return;
-    if (!p || !p.preview) { box.innerHTML = ''; return; }
+    if (!p || !p.preview) { box.replaceChildren(); return; }
     box.innerHTML = p.preview.colors.map(col =>
       '<span class="swatch" style="display:inline-block;background:' + esc(col) + ';width:22px;height:22px;margin-inline-end:6px;vertical-align:middle"></span>'
     ).join('') + '<span class="badge">حواف ' + esc(p.preview.radius) + '</span>';
@@ -858,7 +858,7 @@ function formAnnouncements() {
 // ---------------------------------------------------------------------------
 function formWords(c) {
   const wrap = document.createElement('div');
-  const cfg = c || JSON.parse(JSON.stringify(state.current.config));
+  const cfg = c || structuredClone(state.current.config);
 
   cfg.i18nOverrides = cfg.i18nOverrides || {};
   const ov = cfg.i18nOverrides;
@@ -882,7 +882,7 @@ function formWords(c) {
   output.id = 'words-list';
 
   const renderWords = () => {
-    output.innerHTML = '';
+    output.replaceChildren();
     const entries = Object.entries(ov).filter(([k]) => !k.startsWith('_'));
     for (const [key, val] of entries) {
       const en = typeof val === 'object' ? (val.en || '') : val;
@@ -960,7 +960,7 @@ function formWords(c) {
   radList.id = 'radius-errors-list';
 
   const renderRadiusErrors = () => {
-    radList.innerHTML = '';
+    radList.replaceChildren();
     const entries = Object.entries(radMap).filter(([k]) => !k.startsWith('_'));
     entries.forEach(([errKey, arText]) => {
       const row = document.createElement('div');
@@ -1024,7 +1024,7 @@ function formWords(c) {
   resetRadBtn.textContent = '↺ استعادة الترجمات الافتراضية';
   resetRadBtn.onclick = () => {
     if (state.meta && state.meta.template && state.meta.template.radiusErrorTranslations) {
-      state.drafts.radiusErrors = JSON.parse(JSON.stringify(state.meta.template.radiusErrorTranslations));
+      state.drafts.radiusErrors = structuredClone(state.meta.template.radiusErrorTranslations);
       markDirty(true);
       renderTab();
     }
@@ -1187,7 +1187,7 @@ function formAssets() {
 async function generateBrandIdentity() {
   if (!state.current) return;
   try {
-    const drafted = JSON.parse(JSON.stringify(state.current.config));
+    const drafted = structuredClone(state.current.config);
     applyDrafts(drafted);
     const networkName = $('#lm-name')?.value || drafted.general.networkName;
     const tagline = $('#lm-tagline')?.value || '';
@@ -1245,7 +1245,7 @@ function autoCropAndCompressImage(file, targetDim) {
 function renderAssetsList(targetList) {
   const list = targetList || $('#assets-list');
   if (!list || !state.current) return;
-  list.innerHTML = '';
+  list.replaceChildren();
   for (const a of (state.current.assets || [])) {
     const row = document.createElement('div');
     row.className = 'card';

@@ -74,6 +74,9 @@ function openStudioModal({ title, bodyHtml, confirmLabel = 'تأكيد', cancelL
       if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
       if (e.key === 'Enter' && e.target && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
+        // Ignore the Enter that confirms an IME composition (CJK keyboards);
+        // Safari also reports keyCode 229 on it out of order (WebKit bug 165004).
+        if (e.isComposing || e.keyCode === 229) return;
         okBtn.click();
       }
     };
@@ -196,7 +199,7 @@ async function loadProfiles(selectId) {
 function renderProfileList(selectId) {
   const list = $('#profileList');
   const query = ($('#profileSearch')?.value || '').trim().toLowerCase();
-  list.innerHTML = '';
+  list.replaceChildren();
   const filtered = state.profiles.filter(p =>
     !query || p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query)
   );
@@ -464,9 +467,9 @@ async function deleteProfile(id) {
     markDirty(false);
     $('#profileTitle').textContent = 'اختر بريفايل';
     $('#profileMeta').textContent = '';
-    $('#tabs').innerHTML = '';
+    $('#tabs').replaceChildren();
     if ($('#bundleMeter')) $('#bundleMeter').className = '';
-    $('#content').innerHTML = '';
+    $('#content').replaceChildren();
     await loadProfiles();
   } catch (e) { toast(e.message, true); }
 }

@@ -734,7 +734,7 @@ var auth = {
       var chipsWrap = document.getElementById('voucher-history-chips');
       if (!container || !chipsWrap) return;
       var list = auth._getVoucherHistory();
-      chipsWrap.innerHTML = '';
+      chipsWrap.replaceChildren();
       if (!list.length) {
         container.hidden = true;
         return;

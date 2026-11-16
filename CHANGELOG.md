@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-11-16
+
+### Added
+- **Local Card History (Last 3 Vouchers)**: `hotspot_voucher_history` displays quick-tap chips of the last 3 used voucher codes below `#voucher` on `login.html`; persisted across `Cookie` (30 days, `SameSite=Lax`), `sessionStorage`, `localStorage`, and `status.html` (`$(username-esc)` sync) so history survives Android CaptivePortalLogin WebView and iOS CNA transitions.
+- **RouterOS v6 FTP Deployment & v7 REST/Fetch**: Studio (`admin/lib/mikrotik.js`) supports direct FTP upload for RouterOS v6 alongside REST + `/tool/fetch` deploy for RouterOS v7.
+- **Sales Outlets & Plans WhatsApp**: `support.outlets` (`[{ name, name_ar, address, address_ar, phone }]`) renders printable/browsable card sales points on `plans.html`, and `support.plansWhatsapp` routes plan activation requests to a dedicated WhatsApp number.
+- **Brand Tagline & Compact Mobile Header**: optional `general.brandTagline` / `brandTagline_ar` renders cleanly on a second line in the header, paired with a compact single-card mobile PWA install banner (`status.html`).
+- **Separate Numbered Release Pipelines**:
+  - `scripts/package-portal.js` (`npm run portal:package`) & `.github/workflows/release-portal.yml` — builds and packages `Meganet-Hotspot-Portal-v<version>-build.<N>.zip` as a dedicated Portal release.
+  - `scripts/build-studio.js` (`npm run app:build:numbered`) & `.github/workflows/release-studio.yml` — builds Windows Setup & Portable installers with explicit build numbers and `--publish never` for GitHub Releases.
+
+### Improved & Fixed
+- **QR Scanner Pipeline (`src/js/modules/qr-scanner.js`)**:
+  - Added percentile luminance contrast-stretch (`_enhanceContrast`) as last-resort decoding passes for dim, glared, or washed-out voucher card photos after plain native/jsQR passes miss.
+  - Cleans up failed `<script id="jsqr-script">` tags on `onerror` so subsequent scans retry loading `jsQR.js` cleanly instead of timing out.
+- **Direct Card Switch & `alogin.html` Flow**: `switchCard` logs out via `$(link-logout)?erase-cookie=on` to return directly to `login.html`; `alogin.html` provides distinct Status/Balance and external Internet/Google actions with clean history replacement.
+- **Concise Arabic RADIUS Errors**: streamlined `radiusErrorTranslations` and unified client utilities (`util.setCookie`/`getCookie`).
+- **Zero-Config CI & Fresh Clones**: `build.js` falls back cleanly to `config.example.json` when `config.json` is absent, and `.github/workflows/ci.yml` seeds `config.json` from `config.example.json` before lint/build/test.
+
 ## [2.7.1] - 2026-11-12
 
 ### Added

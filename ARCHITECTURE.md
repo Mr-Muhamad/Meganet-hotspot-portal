@@ -110,21 +110,27 @@ src/i18n/
 - Manual language switching
 - RTL/LTR layout switching
 
-### 5. Build Layer
+### 5. Build & Release Layer
 
 ```
-build.js               # Main build script
+build.js               # Main build script (falls back to config.example.json if config.json absent)
 scripts/
-└── validate-templates.js  # Template validation
+├── color-utils.js     # Build-time HSL alpha & contrast-safe CSS token derivation
+├── presets.js         # 12 place personalities + custom preset resolution
+├── svg-utils.js       # SVGO sanitization for brand assets
+├── validate-config.js # Strict config.json schema & key validation
+├── validate-templates.js # RouterOS variable & output completeness validation
+├── package-portal.js  # Versioned + build-numbered Portal ZIP packager (dist-release/)
+└── build-studio.js    # Versioned + build-numbered Windows Studio packager (dist-app/)
 ```
 
-**Purpose**: Generate production-ready HTML files.
+**Purpose**: Generate production-ready HTML files, verify invariants, and emit separate versioned/numbered artifacts for the Portal and Desktop Studio.
 
 **Key Features**:
 - Nunjucks template compilation
-- CSS/JS bundling and minification
-- i18n file generation
-- Asset copying
+- CSS/JS bundling (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) and minification
+- Dual-language (EN/AR) page generation + i18n dictionary merging
+- Automated Portal ZIP & Windows Studio EXE packaging with build numbers
 
 ### 6. Desktop & Generator Layer
 
@@ -134,11 +140,19 @@ desktop/
 admin/
 ├── server.js          # Local REST API server (profile CRUD, temporary workspace orchestration)
 ├── lib/
-│   ├── profile-store.js  # Profile storage and persistence
-│   └── workspace.js      # Isolated build workspace apply/restore pipeline
+│   ├── profile-store.js  # Profile storage and per-profile mikrotik.json persistence
+│   ├── workspace.js      # Isolated build workspace apply/restore pipeline
+│   ├── mikrotik.js       # RouterOS v6 FTP & v7 REST/fetch deploy + .rsc / Option 114 generator
+│   ├── qr-generator.js   # Standalone ISO/IEC 18004 QR login tester generator
+│   ├── logo-maker.js     # SVG brand logo/title/icon generator
+│   └── zip-builder.js    # Clean RouterOS bundle ZIP export
 └── public/
-    └── index.html     # Studio client web UI
+    └── index.html     # Studio client web UI with live split-screen mobile simulator
 electron-builder.yml   # Windows packaging configuration (portable & installer)
+.github/workflows/
+├── ci.yml             # Lint, build, validate, Jest & Playwright E2E
+├── release-portal.yml # Dedicated Portal GitHub Release with build number
+└── release-studio.yml # Dedicated Studio GitHub Release with build number
 ```
 
 **Purpose**: Provide an interactive studio to customize, manage, and build multiple client profiles into router-ready ZIP files either via desktop GUI (.exe) or local web server.
@@ -282,7 +296,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 ### Page Weight
 
-- Average page size: ~90–140KB (all CSS/JS inline; login/status carry the full i18n dictionary. `jsQR.js` ships separately, ~130KB, and loads lazily only when scanning)
+- HTML page size: ~18–48 KB per page (`login.html` ~35 KB / `ar/login.html` ~48 KB; shared styles and JS live in `portal.css` ~53 KB and `portal-core.js` / `portal-login.js` / `portal-status.js` ~80 KB total; `dist/` totals ~696 KB across 31 files including `jsQR.js` ~127 KB which lazy-loads only when scanning)
 - No external requests
 - System fonts only
 - Inline SVG icons

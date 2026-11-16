@@ -22,30 +22,31 @@ A modern, lightweight captive portal template system designed for MikroTik route
   <img src="docs/screenshots/login-modes-light.png" width="820" alt="Login modes - Light" /><br/>
   <strong>Login modes: voucher &middot; normal &middot; both — Light</strong>
 </p>
+<p align="center">
+  <img src="docs/screenshots/studio.png" width="820" alt="Meganet Hotspot Studio with Live Mobile Simulator" /><br/>
+  <strong>Meganet Hotspot Studio — Split-screen Live Simulator, RouterOS v6 FTP / v7 Deploy & QR Tester</strong>
+</p>
 
-**Latest release: [v2.7.1](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases/latest)** — shared static portal bundles (`portal.css` & `portal-*.js`, cutting `dist/` weight by >50% to ~686 KB total), field-proven card scanning (jsQR), in-place credential login, live session expiry warnings with auto-logout, white-label color system + 12 place presets + client wording overrides, and **Meganet Hotspot Studio** (`.exe` / `npm run admin`) with live split-screen simulator (zoom `50%–150%`, resize handle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), SVG logo maker, QR login tester, RouterOS v7 `.rsc` / Option 114 generator, `/tool/fetch` direct deploy, and per-profile `mikrotik.json` persistence.
+**Latest release: [v2.8.0](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases)** — separate numbered releases for **[Hotspot Portal (`portal-v2.8.0-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/portal-v2.8.0-build.126)** (~696 KB router-ready `dist/` bundle) and **[Meganet Hotspot Studio (`studio-v2.8.0-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/studio-v2.8.0-build.127)** (`.exe` / `npm run admin`). Features WebView-resilient **last-3-voucher history chips** (`Cookie` + `sessionStorage` + `localStorage` + `status.html` sync), **two-line `brandTagline`** mobile header & compact PWA install banner, **direct card switch** (`erase-cookie=on`), **sales outlets & plans WhatsApp** (`support.outlets`, `support.plansWhatsapp`), upgraded **QR scanner** (`BarcodeDetector` native center crop + `jsQR` multi-scale 1:1 tiles + percentile contrast-stretch fallback), 12 place presets, SVG Logo Maker, QR Login Tester, and direct **RouterOS v6 FTP** & **v7 REST/`/tool/fetch`** deployment.
 
 ---
 
 ## Features
 
-- **Modern minimalist UI** with dark/light themes — first visit shows the portal's configured default theme (`theme.defaultTheme`), applied pre-paint; a manual toggle is remembered
-- **Instant QR Code Login** — one tap opens the phone's native camera; the photo is decoded by the vendored **jsQR** (reads real camera photos of real cards) with the native `BarcodeDetector` fast path where available
+- **Modern minimalist UI** with dark/light themes, optional two-line `brandTagline`, and compact mobile PWA install banner — first visit shows `theme.defaultTheme` pre-paint; manual toggles persist for a year
+- **Recent 3 Voucher History Chips** — quick-tap chips below the voucher field remember the last 3 used cards across `Cookie` (30 d), `sessionStorage`, `localStorage`, and `status.html` (`$(username-esc)` sync), surviving Android CaptivePortalLogin WebView and iOS CNA
+- **Instant QR Code Login** — one tap opens the phone's native camera; decoded via native `BarcodeDetector` (with 1:1 center crop) or vendored **jsQR** (`1.4.0`, lazy-loaded) across multi-scale passes, native 1:1 corner/center tiles, and percentile contrast-stretch fallback for glare/low-light card photos (auto-retrying script loads on transient network failure)
 - **Both card types supported** — bare-code cards (`=CODE` / `CODE`) auto-log-in in place; mikhmon credential links (`?username=X&password=Y`) extract the credentials and submit them to the portal itself (immune to stale printed hostnames), with the carried password honored for `up`-mode cards
 - **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
-- **Paste Auto-Submit** — pasting a code submits instantly; typed codes submit via Connect/Enter (variable-length codes make typed auto-submit unsafe)
+- **Paste Auto-Submit & Direct Card Switch** — pasting a code submits instantly; `status.html`'s "Change Card" action logs out cleanly (`erase-cookie=on`) back to `login.html` without MAC-cookie loops
 - **Anti-Phishing & Safe QR Routing** — the portal never navigates to a foreign host because of a scanned payload; credential links are consumed in place and non-credential URLs are restricted to the portal itself
-- **3-Second `alogin.html` Redirect** — fast gateway handshake to the Internet (with manual Continue button)
-- **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates
-- **CHAP and PAP authentication** — with MD5 challenge-response support
+- **3-Second `alogin.html` Redirect** — fast gateway handshake to Status/Balance or external Internet target (with clean history replacement)
+- **Subscription Plans & Sales Outlets (`plans.html`)** — displays configured pricing tiers, nearest voucher sales outlets (`support.outlets`), and dedicated activation WhatsApp (`support.plansWhatsapp`)
+- **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates, CHAP MD5 (`md5.js`) / PAP, and zero external dependencies
 - **Arabic (RTL) and English (LTR) bilingual support** — with `dir="rtl"` and `lang="ar"`
-- **Mobile-first responsive design** — optimized for 360px+ viewports
-- **Captive portal browser compatible** — iOS CNA, macOS CNA (900×572), Android, Windows
-- **XSS-safe MikroTik variable handling** — all `$(var)` injected values are escaped
-- **~20–43 KB per HTML page** — shared same-host bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) keep `dist/` around ~686 KB total with zero external dependencies and zero CDN calls
-- **WCAG AA accessible** — semantic HTML, proper contrast, focus indicators
-- **System font stack** — zero font downloads, instant rendering
-- **Inline SVG icons** — no icon font, no external requests
+- **Mobile-first & Captive-Portal compatible** — optimized for 340px+ phones, iOS CNA, macOS CNA (900×572), Android, Windows
+- **~18–48 KB per HTML page** — shared same-host bundles (`portal.css` ~53 KB, `portal-*.js` ~80 KB total) keep the 31-file `dist/` folder around ~696 KB total with zero external requests and zero CDN calls
+- **WCAG AA accessible & system font stack** — semantic HTML, inline SVG icons, live Studio WCAG contrast badge, and instant rendering
 
 ---
 
@@ -56,7 +57,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 The portal uses a **multi-page architecture** tailored for **iOS Captive Network Assistant (CNA)**, macOS CNA (~900×572px), Android, and Windows captive portal browsers — with **zero external requests** (no CDNs, no external fonts, no third-party scripts):
 
 - **Critical pre-paint inline layer (`base.html`)**: the pre-paint theme script (`hotspot_theme` cookie / `theme.defaultTheme`), config-derived CSS custom properties (`--color-*`, `--radius-*` from `scripts/color-utils.js`), inline SVG brand logo/title, and global handler stubs remain inline in every HTML page so first paint never flashes or breaks.
-- **Shared same-host static bundles**: static styles and JS modules are compiled once into `portal.css`, `portal-core.js`, `portal-login.js` (login page only), and `portal-status.js` (status page only), alongside vendored `md5.js` (CHAP) and lazy-loaded `jsQR.js` (omitted when `enableQRScanner: false`). Serving them from the router's own hotspot directory cuts `dist/` size by more than half (~686 KB total, ~20–43 KB per HTML page) while fitting comfortably inside MikroTik 1 MB flash budgets.
+- **Shared same-host static bundles**: static styles and JS modules are compiled once into `portal.css` (~53 KB), `portal-core.js`, `portal-login.js` (login page only), and `portal-status.js` (status page only — ~80 KB JS combined), alongside vendored `md5.js` (CHAP) and lazy-loaded `jsQR.js` (omitted when `enableQRScanner: false`). Serving them from the router's own hotspot directory keeps `dist/` at ~696 KB total (31 files, ~18–48 KB per HTML page), fitting comfortably inside MikroTik 1 MB flash budgets.
 
 ### Page Flow
 
@@ -124,18 +125,22 @@ Meganet-New-hotspot/
 
 ## Desktop App & Local Admin Generator
 
-### Standalone Executable (No Node.js Required)
-For network operators and technicians who want to customize and export portals without setting up developer tools:
-- Grab the standalone executable from [`dist-app/`](dist-app/) or the [Releases](https://github.com/Mr-Muhamad/meganet-hotspot-portal/releases) page:
-  - **Portable (`Meganet Hotspot Studio-Portable-2.7.1.exe`)**: Single-file executable, zero installation required, runs directly from USB.
-  - **Installer (`Meganet Hotspot Studio-Setup-2.7.1.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
-- Features: 12 built-in place presets + custom presets, live split-screen simulator (zoom `50%–150%`, drag resizer, expand toggle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), live WCAG 2.1 contrast badge, SVG Logo & Brand Identity Maker, Portal QR Login Tester, RouterOS v7 `.rsc` / Option 114 generator, direct `/tool/fetch` router deploy with per-profile `mikrotik.json` persistence (no passwords written to disk), batch build all, 1 MB flash meter, and one-click **Build & Download** ZIP export.
+### Standalone Releases (Portal & Studio — Separate Build-Numbered Packages)
+This repository ships two independent release streams with automatic build numbers:
+- **Hotspot Portal Package** ([`portal-v2.8.0-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / `dist-release/`):
+  - **`Meganet-Hotspot-Portal-v2.8.0-build.<N>.zip`**: Router-ready bundle (`dist/`), upload directly to MikroTik `/hotspot` via WinBox, FTP, or Studio.
+- **Meganet Hotspot Studio (Windows Desktop App — No Node.js Required)** ([`studio-v2.8.0-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / [`dist-app/`](dist-app/)):
+  - **Portable (`Meganet.Hotspot.Studio-Portable-2.8.0-build.<N>.exe`)**: Single-file executable, zero installation required, runs directly from USB.
+  - **Installer (`Meganet.Hotspot.Studio-Setup-2.8.0-build.<N>.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
+- Studio features: 12 built-in place presets + custom presets, live split-screen simulator (zoom `50%–150%`, drag resizer, expand toggle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), live WCAG 2.1 contrast badge, SVG Logo & Brand Identity Maker, Portal QR Login Tester, RouterOS v6/v7 `.rsc` & Option 114 generator, direct **RouterOS v6 FTP** & **v7 REST/`/tool/fetch`** router deploy with per-profile `mikrotik.json` persistence (no passwords written to disk), sales outlets & plans WhatsApp configuration, batch build all, 1 MB flash meter, and one-click **Build & Download** ZIP export.
 
 ### Developer Commands
 ```bash
-npm run app:dev       # Launch the Electron desktop app in development mode
-npm run app:build     # Build Windows portable and installer executables (.exe)
-npm run admin         # Run the loopback admin server and open in browser
+npm run app:dev             # Launch the Electron desktop app in development mode
+npm run app:build           # Build Windows portable and installer executables (.exe)
+npm run app:build:numbered  # Build numbered Studio installers (-build.<N>.exe)
+npm run portal:package      # Build dist/ and package dist-release/Meganet-Hotspot-Portal-v<ver>-build.<N>.zip
+npm run admin               # Run the loopback admin server and open in browser
 ```
 
 ---
@@ -332,12 +337,12 @@ The scan button is built for **minimum clicks** — it opens the phone's camera 
 
 | Card QR contains | What happens after scanning |
 |---|---|
-| A full URL (link card) | The browser goes straight to that URL, which is expected to end with `?voucher=<code>` (or carry `?username=&password=`) — the login page auto-fills and submits |
+| A full URL (link card) | Credentials (`?voucher=`, `?code=`, `?pin=`, `?username=` + optional `&password=`) are extracted and submitted IN PLACE to the current portal (never leaving for a foreign host) |
 | Just the code digits | The cancellable 3-second auto-login countdown starts with the scanned code — done |
 
 Two environments, two behaviors, both automatic:
 
-- **Any real browser (Chrome, Safari, in-app webviews)** — one tap on "امسح كارت الشحن بالكاميرا" fires a `capture="environment"` file input: the phone's **native camera app** opens immediately (that is not the browser's camera API, so it needs no permission and works on plain HTTP). Photograph the card → the photo is decoded in-page (vendored [jsQR](https://github.com/cozmo/jsQR), MIT, lazy-loaded — reads small QRs inside compressed camera photos that the previous engine could not) → the code fills and auto-logs-in. Decode failures surface as a toast; the user can re-shoot.
+- **Any real browser (Chrome, Safari, in-app webviews)** — one tap on "امسح كارت الشحن بالكاميرا" fires a `capture="environment"` file input: the phone's **native camera app** opens immediately (no `getUserMedia` permission needed, works on plain HTTP). Decoding uses native `BarcodeDetector` (with a 1:1 center crop on high-res photos) and falls back to vendored [jsQR](https://github.com/cozmo/jsQR) (`1.4.0`, MIT, lazy-loaded, auto-retrying if a download fails) across multi-scale frames, native 1:1 center/corner tiles, and percentile luminance contrast-stretch passes for glared or dim photos. Decode failures surface as a toast; the user can re-shoot.
 - **The system captive-portal WebView** (Android's "Sign in to network", where most phones land automatically) — file inputs and the camera are OS-blocked there (verified on-device: no chooser, no permission, nothing). The same tap therefore **jumps straight to the full browser** via an `intent://` URL: Android shows its own one-time "CONTINUE ANYWAY VIA BROWSER" confirmation, the default browser opens the same page (marked with a pulsing scan button), and the second tap opens the camera. Two taps total, both unavoidable: the first is the user's, the second is Android's security screen.
 
 **The absolute minimum-click flow needs no in-page scanning at all**: the phone's own **Camera app** recognizes the printed card's QR from the lock screen and opens the encoded URL — bypassing every portal-browser restriction on iOS and Android alike — and the portal auto-logs-in. This is why the link-card format below is worth printing.
@@ -475,10 +480,10 @@ The rate limiter is a UX guard only — real brute-force protection must be serv
 | Metric | Value |
 |---|---|
 | First Paint | < 1s on LAN |
-| Page Weight (`login.html` / `ar/login.html`) | ~35 KB / ~42 KB (HTML + inline tokens + i18n JSON) |
-| Page Weight (`status.html` / `ar/status.html`) | ~27 KB / ~34 KB |
-| Shared Bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) | ~47 KB CSS · ~51 KB JS total (cached across pages) |
-| Total `dist/` Size | ~686 KB raw (incl. optional `jsQR.js` ~127 KB & assets) |
+| Page Weight (`login.html` / `ar/login.html`) | ~35 KB / ~48 KB (HTML + inline tokens + i18n JSON) |
+| Page Weight (`status.html` / `ar/status.html`) | ~30 KB / ~35 KB |
+| Shared Bundles (`portal.css`, `portal-core.js`, `portal-login.js`, `portal-status.js`) | ~53 KB CSS · ~80 KB JS total (cached across pages) |
+| Total `dist/` Size | ~696 KB raw across 31 files (incl. lazy-loaded `jsQR.js` ~127 KB & assets) |
 | External Dependencies | Zero runtime; 2 same-host vendored scripts (`md5.js` CHAP, `jsQR.js` lazy-loaded scan) |
 | Font Downloads | Zero (system font stack) |
 | Icon Requests | Zero (inline SVG) |
@@ -533,6 +538,7 @@ Nothing leaves the browser. All persistence is preferences and counters:
 |---|---|---|
 | cookie (365 d) | `hotspot_lang` | chosen language |
 | cookie (365 d) | `hotspot_theme` | chosen theme |
+| cookie (30 d) + `sessionStorage` + `localStorage` | `hotspot_voucher_history` | last 3 voucher chips (synced across WebView, `login.html`, and `status.html`) |
 | cookie (7 d) | `hotspot_dismissed_msg` | which announcement was dismissed |
 | `localStorage` | `hotspot_rate_attempts` | login-throttle counter |
 | `localStorage` | `hotspot_last_voucher` | last voucher, for auto-login (see caveat below) |
@@ -578,8 +584,8 @@ Nothing leaves the browser. All persistence is preferences and counters:
 **Symptom**: Fonts, images, or scripts from external domains don't load.
 
 **Fix**:
-1. The portal itself has zero external CSS/JS/font dependencies by design
-2. The QR scanner (`laksa19.github.io`) and WhatsApp support (`wa.me`) links are the exception — add them to the layer-3 walled garden as described in [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)
+1. The portal itself has zero external CSS/JS/font dependencies by design (the built-in `jsQR` scanner runs offline from the router itself)
+2. WhatsApp support (`wa.me`) and an optional external `features.qrScannerUrl` override are the exception — add them to the layer-3 walled garden as described in [Deployment step 4](#4-walled-garden--the-step-that-silently-breaks-features)
 3. For any custom external host you add: use `/ip hotspot walled-garden ip` (layer 3) for HTTPS destinations — the layer-7 `/ip hotspot walled-garden` only matches plain HTTP
 
 ### Variables Not Resolving
@@ -637,15 +643,18 @@ Potential integrations and features for extended deployments:
 ## Development
 
 ```
-npm install             # install build/test dependencies
-npm run build           # production build (minified) → dist/ (aborts on invalid config.json)
-npm run build:dev       # development build (no minification)
-npm run watch           # rebuild on src/ changes
-npm test                # Jest unit tests (incl. config schema + i18n health)
-npm run validate        # check dist/ completeness, MikroTik vars, a11y markers
-npm run validate:config # check config.json against its schema
-npm run preview         # serve dist/ with realistic demo data (see Local Preview)
-npm run admin           # local portal generator UI → http://127.0.0.1:8899
+npm install                # install build/test dependencies
+npm run build              # production build (minified) → dist/ (falls back to config.example.json if config.json absent)
+npm run build:dev          # development build (no minification)
+npm run watch              # rebuild on src/ changes
+npm run portal:package     # build dist/ and emit numbered Portal ZIP in dist-release/
+npm run app:build:numbered # build numbered Windows Studio executables in dist-app/
+npm test                   # Jest unit tests (incl. config schema + i18n health)
+npm run test:e2e           # Playwright E2E browser & Studio tests
+npm run validate           # check dist/ completeness, MikroTik vars, a11y markers
+npm run validate:config    # check config.json against its schema
+npm run preview            # serve dist/ with realistic demo data (see Local Preview)
+npm run admin              # local portal generator UI → http://127.0.0.1:8899
 ```
 
 ## Portal Generator (admin)
@@ -656,10 +665,10 @@ non-loopback connection (also enforcing a loopback `Host` header against DNS reb
 
 - **Profiles**: each client (café, hotel, clinic, …) is an isolated profile;
   profiles can be created, duplicated, renamed, deleted, filtered by search, batch-built (`Build All`), and exported/imported as JSON bundles (including non-secret `mikrotik` router settings, strictly excluding `password`)
-- **Tabs**: General · Theme (12 presets, custom presets, colors, radius, live WCAG 2.1 contrast badge) ·
-  Features · Plans · Support · Announcements · Words & RADIUS Errors · QR Login Tester (`مختبر QR الدخول`) ·
+- **Tabs**: General (incl. `brandTagline`) · Theme (12 presets, custom presets, colors, radius, live WCAG 2.1 contrast badge) ·
+  Features · Plans · Support (incl. `plansWhatsapp` & sales `outlets`) · Announcements · Words & RADIUS Errors · QR Login Tester (`مختبر QR الدخول`) ·
   Assets & SVG Logo Maker (`logo.svg` + `prand-title.svg` + `icon.png`, `<canvas>` auto-crop/compress, SVGO XSS sanitization) ·
-  MikroTik (`.rsc` generator with Option 114 & Walled Garden, dry-run preview, REST API + `/tool/fetch` one-click router deploy, TOFU TLS fingerprint pinning, per-profile `mikrotik.json` persistence without passwords)
+  MikroTik (v6 FTP + v7 `.rsc` / Option 114 & Walled Garden, dry-run preview, REST API + `/tool/fetch` one-click router deploy, TOFU TLS fingerprint pinning, per-profile `mikrotik.json` persistence without passwords)
 - **Live Split-Screen Simulator**: real-time preview with page selector, scenario switcher (`normal`/`error`/`trial`/`chap`), language toggle (`hotspot_lang`), Dark/Light theme switcher (`hotspot_theme` cookie), device viewport presets (`340px` narrow mobile, `412px` wide mobile, `768px` tablet), zoom (`50%–150%`), drag resizer handle, and expand toggle (`⛶`)
 - **Validation & Flash Meter**: every save runs the real config schema; invalid values are
   shown inline and never persisted; builds display ZIP/raw size and 1 MB router flash budget usage

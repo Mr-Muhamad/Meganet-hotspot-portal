@@ -99,3 +99,18 @@ test('unknown reply text is left untouched (no over-eager rewriting)', async ({ 
   });
   expect(shown).toBe('something the map does not know');
 });
+
+test('recent 3 voucher chips persist via cookie/storage and fill #voucher on click', async ({ page, context }) => {
+  const historyJson = JSON.stringify(['778899', '554433', '112233']);
+  await context.addCookies([
+    { name: 'hotspot_voucher_history', value: encodeURIComponent(historyJson), domain: '127.0.0.1', path: '/' }
+  ]);
+  await page.goto(`${DEFAULT}/ar/login.html`);
+  const wrap = page.locator('#voucher-history');
+  await expect(wrap).toBeVisible();
+  const chips = page.locator('#voucher-history-chips .voucher-history__chip');
+  await expect(chips).toHaveCount(3);
+  await expect(chips.nth(0)).toHaveText('778899');
+  await chips.nth(1).click();
+  await expect(page.locator('#voucher')).toHaveValue('554433');
+});

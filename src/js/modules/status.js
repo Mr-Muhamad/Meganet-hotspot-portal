@@ -70,6 +70,8 @@ var statusModule = {
           if (logoutBtn) {
             logoutBtn.style.display = 'none';
           }
+        } else if (usernameVal && usernameVal.indexOf('$(') !== 0) {
+          statusModule._recordVoucherHistory(usernameVal);
         }
       }
 
@@ -745,6 +747,36 @@ var statusModule = {
     } catch (err) {
       console.error('Refresh status error:', err);
     }
+  },
+
+  _recordVoucherHistory: function(code) {
+    try {
+      var val = String(code || '').trim();
+      if (!val) return;
+      var raw = null;
+      try { if (typeof sessionStorage !== 'undefined') raw = sessionStorage.getItem('hotspot_voucher_history'); } catch (e1) {}
+      if (!raw) { try { if (typeof localStorage !== 'undefined') raw = localStorage.getItem('hotspot_voucher_history'); } catch (e2) {} }
+      if (!raw && typeof util !== 'undefined' && util.getCookie) {
+        try { raw = util.getCookie('hotspot_voucher_history'); } catch (e3) {}
+      }
+      var list = [];
+      if (raw) {
+        try {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            list = parsed.filter(function(item) { return typeof item === 'string' && item.trim().length > 0; });
+          }
+        } catch (e4) {}
+      }
+      list = list.filter(function(item) { return item !== val; });
+      list.unshift(val);
+      var serialized = JSON.stringify(list.slice(0, 3));
+      try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('hotspot_voucher_history', serialized); } catch (e5) {}
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem('hotspot_voucher_history', serialized); } catch (e6) {}
+      if (typeof util !== 'undefined' && util.setCookie) {
+        try { util.setCookie('hotspot_voucher_history', serialized, 30); } catch (e7) {}
+      }
+    } catch (err) {}
   },
 
   switchCard: function(event) {

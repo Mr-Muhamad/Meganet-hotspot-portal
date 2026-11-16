@@ -22,6 +22,8 @@ var auth = {
         if (preClearVoucher) {
           auth._removeVoucherFromHistory(preClearVoucher);
         }
+      } else if (preClearVoucher) {
+        auth._addVoucherToHistory(preClearVoucher);
       }
 
       if (passwordInput) {
@@ -689,11 +691,12 @@ var auth = {
 
   _getVoucherHistory: function() {
     try {
-      if (typeof localStorage === 'undefined') return [];
-      var raw = localStorage.getItem('hotspot_voucher_history');
+      var raw = auth._getStorageItem('hotspot_voucher_history');
       if (!raw) return [];
       var parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(function(item) { return typeof item === 'string' && item.trim().length > 0; }).slice(0, 3) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter(function(item) { return typeof item === 'string' && item.trim().length > 0; }).slice(0, 3)
+        : [];
     } catch (e) {
       return [];
     }
@@ -701,11 +704,10 @@ var auth = {
 
   _saveVoucherHistory: function(list) {
     try {
-      if (typeof localStorage === 'undefined') return;
       if (!list || !list.length) {
-        localStorage.removeItem('hotspot_voucher_history');
+        auth._removeStorageItem('hotspot_voucher_history');
       } else {
-        localStorage.setItem('hotspot_voucher_history', JSON.stringify(list.slice(0, 3)));
+        auth._setStorageItem('hotspot_voucher_history', JSON.stringify(list.slice(0, 3)), 30);
       }
     } catch (e) {}
   },

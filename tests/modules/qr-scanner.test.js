@@ -128,6 +128,22 @@ describe('Hotspot.qrScanner', () => {
       expect(attempts.some(a => a.cap === 2200 && a.w === 1)).toBe(true);
       const nativeTiles = attempts.filter(a => a.w < 1 && a.h < 1 && a.cap === 1400);
       expect(nativeTiles.length).toBe(5);
+      expect(attempts.filter(a => a.enhance).length).toBe(2);
+      expect(attempts.slice(0, -2).every(a => !a.enhance)).toBe(true);
+    });
+
+    test('_enhanceContrast stretches a low-contrast buffer and skips flat ones', () => {
+      const data = new Uint8ClampedArray(400);
+      for (let i = 0; i < 100; i++) {
+        const v = i % 2 ? 140 : 110;
+        data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = v;
+        data[i * 4 + 3] = 255;
+      }
+      expect(qrScanner._enhanceContrast(data)).toBe(true);
+      expect(data[0]).toBeLessThan(20);
+      expect(data[4]).toBeGreaterThan(235);
+      const flat = new Uint8ClampedArray(400).fill(128);
+      expect(qrScanner._enhanceContrast(flat)).toBe(false);
     });
   });
 

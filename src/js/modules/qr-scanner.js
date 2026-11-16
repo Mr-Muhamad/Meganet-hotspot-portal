@@ -280,7 +280,12 @@ var qrScanner = {
     script.id = 'jsqr-script';
     script.src = (window.location.pathname.indexOf('/ar/') !== -1 ? '../' : '') + 'jsQR.js';
     script.onload = function() { if (ready) ready(); };
-    script.onerror = function() { if (ready) ready(); };
+    script.onerror = function() {
+      // Drop the failed tag so the next scan retries the download instead of
+      // polling a script that will never define jsQR.
+      if (script.parentNode) script.parentNode.removeChild(script);
+      if (ready) ready();
+    };
     document.head.appendChild(script);
   },
 
@@ -400,7 +405,44 @@ var qrScanner = {
       attempts.push({ x: 0, y: 1 - qH, w: qW, h: qH, cap: 1400 });
       attempts.push({ x: 1 - qW, y: 1 - qH, w: qW, h: qH, cap: 1400 });
     }
+    // Last resort for glare / dim / washed-out prints: the same full frame
+    // after a percentile contrast stretch. Runs only when every plain pass
+    // failed, so well-lit shots never pay for it.
+    attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1000, enhance: true });
+    if (maxDim > 1200) {
+      attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1800, enhance: true });
+    }
     return attempts;
+  },
+
+  /**
+   * Stretch luminance between the 2nd and 98th percentile in place (RGBA).
+   * Restores module contrast on low-contrast photos so jsQR's binarizer can
+   * separate dark and light modules.
+   * @param {Uint8ClampedArray} data - RGBA pixel buffer
+   * @returns {boolean} true when the buffer was modified
+   */
+  _enhanceContrast: function(data) {
+    var hist = new Array(256);
+    var i;
+    for (i = 0; i < 256; i++) hist[i] = 0;
+    var total = data.length / 4;
+    for (i = 0; i < data.length; i += 4) {
+      hist[(data[i] * 77 + data[i + 1] * 150 + data[i + 2] * 29) >> 8]++;
+    }
+    var lo = 0, hi = 255, acc = 0, cut = total * 0.02;
+    for (lo = 0; lo < 255; lo++) { acc += hist[lo]; if (acc >= cut) break; }
+    acc = 0;
+    for (hi = 255; hi > 0; hi--) { acc += hist[hi]; if (acc >= cut) break; }
+    if (hi - lo < 16) return false;
+    var scale = 255 / (hi - lo);
+    for (i = 0; i < data.length; i += 4) {
+      for (var c = 0; c < 3; c++) {
+        var v = (data[i + c] - lo) * scale;
+        data[i + c] = v < 0 ? 0 : (v > 255 ? 255 : v);
+      }
+    }
+    return true;
   },
 
   /**
@@ -448,6 +490,7 @@ var qrScanner = {
           canvas.height = ch;
           ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
           var imageData = ctx.getImageData(0, 0, cw, ch);
+          if (cfg.enhance) self._enhanceContrast(imageData.data);
           var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
           if (code && code.data) {
             found = code.data;

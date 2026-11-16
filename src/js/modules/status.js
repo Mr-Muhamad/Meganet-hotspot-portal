@@ -745,6 +745,35 @@ var statusModule = {
     } catch (err) {
       console.error('Refresh status error:', err);
     }
+  },
+
+  switchCard: function(event) {
+    try {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      try { sessionStorage.removeItem('hotspot_last_voucher'); } catch (e) {}
+      try { localStorage.removeItem('hotspot_last_voucher'); } catch (e) {}
+      try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_last_voucher', '', -1); } catch (e) {}
+      try { sessionStorage.removeItem('hotspot_last_voucher_pw'); } catch (e) {}
+      try { localStorage.removeItem('hotspot_last_voucher_pw'); } catch (e) {}
+      try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_last_voucher_pw', '', -1); } catch (e) {}
+      try { sessionStorage.removeItem('hotspot_password'); } catch (e) {}
+      try { localStorage.removeItem('hotspot_password'); } catch (e) {}
+      try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie('hotspot_password', '', -1); } catch (e) {}
+
+      var link = document.getElementById('switchCardLink');
+      var loginHref = (link && link.getAttribute('href')) || './login.html';
+      var logoutUrl = link ? link.getAttribute('data-logout-url') : '';
+      if (logoutUrl && logoutUrl.indexOf('$(') !== 0 && typeof fetch === 'function') {
+        try {
+          fetch(logoutUrl, { method: 'GET', credentials: 'include', mode: 'no-cors', keepalive: true }).catch(function() {});
+        } catch (fetchErr) {}
+      }
+      window.location.href = loginHref;
+      return false;
+    } catch (err) {
+      window.location.href = './login.html';
+      return false;
+    }
   }
 };
 

@@ -128,6 +128,7 @@ function createProfileStore(baseDir) {
       ? rawPort
       : (protocol === 'https' ? 443 : 80);
     const capportMode = ['https', 'http', 'off'].includes(src.capportMode) ? src.capportMode : 'https';
+    const routerOsVersion = src.routerOsVersion === 'v6' ? 'v6' : 'v7';
     let extraHosts = [];
     if (Array.isArray(src.extraHosts)) {
       extraHosts = src.extraHosts.map((s) => String(s || '').trim()).filter(Boolean);
@@ -147,6 +148,7 @@ function createProfileStore(baseDir) {
       profileName: String(src.profileName || (id ? `${id}-hs-profile` : '')).trim(),
       dhcpServer: String(src.dhcpServer || '').trim(),
       capportMode,
+      routerOsVersion,
       extraHosts,
       applyRsc: Boolean(src.applyRsc),
       createBackup: Boolean(src.createBackup),

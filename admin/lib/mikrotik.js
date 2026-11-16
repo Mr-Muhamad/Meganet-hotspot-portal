@@ -68,6 +68,7 @@ function buildRscPlanData(config = {}, options = {}) {
   const dnsName = sanitizeIdentifier(options.dnsName, 'login.meganet.local');
   const dhcpServer = options.dhcpServer ? sanitizeIdentifier(options.dhcpServer, '') : '';
   const capportMode = ['https', 'http', 'off'].includes(options.capportMode) ? options.capportMode : 'https';
+  const routerOsVersion = options.routerOsVersion === 'v6' ? 'v6' : 'v7';
   const sslCertificate = options.sslCertificate ? sanitizeIdentifier(options.sslCertificate, '') : '';
 
   const loginModes = ['http-chap', 'http-pap', 'cookie'];
@@ -106,6 +107,7 @@ function buildRscPlanData(config = {}, options = {}) {
     dnsName,
     dhcpServer,
     capportMode,
+    routerOsVersion,
     sslCertificate,
     requiresSslSetup,
     protocolNote,
@@ -126,10 +128,13 @@ function generateRscScript(config = {}, options = {}) {
     dnsName,
     dhcpServer,
     capportMode,
+    routerOsVersion,
     sslCertificate,
     loginBy,
     walledGardenHosts
   } = plan;
+  const isV6 = routerOsVersion === 'v6';
+  const p = (v7Path) => (isV6 ? v7Path.replace(/\//g, ' ').replace(/^ /, '/') : v7Path);
 
   const sslProp = (capportMode === 'https' && sslCertificate)
     ? ` ssl-certificate="${escapeRos(sslCertificate)}"`
@@ -137,21 +142,25 @@ function generateRscScript(config = {}, options = {}) {
 
   const lines = [
     '# ============================================================================',
-    `# Meganet Hotspot Studio — RouterOS v7 Setup Script (${escapeRos(networkName)})`,
+    `# Meganet Hotspot Studio — RouterOS ${isV6 ? 'v6' : 'v7'} Setup Script (${escapeRos(networkName)})`,
     `# Generated automatically · Tag: comment="${COMMENT_TAG}"`,
     '# ============================================================================',
     '',
     '# 1. Hotspot Server Profile (idempotent create or update via [find])',
-    `:local profIds [/ip/hotspot/profile/find where name="${escapeRos(profileName)}"]`,
+    `:local profIds [${p('/ip/hotspot/profile/find')} where name="${escapeRos(profileName)}"]`,
     ':if ([:len $profIds] > 0) do={',
-    `  /ip/hotspot/profile/set $profIds html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
+    `  ${p('/ip/hotspot/profile/set')} $profIds html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
     '} else={',
-    `  /ip/hotspot/profile/add name="${escapeRos(profileName)}" html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
+    `  ${p('/ip/hotspot/profile/add')} name="${escapeRos(profileName)}" html-directory-override="${escapeRos(htmlDir)}" dns-name="${escapeRos(dnsName)}" login-by=${loginBy}${sslProp}`,
     '}',
     ''
   ];
 
-  if (capportMode === 'off') {
+  if (isV6) {
+    lines.push(
+      '# 2. DHCP Option 114 (RFC 8910 CAPPORT) — Requires RouterOS v7.1+ (skipped in v6 mode)'
+    );
+  } else if (capportMode === 'off') {
     lines.push(
       '# 2. DHCP Option 114 (RFC 8910 CAPPORT) — Disabled by Studio configuration',
       `/ip/dhcp-server/option/sets/remove [find comment="${COMMENT_TAG}"]`,
@@ -196,26 +205,26 @@ function generateRscScript(config = {}, options = {}) {
     '# 3. Relocate api.json if created in default hotspot/ root (handles flash/ layout)',
     ':local srcPath "hotspot/api.json"',
     `:local dstPath "${escapeRos(htmlDir)}/api.json"`,
-    ':if ([:len [/file/find where name="flash"]] > 0) do={',
+    `:if ([:len [${p('/file/find')} where name="flash"]] > 0) do={`,
     '  :set srcPath "flash/hotspot/api.json"',
     `  :set dstPath "flash/${escapeRos(String(htmlDir || 'hotspot').replace(/^flash\//i, ''))}/api.json"`,
     '}',
-    ':if (($srcPath != $dstPath) && ([:len [/file/find where name=$srcPath]] > 0)) do={',
-    '  /file/set [find where name=$srcPath] name=$dstPath',
+    `:if (($srcPath != $dstPath) && ([:len [${p('/file/find')} where name=$srcPath]] > 0)) do={`,
+    `  ${p('/file/set')} [find where name=$srcPath] name=$dstPath`,
     '}',
     '',
     '# 4. Walled Garden IP Rules (Layer-3 HTTPS-compatible, idempotent via comment tag)',
-    `/ip/hotspot/walled-garden/ip/remove [find comment="${COMMENT_TAG}"]`
+    `${p('/ip/hotspot/walled-garden/ip/remove')} [find comment="${COMMENT_TAG}"]`
   );
 
   if (walledGardenHosts.length > 0) {
     for (const host of walledGardenHosts) {
       lines.push(
-        `/ip/hotspot/walled-garden/ip/add dst-host="${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
+        `${p('/ip/hotspot/walled-garden/ip/add')} dst-host="${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
       );
       if (!host.startsWith('*.')) {
         lines.push(
-          `/ip/hotspot/walled-garden/ip/add dst-host="*.${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
+          `${p('/ip/hotspot/walled-garden/ip/add')} dst-host="*.${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
         );
       }
     }

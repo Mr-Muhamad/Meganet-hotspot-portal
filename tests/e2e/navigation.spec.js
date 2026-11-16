@@ -63,8 +63,8 @@ test('alogin shows the connected state, balance button, and redirects to status 
   await expect(page.locator('[data-i18n="connected"]')).toBeVisible();
   // Primary button navigates straight to the balance/status page
   await expect(page.locator('.card #viewStatusBtn.btn-primary')).toHaveAttribute('href', './status.html');
-  // Secondary button targets the demo external redirect URL when present
-  await expect(page.locator('.card #continueNow.btn-secondary')).toHaveAttribute('href', 'http://www.example.com/');
+  // Secondary button opens Google directly and cancels the status redirect timer on click
+  await expect(page.locator('.card #continueNow.btn-secondary')).toHaveAttribute('href', 'https://www.google.com');
   // Countdown automatically lands on the Arabic status page
   await expect(page).toHaveURL(`${DEFAULT}/ar/status.html`, { timeout: 6000 });
 });

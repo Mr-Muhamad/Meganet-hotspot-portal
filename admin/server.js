@@ -236,11 +236,16 @@ async function startPreview(port, distDir) {
   // spawn with an explicit argv array (no shell) — nothing here is ever
   // concatenated into a command string. The port is validated as a bounded
   // integer by the caller before it reaches this point.
+  const unpackedRoot = REPO_ROOT.endsWith('.asar')
+    ? REPO_ROOT.replace(/app\.asar$/, 'app.asar.unpacked')
+    : REPO_ROOT;
+  const previewScript = path.join(unpackedRoot, 'scripts', 'preview.mjs');
+  const spawnCwd = fs.existsSync(unpackedRoot) ? unpackedRoot : path.dirname(REPO_ROOT);
   const child = spawn(
     process.execPath,
-    [path.join(REPO_ROOT, 'scripts', 'preview.mjs'), '--port', String(port), '--dist', targetDist],
+    [previewScript, '--port', String(port), '--dist', targetDist],
     {
-      cwd: REPO_ROOT,
+      cwd: spawnCwd,
       stdio: 'ignore',
       detached: false,
       windowsHide: true,
@@ -306,6 +311,7 @@ function extractRscBuildOptions(profile, overrides = {}) {
     dnsName: String(overrides.dnsName || mk.dnsName || 'login.meganet.local').trim() || 'login.meganet.local',
     dhcpServer: overrides.dhcpServer !== undefined ? String(overrides.dhcpServer || '').trim() : String(mk.dhcpServer || '').trim(),
     capportMode: overrides.capportMode || mk.capportMode || 'https',
+    routerOsVersion: overrides.routerOsVersion || mk.routerOsVersion || 'v7',
     extraHosts: overrides.extraHosts !== undefined ? overrides.extraHosts : (mk.extraHosts || []),
     sslCertificate: String(overrides.sslCertificate || mk.sslCertificate || '').trim()
   };
@@ -673,6 +679,7 @@ async function handleApi(req, res, url, method) {
         dnsName: url.searchParams.get('dnsName') || undefined,
         dhcpServer: url.searchParams.has('dhcpServer') ? url.searchParams.get('dhcpServer') : undefined,
         capportMode: url.searchParams.get('capportMode') || undefined,
+        routerOsVersion: url.searchParams.get('routerOsVersion') || undefined,
         extraHosts: extraHostsParam !== null ? extraHostsParam.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
         sslCertificate: url.searchParams.get('sslCertificate') || undefined
       });
@@ -703,6 +710,7 @@ async function handleApi(req, res, url, method) {
         profileName: body.profileName,
         dhcpServer: body.dhcpServer,
         capportMode: body.capportMode,
+        routerOsVersion: body.routerOsVersion,
         extraHosts: body.extraHosts,
         sslCertificate: body.sslCertificate
       });
@@ -736,6 +744,7 @@ async function handleApi(req, res, url, method) {
         profileName: rscOpts.profileName,
         dhcpServer: rscOpts.dhcpServer,
         capportMode: rscOpts.capportMode,
+        routerOsVersion: rscOpts.routerOsVersion,
         extraHosts: rscOpts.extraHosts,
         applyRsc: Boolean(body.applyRsc),
         createBackup: Boolean(body.createBackup),

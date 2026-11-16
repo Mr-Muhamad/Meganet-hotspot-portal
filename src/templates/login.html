@@ -193,6 +193,7 @@
           </form>
         </div>
         <div class="card-footer login-card-footer">
+          {% if config.features.enablePlansPage is not defined or config.features.enablePlansPage %}
           <a href="./plans.html" class="plans-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="plans-link__icon" aria-hidden="true">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -200,6 +201,7 @@
             </svg>
             <span data-i18n="plans_link">{{ i18n.plans_link }}</span>
           </a>
+          {% endif %}
           <div class="footer__device-info">
             <button type="button" class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}">
               IP: <strong class="device-chip__value"><bdi dir="ltr">$(ip)</bdi></strong>

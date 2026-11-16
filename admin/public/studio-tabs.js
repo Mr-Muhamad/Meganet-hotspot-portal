@@ -68,6 +68,7 @@ function captureDraft(tab) {
         qrScannerUrl: $('#f-qrurl').value.trim(),
         voucherMinLength: $('#f-min').value,
         enableLanguageToggle: $('#f-lang').value === 'true',
+        enablePlansPage: $('#f-plans') ? $('#f-plans').value === 'true' : true,
         enableClonePrevention: $('#f-clone').value === 'true',
         enableSmartAssistant: $('#f-smart').value === 'true',
         quotaDisplayFormat: $('#f-quota').value,
@@ -107,6 +108,7 @@ function captureDraft(tab) {
         });
       });
       state.drafts.support = agents;
+      state.drafts.plansWhatsapp = $('#s-plans-wa') ? $('#s-plans-wa').value.trim() : '';
     } else if (tab === 'announcements') {
       const activeEl = $('#a-active');
       const typeEl = $('#a-type');
@@ -191,6 +193,7 @@ function applyDrafts(c) {
     if (min === '' || !Number.isFinite(minParsed)) delete c.features.voucherMinLength;
     else c.features.voucherMinLength = minParsed;
     c.features.enableLanguageToggle = d.features.enableLanguageToggle;
+    c.features.enablePlansPage = d.features.enablePlansPage !== false;
     c.features.enableClonePrevention = d.features.enableClonePrevention;
     c.features.enableSmartAssistant = d.features.enableSmartAssistant;
     c.features.quotaDisplayFormat = d.features.quotaDisplayFormat;
@@ -224,6 +227,11 @@ function applyDrafts(c) {
       agent.whatsapp = a.whatsapp;
       if (a.image) agent.image = a.image; else delete agent.image;
     }
+  }
+  if (d.plansWhatsapp !== undefined) {
+    c.support = c.support || { agents: [] };
+    if (d.plansWhatsapp) c.support.plansWhatsapp = d.plansWhatsapp;
+    else delete c.support.plansWhatsapp;
   }
 
   if (d.words !== undefined) {
@@ -558,6 +566,10 @@ function formFeatures(c) {
     '<select id="f-lang"><option value="true"' + (f.enableLanguageToggle !== false ? ' selected' : '') + '>ظاهر</option>' +
     '<option value="false"' + (f.enableLanguageToggle === false ? ' selected' : '') + '>مخفي</option></select>'));
 
+  grid.appendChild(field('صفحة الباقات والأسعار',
+    '<select id="f-plans"><option value="true"' + (f.enablePlansPage !== false ? ' selected' : '') + '>مفعلة (ظاهرة)</option>' +
+    '<option value="false"' + (f.enablePlansPage === false ? ' selected' : '') + '>مخفية</option></select>'));
+
   grid.appendChild(field('حماية الكروت من المشاركة',
     '<select id="f-clone"><option value="true"' + (f.enableClonePrevention !== false ? ' selected' : '') + '>مفعلة</option>' +
     '<option value="false"' + (f.enableClonePrevention === false ? ' selected' : '') + '>مقفولة</option></select>'));
@@ -660,6 +672,14 @@ function formSupport(c) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h3>فريق الدعم</h3>';
+  const salesWrap = document.createElement('div');
+  salesWrap.style.marginBottom = '14px';
+  salesWrap.appendChild(field(
+    'واتساب طلبات شراء وتفعيل الباقات (اختياري)',
+    '<input id="s-plans-wa" dir="ltr" value="' + esc((c.support && c.support.plansWhatsapp) || '') + '" placeholder="2012xxxxxxxx">',
+    'أرقام فقط بكود الدولة بدون + (عند تركه فارغاً يفتح زر طلب التفعيل نافذة الدعم الفني)'
+  ));
+  card.appendChild(salesWrap);
   const grid = document.createElement('div');
 
   const agents = c.support && c.support.agents ? c.support.agents : [];

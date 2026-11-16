@@ -275,8 +275,16 @@
             </div>
           </div>
 
-          <!-- Plans & Pricing Link -->
+          <!-- Switch Card & Plans Links -->
           <div class="plans-link-compact">
+            <a href="./login.html" data-logout-url="$(link-logout)?erase-cookie=on" class="plans-link switch-card-link" id="switchCardLink" onclick="return switchCard(event)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+              <span data-i18n="switch_card">{{ i18n.switch_card }}</span>
+            </a>
+            {% if config.features.enablePlansPage is not defined or config.features.enablePlansPage %}
             <a href="./plans.html" class="plans-link" id="viewPlansLink">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -284,6 +292,7 @@
               </svg>
               <span data-i18n="plans_link">{{ i18n.plans_link }}</span>
             </a>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -303,6 +312,12 @@
     function dismissPwaBanner(event) {
       if (event) event.preventDefault();
       if (window.Hotspot && window.Hotspot.status) return window.Hotspot.status.dismissPwaBanner();
+    }
+    function switchCard(event) {
+      if (window.Hotspot && window.Hotspot.status && window.Hotspot.status.switchCard) {
+        return window.Hotspot.status.switchCard(event);
+      }
+      return true;
     }
 
     // Initialize modules

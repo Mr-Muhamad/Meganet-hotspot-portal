@@ -72,6 +72,7 @@ const SCHEMA = {
       enableTechDetails: { type: 'boolean' },
       enableClonePrevention: { type: 'boolean' },
       enableLanguageToggle: { type: 'boolean' },
+      enablePlansPage: { type: 'boolean' },
       voucherMinLength: { type: 'number', min: 1, hint: 'minimum voucher code length checked client-side before submit — omit/null to disable' },
       voucherFormat: { type: 'string', enum: ['numeric', 'alphanumeric'], hint: 'numeric (digits only) or alphanumeric (letters + digits) voucher input format' }
     }
@@ -106,6 +107,7 @@ const SCHEMA = {
   support: {
     type: 'object',
     fields: {
+      plansWhatsapp: { type: 'string', pattern: /^\d{6,}$/, hint: 'digits only, country code without + (e.g. 201212208788)' },
       agents: {
         type: 'array',
         required: true,

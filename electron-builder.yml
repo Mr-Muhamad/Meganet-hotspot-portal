@@ -1,6 +1,14 @@
 appId: com.meganet.hotspot.studio
 productName: Meganet Hotspot Studio
-asar: false
+asar: true
+asarUnpack:
+  - "build/**"
+  - "src/**"
+  - "scripts/**"
+  - "admin/public/**"
+  - "config.example.json"
+  - "api.json"
+  - "md5.js"
 directories:
   output: dist-app
 files:

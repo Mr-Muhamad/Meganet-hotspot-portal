@@ -67,7 +67,12 @@ test('no RouterOS template variable leaks onto the rendered page', async ({ page
   expect(body).not.toMatch(/\$\([a-z]/i);
 });
 
-test('logout button targets the demo link-logout', async ({ page }) => {
+test('logout button targets link-logout and switch-card navigates directly to login', async ({ page }) => {
   await page.goto(`${DEFAULT}/ar/status.html`);
   await expect(page.locator('#logout-btn')).toHaveAttribute('href', 'http://10.5.50.1/logout');
+  const switchLink = page.locator('#switchCardLink');
+  await expect(switchLink).toHaveAttribute('href', './login.html');
+  await expect(switchLink).toHaveAttribute('data-logout-url', 'http://10.5.50.1/logout?erase-cookie=on');
+  await switchLink.click();
+  await expect(page).toHaveURL(`${DEFAULT}/ar/login.html`);
 });

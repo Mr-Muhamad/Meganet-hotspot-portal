@@ -108,6 +108,23 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
     expect(rsc).not.toContain('/ip/hotspot/walled-garden/ip/add');
   });
 
+  test('generateRscScript supports RouterOS v6 space-separated commands without Option 114', () => {
+    const rscV6 = generateRscScript({
+      general: { networkName: 'LegacyNet' },
+      features: { qrScannerUrl: 'https://qr.example.com/scan' }
+    }, {
+      routerOsVersion: 'v6',
+      profileName: 'legacy-hs',
+      htmlDir: 'hotspot',
+      dnsName: 'login.legacy.local'
+    });
+    expect(rscV6).toContain('RouterOS v6 Setup Script');
+    expect(rscV6).toContain('/ip hotspot profile find where name="legacy-hs"');
+    expect(rscV6).toContain('/ip hotspot walled-garden ip remove [find comment="meganet-studio"]');
+    expect(rscV6).toContain('/ip hotspot walled-garden ip add dst-host="qr.example.com"');
+    expect(rscV6).not.toContain('/ip/dhcp-server/option/add');
+  });
+
   test('deployToRouter uploads new and existing files via RouterOS v7 REST API and imports .rsc', async () => {
     const received = { auth: null, puts: [], patches: [], imports: [] };
     const mockRouter = http.createServer((req, res) => {

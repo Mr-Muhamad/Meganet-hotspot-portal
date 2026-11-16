@@ -116,5 +116,9 @@ describe('admin build pipeline', () => {
     expect(fs.existsSync(skippedZip)).toBe(false);
     expect(fs.existsSync(path.join(previewDistDir, 'ar', 'login.html'))).toBe(true);
     expect(fs.existsSync(path.join(previewDistDir, 'login.html'))).toBe(true);
+    // Inline-only SVG (prand-title.svg) and unreferenced agent images should not bloat dist/assets
+    expect(fs.existsSync(path.join(previewDistDir, 'assets', 'prand-title.svg'))).toBe(false);
+    expect(fs.existsSync(path.join(previewDistDir, 'assets', 'logo.svg'))).toBe(true);
+    expect(fs.existsSync(path.join(previewDistDir, 'assets', 'icon.png'))).toBe(true);
   });
 });

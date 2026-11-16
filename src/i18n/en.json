@@ -141,6 +141,7 @@
     "hotspot_server": "Hotspot Server",
     "idle_timeout_label": "Idle Timeout",
     "copy_diagnostics": "Copy Diagnostics for Support",
-    "diagnostics_copied": "Diagnostics copied!"
+    "diagnostics_copied": "Diagnostics copied!",
+    "switch_card": "Switch Card"
   }
 }

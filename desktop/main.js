@@ -81,7 +81,10 @@ function isAllowedExternalUrl(rawUrl) {
 }
 
 function createWindow() {
-  const windowIcon = path.join(__dirname, '..', 'build', 'icon.png');
+  const iconCandidate = path.join(__dirname, '..', 'build', 'icon.png');
+  const windowIcon = iconCandidate.includes('app.asar')
+    ? iconCandidate.replace('app.asar', 'app.asar.unpacked')
+    : iconCandidate;
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,

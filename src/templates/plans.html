@@ -95,7 +95,12 @@
       <span data-i18n="copy_order_btn">{{ i18n.copy_order_btn }}</span>
     </button>
     <div class="plans-actions">
+      {% if config.support and config.support.plansWhatsapp %}
+      {% set plansWaBase = 'https://wa.me/' ~ (config.support.plansWhatsapp | replace('+', '') | replace(' ', '') | replace('-', '')) %}
+      <a href="{{ plansWaBase | e }}" data-base-href="{{ plansWaBase | e }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary plans-cta-btn support-whatsapp-btn" data-i18n="request_activation">{{ i18n.request_activation }}</a>
+      {% else %}
       <button type="button" class="btn btn-primary plans-cta-btn" onclick="toggleSupportModal()" data-i18n="request_activation">{{ i18n.request_activation }}</button>
+      {% endif %}
       <a href="./login.html" class="btn btn-secondary plans-back-btn" data-i18n="back_to_login">{{ i18n.back_to_login }}</a>
     </div>
   </div>

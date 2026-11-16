@@ -632,9 +632,17 @@
 /* Plans Link Compact (Status Page) */
 .plans-link-compact {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
   text-align: center;
   margin-top: var(--space-md);
   padding-bottom: var(--space-xs);
+}
+.plans-link-compact .plans-link {
+  margin-top: 0;
 }
 
 /* Floating Support Button & Modal Popup */

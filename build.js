@@ -369,23 +369,43 @@ function copyStaticPages(distDir, config) {
   walk(staticDir, '');
 }
 
-// Copy static assets (optimizing & sanitizing SVGs)
+function getReferencedAssetFiles(resolvedConfig) {
+  const keep = new Set(['logo.svg', 'icon.png', 'favicon.ico']);
+  const agents = resolvedConfig && resolvedConfig.support && Array.isArray(resolvedConfig.support.agents)
+    ? resolvedConfig.support.agents
+    : [];
+  for (const agent of agents) {
+    if (!agent || typeof agent !== 'object') continue;
+    for (const raw of [agent.avatar, agent.image]) {
+      if (!raw || typeof raw !== 'string') continue;
+      const cleaned = raw.replace(/^\.?\/?assets[\\/]/i, '').replace(/\\/g, '/').trim();
+      if (cleaned) keep.add(cleaned);
+    }
+  }
+  return keep;
+}
+
+// Copy static assets (optimizing & sanitizing SVGs; skips unreferenced images and inline-only prand-title.svg)
 function copyAssets(options = {}) {
   const assetsSource = options.assetsDir || path.join(__dirname, 'src', 'assets');
   const distDir = options.distDir || path.join(__dirname, 'dist');
   const assetsDest = path.join(distDir, 'assets');
+  const keepAssets = options.resolvedConfig ? getReferencedAssetFiles(options.resolvedConfig) : null;
 
   if (fs.existsSync(assetsSource)) {
     fs.rmSync(assetsDest, { recursive: true, force: true });
     fs.mkdirSync(assetsDest, { recursive: true });
 
-    const copyDir = (srcDir, dstDir) => {
+    const copyDir = (srcDir, dstDir, isRoot) => {
       fs.mkdirSync(dstDir, { recursive: true });
       for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+        if (isRoot && !entry.isDirectory() && keepAssets && !keepAssets.has(entry.name)) {
+          continue;
+        }
         const srcPath = path.join(srcDir, entry.name);
         const destPath = path.join(dstDir, entry.name);
         if (entry.isDirectory()) {
-          copyDir(srcPath, destPath);
+          copyDir(srcPath, destPath, false);
         } else if (path.extname(entry.name).toLowerCase() === '.svg') {
           try {
             const safeSvg = sanitizeSvg(fs.readFileSync(srcPath, 'utf8'));
@@ -399,7 +419,7 @@ function copyAssets(options = {}) {
       }
     };
 
-    copyDir(assetsSource, assetsDest);
+    copyDir(assetsSource, assetsDest, true);
     console.log('✓ Copied assets');
   }
 
@@ -526,7 +546,7 @@ function build(options = {}) {
     console.log('✓ Copied manifest.json (profile name, icon dimensions, and theme colors from config)');
   }
 
-  copyAssets({ assetsDir, distDir });
+  copyAssets({ assetsDir, distDir, resolvedConfig });
   copyStaticPages(distDir, resolvedConfig);
 
   console.log('\n✨ Build complete!\n');

@@ -110,6 +110,35 @@ const scenarios = {
     conds: { ...baseConds, 'limit-bytes-total': false }
   },
 
+  // Low remaining byte quota (> 90% consumed -> triggers low-quota warning alert).
+  'low-quota': {
+    vars: {
+      ...baseVars,
+      'bytes-in': '9126805504',
+      'bytes-out': '536870912',
+      'bytes-in-nice': '8.5 GiB',
+      'bytes-out-nice': '512.0 MiB'
+    },
+    conds: { ...baseConds }
+  },
+
+  // Session time expiring soon (< 5 minutes -> triggers expiry warning banner).
+  'low-time': {
+    vars: {
+      ...baseVars,
+      'session-time-left': '00:03:45',
+      'session-time-left-secs': '225'
+    },
+    conds: { ...baseConds }
+  },
+
+  // Keep PWA install banner pinned open for visual layout inspection in preview.
+  pwa: {
+    vars: baseVars,
+    conds: baseConds,
+    forcePwaBanner: true
+  },
+
   // Captive-portal detected client (extra notice on the login footer).
   captive: {
     conds: { ...baseConds, captive: true }
@@ -161,6 +190,10 @@ function substitute(html, scenario) {
 
   // Safety net: strip any unmatched RouterOS conditional markers.
   html = html.replace(/\$\(if [a-z-]+\)|\$\(else\)|\$\(endif\)/gi, '');
+
+  if (scenario && scenario.forcePwaBanner) {
+    html = html.replace('</head>', '<style>#pwaBanner{display:block!important}</style></head>');
+  }
 
   return html;
 }

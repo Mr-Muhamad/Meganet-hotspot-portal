@@ -25,6 +25,7 @@ function formMikrotik(c) {
   rscGrid.appendChild(field('اسم بروفايل الهوتسبوت بالراوتر', '<input id="mk-profname" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.profileName || (slug + '-hs-profile')) + '">'));
   rscGrid.appendChild(field('سيرفر DHCP (لربط Option 114 اختيارياً)', '<input id="mk-dhcp-server" data-ignore-dirty="1" dir="ltr" placeholder="مثال: defconf" value="' + esc(mk.dhcpServer || '') + '">'));
   rscGrid.appendChild(field('وضع CAPPORT (DHCP Option 114)', '<select id="mk-capport-mode" data-ignore-dirty="1"><option value="https"' + ((mk.capportMode || 'https') === 'https' ? ' selected' : '') + '>HTTPS (موصى به مع شهادة www-ssl)</option><option value="http"' + (mk.capportMode === 'http' ? ' selected' : '') + '>HTTP (للشبكات الداخلية بدون SSL)</option><option value="off"' + (mk.capportMode === 'off' ? ' selected' : '') + '>معطل</option></select>'));
+  rscGrid.appendChild(field('إصدار RouterOS (لسكربت .rsc)', '<select id="mk-ros-version" data-ignore-dirty="1"><option value="v7"' + (mk.routerOsVersion !== 'v6' ? ' selected' : '') + '>RouterOS v7 (يدعم REST + Option 114)</option><option value="v6"' + (mk.routerOsVersion === 'v6' ? ' selected' : '') + '>RouterOS v6 (صيغة الأوامر الكلاسيكية)</option></select>'));
   rscGrid.appendChild(field('نطاقات إضافية لـ Walled Garden (بفواصل)', '<input id="mk-extra-wg" data-ignore-dirty="1" dir="ltr" placeholder="cdn.example.com, pay.example.com" value="' + esc(extraHostsText) + '">'));
   rscCard.appendChild(rscGrid);
 
@@ -148,7 +149,7 @@ function formMikrotik(c) {
 
   setTimeout(() => {
     refreshRscPreview();
-    ['mk-dns', 'mk-htmldir', 'mk-profname', 'mk-dhcp-server', 'mk-capport-mode', 'mk-extra-wg'].forEach((id) => {
+    ['mk-dns', 'mk-htmldir', 'mk-profname', 'mk-dhcp-server', 'mk-capport-mode', 'mk-ros-version', 'mk-extra-wg'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const syncRsc = () => {
@@ -205,6 +206,7 @@ function collectMikrotikSettings() {
     profileName: rscOpts.profileName,
     dhcpServer: rscOpts.dhcpServer,
     capportMode: rscOpts.capportMode,
+    routerOsVersion: rscOpts.routerOsVersion,
     extraHosts: rscOpts.extraHosts,
     applyRsc: Boolean($('#mk-apply-rsc')?.checked),
     createBackup: Boolean($('#mk-create-backup')?.checked),
@@ -262,6 +264,7 @@ function mikrotikRscParams() {
     profileName: $('#mk-profname')?.value?.trim() || ((state.current ? state.current.id : 'meganet') + '-hs-profile'),
     dhcpServer: $('#mk-dhcp-server')?.value?.trim() || '',
     capportMode: $('#mk-capport-mode')?.value || 'https',
+    routerOsVersion: $('#mk-ros-version')?.value === 'v6' ? 'v6' : 'v7',
     extraHosts: $('#mk-extra-wg')?.value?.trim() || ''
   };
 }

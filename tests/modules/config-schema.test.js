@@ -136,4 +136,13 @@ describe('config schema validation', () => {
   mistake('a non-string general.poweredByName_ar', 'general.poweredByName_ar', c => { c.general.poweredByName_ar = 123; });
   mistake('a non-string support.agents[0].name_ar', 'support.agents[0].name_ar', c => { c.support.agents[0].name_ar = 123; });
   mistake('a non-string support.agents[0].role_ar', 'support.agents[0].role_ar', c => { c.support.agents[0].role_ar = 123; });
+  mistake('a non-boolean features.enablePlansPage', 'features.enablePlansPage', c => { c.features.enablePlansPage = 'yes'; });
+  mistake('an invalid support.plansWhatsapp', 'support.plansWhatsapp', c => { c.support.plansWhatsapp = '+20123'; });
+
+  test('optional enablePlansPage and support.plansWhatsapp pass when valid', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    config.features.enablePlansPage = false;
+    config.support.plansWhatsapp = '201212208788';
+    expect(validate(config).errors).toEqual([]);
+  });
 });

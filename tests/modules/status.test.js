@@ -624,4 +624,45 @@ document.body.appendChild(mockSmartUsageCard);
       expect(statusModule._pwaHideTimer).toBeNull();
     });
   });
+
+  describe('switchCard', () => {
+    test('clears stored voucher credentials and navigates to ./login.html', () => {
+      localStorage.setItem('hotspot_last_voucher', '123456');
+      localStorage.setItem('hotspot_last_voucher_pw', '123456');
+      localStorage.setItem('hotspot_password', 'secret');
+      sessionStorage.setItem('hotspot_last_voucher', '123456');
+
+      const link = document.createElement('a');
+      link.id = 'switchCardLink';
+      link.setAttribute('href', './login.html');
+      link.setAttribute('data-logout-url', 'http://10.5.50.1/logout?erase-cookie=on');
+      document.body.appendChild(link);
+
+      const prevFetch = global.fetch;
+      const mockFetch = jest.fn(() => Promise.resolve());
+      global.fetch = mockFetch;
+
+      const origLocation = window.location;
+      delete window.location;
+      window.location = { href: 'http://localhost/ar/status.html' };
+
+      try {
+        const ret = statusModule.switchCard({ preventDefault: jest.fn() });
+        expect(ret).toBe(false);
+        expect(localStorage.getItem('hotspot_last_voucher')).toBeNull();
+        expect(localStorage.getItem('hotspot_last_voucher_pw')).toBeNull();
+        expect(localStorage.getItem('hotspot_password')).toBeNull();
+        expect(sessionStorage.getItem('hotspot_last_voucher')).toBeNull();
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://10.5.50.1/logout?erase-cookie=on',
+          expect.objectContaining({ method: 'GET', keepalive: true })
+        );
+        expect(window.location.href).toBe('./login.html');
+      } finally {
+        window.location = origLocation;
+        global.fetch = prevFetch;
+        link.remove();
+      }
+    });
+  });
 });

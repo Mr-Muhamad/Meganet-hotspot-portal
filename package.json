@@ -20,7 +20,9 @@
     "validate:config": "node scripts/validate-config.js",
     "admin": "node admin/server.js",
     "app:dev": "electron desktop/main.js",
-    "app:build": "electron-builder --win"
+    "app:build": "electron-builder --win",
+    "app:build:numbered": "node scripts/build-studio.js",
+    "portal:package": "node scripts/package-portal.js"
   },
   "keywords": [
     "mikrotik",

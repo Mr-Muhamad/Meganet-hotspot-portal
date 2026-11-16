@@ -1,0 +1,71 @@
+name: Release Studio
+
+on:
+  push:
+    tags:
+      - 'studio-v*'
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Optional build number override (defaults to GitHub run_number)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release-studio:
+    name: Build & Release Hotspot Studio (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure config.json exists
+        shell: pwsh
+        run: |
+          if (!(Test-Path config.json)) {
+            Copy-Item config.example.json config.json
+          }
+
+      - name: Build Studio installers
+        shell: pwsh
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+        run: npm run app:build:numbered
+
+      - name: Prepare release metadata
+        id: meta
+        shell: pwsh
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $ver = $pkg.version
+          $bn = $env:BUILD_NUMBER
+          $tag = "studio-v$ver-build.$bn"
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+          echo "build_number=$bn" >> $env:GITHUB_OUTPUT
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Create Studio GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Meganet Hotspot Studio v${{ steps.meta.outputs.version }} (Build ${{ steps.meta.outputs.build_number }})
+          generate_release_notes: true
+          files: |
+            dist-app/Meganet Hotspot Studio-Setup-${{ steps.meta.outputs.version }}-build.${{ steps.meta.outputs.build_number }}.exe
+            dist-app/Meganet Hotspot Studio-Portable-${{ steps.meta.outputs.version }}-build.${{ steps.meta.outputs.build_number }}.exe

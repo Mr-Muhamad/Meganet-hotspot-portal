@@ -23,6 +23,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Ensure config.json exists for CI
+        shell: pwsh
+        run: |
+          if (!(Test-Path config.json)) {
+            Copy-Item config.example.json config.json
+          }
+
       - name: Lint code
         run: npm run lint
 

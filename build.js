@@ -437,7 +437,19 @@ function build(options = {}) {
   console.log('🔨 Building MikroTik Hotspot Portal...\n');
   pageKeyCache.clear();
 
-  const configPath = options.configPath || path.join(__dirname, 'config.json');
+  const defaultConfigPath = path.join(__dirname, 'config.json');
+  const exampleConfigPath = path.join(__dirname, 'config.example.json');
+  let configPath = options.configPath;
+  if (!configPath) {
+    if (fs.existsSync(defaultConfigPath)) {
+      configPath = defaultConfigPath;
+    } else if (fs.existsSync(exampleConfigPath)) {
+      configPath = exampleConfigPath;
+      console.log('ℹ config.json not found — using config.example.json');
+    } else {
+      configPath = defaultConfigPath;
+    }
+  }
   const assetsDir = options.assetsDir || path.join(__dirname, 'src', 'assets');
   const announcementsSource = options.announcementsPath || path.join(__dirname, 'src', 'announcements.json');
   const distDir = options.distDir || path.join(__dirname, 'dist');
@@ -461,7 +473,7 @@ function build(options = {}) {
   }
   fs.mkdirSync(distDir, { recursive: true });
 
-  const resolvedConfig = loadConfig(options);
+  const resolvedConfig = loadConfig({ ...options, configPath });
   const svgCache = new Map();
   const pageOptions = { ...options, resolvedConfig, assetsDir, svgCache };
 

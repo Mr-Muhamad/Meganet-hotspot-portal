@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Studio Modal IME Composition Bug**: the window-level `keydown` handler in `openStudioModal` (`admin/public/studio-core.js`) confirmed the dialog on the `Enter` keystroke that merely commits an IME candidate conversion (CJK keyboards), submitting `studioPrompt` / new-profile inputs mid-composition; the handler now ignores the composing Enter via `event.isComposing || event.keyCode === 229` (also covering Safari's out-of-order confirming keydown, WebKit bug 165004).
+
+### Changed
+- **Modernized DOM Clearing & Deep Cloning (behavior-neutral)**: empty `innerHTML = ''` clears replaced with `replaceChildren()` (9 sites: `src/js/modules/auth.js` voucher chips + Studio profile list, tabs, content, words/RADIUS lists, assets), and `JSON.parse(JSON.stringify(...))` deep-copy workarounds replaced with native `structuredClone()` (5 sites across Studio tabs/simulator).
+
 ## [2.8.0] - 2026-11-16
 
 ### Added

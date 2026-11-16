@@ -72,21 +72,28 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
       const banner = document.getElementById('pwaBanner');
       if (banner) banner.style.display = 'block';
       const closeBtn = document.querySelector('.pwa-banner__close');
-      const textBox = document.querySelector('.pwa-banner__text');
+      const titleEl = document.querySelector('.pwa-banner__title');
+      const descEl = document.querySelector('.pwa-banner__desc');
+      const actionBtn = document.querySelector('.pwa-banner__btn');
       const closeRect = closeBtn ? closeBtn.getBoundingClientRect() : null;
-      const textRect = textBox ? textBox.getBoundingClientRect() : null;
+      const titleRect = titleEl ? titleEl.getBoundingClientRect() : null;
+      const descRect = descEl ? descEl.getBoundingClientRect() : null;
+      const actionRect = actionBtn ? actionBtn.getBoundingClientRect() : null;
+      const overlaps = (a, b) => !!(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
       const headerStyle = getComputedStyle(document.querySelector('.support-modal__header'));
       return {
         closeRect,
-        textRect,
+        titleRect,
+        anyOverlap: overlaps(closeRect, titleRect) || overlaps(closeRect, descRect) || overlaps(closeRect, actionRect),
         modalHeaderDir: headerStyle.flexDirection
       };
     });
 
     expect(metrics.modalHeaderDir).toBe('row');
-    if (metrics.closeRect && metrics.textRect) {
-      // In RTL, close button is on the inline-end (left side), text starts on the right
-      expect(metrics.closeRect.right).toBeLessThanOrEqual(metrics.textRect.left + 2);
+    expect(metrics.anyOverlap).toBe(false);
+    if (metrics.closeRect && metrics.titleRect) {
+      // In RTL, close button is on the inline-end (left side), title starts on the right
+      expect(metrics.closeRect.right).toBeLessThanOrEqual(metrics.titleRect.left + 2);
     }
   });
 
@@ -326,6 +333,9 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     await enPage.goto(`${DEFAULT}/login.html`);
     await expect(enPage).toHaveURL(/\/login\.html$/);
     await expect(enPage.locator('.header__name')).toHaveText(cfg.general.networkName);
+    if (cfg.general.brandTagline) {
+      await expect(enPage.locator('.header__tagline')).toHaveText(cfg.general.brandTagline);
+    }
     await expect(enPage.locator('.footer__text')).toContainText(cfg.general.poweredByText.trim());
     await expect(enPage.locator('.footer__link')).toHaveText(cfg.general.poweredByName);
     await expect(enPage.locator('.support-person-card__name').first()).toHaveText(agent.name);
@@ -338,6 +348,9 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     await arPage.goto(`${DEFAULT}/ar/login.html`);
     await expect(arPage).toHaveURL(/\/ar\/login\.html$/);
     await expect(arPage.locator('.header__name')).toHaveText(cfg.general.networkName_ar || cfg.general.networkName);
+    if (cfg.general.brandTagline_ar || cfg.general.brandTagline) {
+      await expect(arPage.locator('.header__tagline')).toHaveText(cfg.general.brandTagline_ar || cfg.general.brandTagline);
+    }
     await expect(arPage.locator('.footer__text')).toContainText((cfg.general.poweredByText_ar || cfg.general.poweredByText).trim());
     await expect(arPage.locator('.footer__link')).toHaveText(cfg.general.poweredByName_ar || cfg.general.poweredByName);
     await expect(arPage.locator('.support-person-card__name').first()).toHaveText(agent.name_ar || agent.name);
@@ -346,17 +359,19 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
   });
 
   test('stat-card--pwa is compact on mobile and .pwa-banner__btn retains painted hover fill and readable text', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${DEFAULT}/ar/status.html`);
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto(`${DEFAULT}/ar/status.html`);
 
-    await page.evaluate(() => {
-      const banner = document.getElementById('pwaBanner');
-      if (banner) banner.style.display = 'block';
-    });
+      await page.evaluate(() => {
+        const banner = document.getElementById('pwaBanner');
+        if (banner) banner.style.display = 'block';
+      });
 
-    const cardRect = await page.locator('.stat-card--pwa').boundingBox();
-    expect(cardRect).not.toBeNull();
-    expect(cardRect.height).toBeLessThanOrEqual(145);
+      const cardRect = await page.locator('.stat-card--pwa').boundingBox();
+      expect(cardRect).not.toBeNull();
+      expect(cardRect.height).toBeLessThanOrEqual(92);
+    }
 
     const btn = page.locator('.pwa-banner__btn');
     const normalStyles = await btn.evaluate((el) => {
@@ -425,24 +440,33 @@ test.describe('RTL Geometry, Journey Flows & Studio UX Verification', () => {
     const outlineHoverBg = await outlineBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(outlineHoverBg).not.toBe('rgba(0, 0, 0, 0)');
 
-    // 2. English mobile status & alogin header fits inside 390px without pushing .install-toggle off-screen
-    for (const url of [`${DEFAULT}/status.html`, `${DEFAULT}/alogin.html`]) {
-      await page.goto(url);
-      const headerFit = await page.evaluate(() => {
-        const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
-        const installBtn = document.querySelector('.install-toggle');
-        const installRect = installBtn ? installBtn.getBoundingClientRect() : null;
-        return {
-          overflow,
-          viewportWidth: window.innerWidth,
-          installRight: installRect ? Math.round(installRect.right) : null,
-          installLeft: installRect ? Math.round(installRect.left) : null
-        };
-      });
-      expect(headerFit.overflow).toBe(false);
-      if (headerFit.installRight !== null) {
-        expect(headerFit.installRight).toBeLessThanOrEqual(headerFit.viewportWidth);
-        expect(headerFit.installLeft).toBeGreaterThanOrEqual(0);
+    // 2. Mobile status & alogin headers fit inside 360px/390px without overflowing or truncating brand title/tagline
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const url of [`${DEFAULT}/status.html`, `${DEFAULT}/alogin.html`, `${DEFAULT}/ar/status.html`]) {
+        await page.goto(url);
+        const headerFit = await page.evaluate(() => {
+          const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+          const installBtn = document.querySelector('.install-toggle');
+          const installRect = installBtn ? installBtn.getBoundingClientRect() : null;
+          const brandName = document.querySelector('.header__name');
+          const brandTagline = document.querySelector('.header__tagline');
+          return {
+            overflow,
+            viewportWidth: window.innerWidth,
+            installRight: installRect ? Math.round(installRect.right) : null,
+            installLeft: installRect ? Math.round(installRect.left) : null,
+            nameTruncated: brandName ? brandName.scrollWidth > brandName.clientWidth + 1 : false,
+            taglineTruncated: brandTagline ? brandTagline.scrollWidth > brandTagline.clientWidth + 1 : false
+          };
+        });
+        expect(headerFit.overflow).toBe(false);
+        expect(headerFit.nameTruncated).toBe(false);
+        expect(headerFit.taglineTruncated).toBe(false);
+        if (headerFit.installRight !== null) {
+          expect(headerFit.installRight).toBeLessThanOrEqual(headerFit.viewportWidth);
+          expect(headerFit.installLeft).toBeGreaterThanOrEqual(0);
+        }
       }
     }
 

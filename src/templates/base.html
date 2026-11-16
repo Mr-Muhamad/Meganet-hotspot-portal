@@ -1,4 +1,5 @@
 {% set headerNetworkName = config.general.networkName_ar if (lang == 'ar' and config.general and config.general.networkName_ar) else config.general.networkName %}
+{% set headerBrandTagline = config.general.brandTagline_ar if (lang == 'ar' and config.general and config.general.brandTagline_ar) else config.general.brandTagline %}
 {% set footerText = config.general.poweredByText_ar if (lang == 'ar' and config.general and config.general.poweredByText_ar) else config.general.poweredByText %}
 {% set footerName = config.general.poweredByName_ar if (lang == 'ar' and config.general and config.general.poweredByName_ar) else config.general.poweredByName %}
 <!DOCTYPE html>
@@ -47,7 +48,12 @@
     <header class="header">
       <div class="header__brand">
         <span class="header__logo">{{ logoInline | safe }}</span>
-        <span class="header__name">{% if headerNetworkName %}{{ headerNetworkName | e }}{% else %}$(identity){% endif %}</span>
+        <div class="header__brand-text">
+          <span class="header__name">{% if headerNetworkName %}{{ headerNetworkName | e }}{% else %}$(identity){% endif %}</span>
+          {% if headerBrandTagline %}
+          <span class="header__tagline">{{ headerBrandTagline | e }}</span>
+          {% endif %}
+        </div>
         {% if page == 'status' or page == 'alogin' %}
         <!-- Mini Status Dot Indicator — shown only where the connection is
              genuinely active (status: authenticated session, alogin: right

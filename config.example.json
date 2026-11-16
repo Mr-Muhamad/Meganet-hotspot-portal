@@ -3,6 +3,9 @@
   "general": {
     "networkName": "MyHotspot",
     "networkName_ar": "شبكتي",
+    "brandTagline": "",
+    "brandTagline_ar": "",
+    "brandTagline_hints": "وصف قصير اختياري يظهر أسفل اسم البراند في الهيدر بخط أصغر ولون مميز (مثال: 'للحلول التقنية' في brandTagline_ar)",
     "poweredByText": "Powered by ",
     "poweredByText_ar": "بدعم من ",
     "poweredByText_hints": "نص الفوتر الترحيبي (مثال: 'Powered by '، اتركه فارغاً أو احذفه للعودة لترجمة النظام التلقائية؛ وأضف poweredByText_ar للعربي)",

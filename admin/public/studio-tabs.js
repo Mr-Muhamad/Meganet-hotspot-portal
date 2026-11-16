@@ -42,6 +42,8 @@ function captureDraft(tab) {
       state.drafts.general = {
         networkName: $('#g-network').value.trim(),
         networkName_ar: $('#g-network-ar').value.trim(),
+        brandTagline: $('#g-tagline').value.trim(),
+        brandTagline_ar: $('#g-tagline-ar').value.trim(),
         poweredByText: $('#g-powered-text').value,
         poweredByText_ar: $('#g-powered-text-ar').value,
         poweredByName: $('#g-powered-name').value,
@@ -150,6 +152,10 @@ function applyDrafts(c) {
     if (d.general.networkName) c.general.networkName = d.general.networkName;
     if (d.general.networkName_ar) c.general.networkName_ar = d.general.networkName_ar;
     else delete c.general.networkName_ar;
+    if (d.general.brandTagline) c.general.brandTagline = d.general.brandTagline;
+    else delete c.general.brandTagline;
+    if (d.general.brandTagline_ar) c.general.brandTagline_ar = d.general.brandTagline_ar;
+    else delete c.general.brandTagline_ar;
     c.general.poweredByText = d.general.poweredByText;
     if (d.general.poweredByText_ar) c.general.poweredByText_ar = d.general.poweredByText_ar;
     else delete c.general.poweredByText_ar;
@@ -292,7 +298,9 @@ function formGeneral(c) {
   const grid = document.createElement('div');
   grid.className = 'grid';
   grid.appendChild(field('اسم الشبكة (EN / الافتراضي)', '<input id="g-network" value="' + esc(c.general.networkName) + '">'));
-  grid.appendChild(field('اسم الشبكة (AR - اختياري)', '<input id="g-network-ar" value="' + esc(c.general.networkName_ar || '') + '" placeholder="مثال: ميجا نت للحلول التقنية">'));
+  grid.appendChild(field('اسم الشبكة (AR - اختياري)', '<input id="g-network-ar" value="' + esc(c.general.networkName_ar || '') + '" placeholder="مثال: ميجا نت">'));
+  grid.appendChild(field('وصف البراند (EN - اختياري)', '<input id="g-tagline" value="' + esc(c.general.brandTagline || '') + '" placeholder="مثال: Tech Solutions">'));
+  grid.appendChild(field('وصف البراند (AR - اختياري)', '<input id="g-tagline-ar" value="' + esc(c.general.brandTagline_ar || '') + '" placeholder="مثال: للحلول التقنية">'));
   grid.appendChild(field('نص الفوتر (EN / الافتراضي)', '<input id="g-powered-text" value="' + esc(c.general.poweredByText) + '">'));
   grid.appendChild(field('نص الفوتر (AR - اختياري)', '<input id="g-powered-text-ar" value="' + esc(c.general.poweredByText_ar || '') + '" placeholder="مثال: تطوير وتشغيل ">'));
   grid.appendChild(field('اسم رابط الفوتر (EN / الافتراضي)', '<input id="g-powered-name" value="' + esc(c.general.poweredByName) + '">'));

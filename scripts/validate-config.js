@@ -39,6 +39,8 @@ const SCHEMA = {
     fields: {
       networkName: { type: 'string', required: true },
       networkName_ar: { type: 'string' },
+      brandTagline: { type: 'string' },
+      brandTagline_ar: { type: 'string' },
       poweredByText: { type: 'string', required: true },
       poweredByText_ar: { type: 'string' },
       poweredByName: { type: 'string', required: true },

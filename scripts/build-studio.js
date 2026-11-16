@@ -34,6 +34,8 @@ function main() {
   const args = [
     'electron-builder',
     '--win',
+    '--publish',
+    'never',
     `-c.extraMetadata.buildNumber=${buildNumber}`,
     `-c.portable.artifactName=\${productName}-Portable-\${version}-build.${buildNumber}.\${ext}`,
     `-c.nsis.artifactName=\${productName}-Setup-\${version}-build.${buildNumber}.\${ext}`

@@ -13,6 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const net = require('net');
 const zlib = require('zlib');
 
 const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-studio-extras-'));
@@ -123,6 +124,86 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
     expect(rscV6).toContain('/ip hotspot walled-garden ip remove [find comment="meganet-studio"]');
     expect(rscV6).toContain('/ip hotspot walled-garden ip add dst-host="qr.example.com"');
     expect(rscV6).not.toContain('/ip/dhcp-server/option/add');
+  });
+
+  test('deployToRouter uploads portal files over FTP PASV for RouterOS v6', async () => {
+    const uploadedFiles = {};
+    const dataSockets = [];
+
+    const dataServer = net.createServer((ds) => {
+      dataSockets.push(ds);
+    });
+    await new Promise((r) => dataServer.listen(0, '127.0.0.1', r));
+    const dataPort = dataServer.address().port;
+
+    const ftpServer = net.createServer((ctrl) => {
+      ctrl.write('220 MikroTik FTP server ready\r\n');
+      let buf = '';
+      let pendingPath = '';
+      ctrl.on('data', (chunk) => {
+        buf += chunk.toString('utf8');
+        let idx;
+        while ((idx = buf.indexOf('\r\n')) !== -1) {
+          const line = buf.slice(0, idx);
+          buf = buf.slice(idx + 2);
+          const [cmd, ...rest] = line.split(' ');
+          const arg = rest.join(' ');
+          if (cmd === 'USER') ctrl.write('331 Password required\r\n');
+          else if (cmd === 'PASS') ctrl.write('230 User logged in\r\n');
+          else if (cmd === 'TYPE') ctrl.write('200 Type set to I\r\n');
+          else if (cmd === 'MKD') ctrl.write('257 Directory created\r\n');
+          else if (cmd === 'PASV') {
+            const p1 = (dataPort >> 8) & 0xff;
+            const p2 = dataPort & 0xff;
+            ctrl.write(`227 Entering Passive Mode (127,0,0,1,${p1},${p2})\r\n`);
+          } else if (cmd === 'STOR') {
+            pendingPath = arg;
+            const ds = dataSockets.shift();
+            const chunks = [];
+            ds.on('data', (c) => chunks.push(c));
+            ds.on('end', () => {
+              uploadedFiles[pendingPath] = Buffer.concat(chunks);
+              ctrl.write('226 Transfer complete\r\n');
+            });
+            ctrl.write('150 Opening binary data connection\r\n');
+          } else if (cmd === 'QUIT') {
+            ctrl.write('221 Closing\r\n');
+            ctrl.end();
+          }
+        }
+      });
+    });
+    await new Promise((r) => ftpServer.listen(0, '127.0.0.1', r));
+    const ftpPort = ftpServer.address().port;
+
+    try {
+      const res = await deployToRouter(
+        [
+          { relPath: 'login.html', buffer: Buffer.from('<html>login</html>', 'utf8') },
+          { relPath: 'assets/icon.png', buffer: Buffer.from([137, 80, 78, 71]) }
+        ],
+        {
+          host: '127.0.0.1',
+          port: ftpPort,
+          protocol: 'ftp',
+          username: 'admin',
+          password: 'pw',
+          targetDir: 'hotspot',
+          rscContent: '/ip hotspot profile set hsprof1'
+        }
+      );
+      expect(res.ok).toBe(true);
+      expect(res.protocol).toBe('ftp');
+      expect(res.uploadedCount).toBe(3);
+      expect(res.rscUploaded).toBe(true);
+      expect(res.rscApplied).toBe(false);
+      expect(uploadedFiles['hotspot/login.html'].toString('utf8')).toBe('<html>login</html>');
+      expect(uploadedFiles['hotspot/assets/icon.png']).toEqual(Buffer.from([137, 80, 78, 71]));
+      expect(uploadedFiles['hotspot/hotspot-setup.rsc'].toString('utf8')).toContain('/ip hotspot profile');
+    } finally {
+      await new Promise((r) => ftpServer.close(r));
+      await new Promise((r) => dataServer.close(r));
+    }
   });
 
   test('deployToRouter uploads new and existing files via RouterOS v7 REST API and imports .rsc', async () => {

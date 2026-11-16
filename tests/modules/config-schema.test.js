@@ -139,10 +139,17 @@ describe('config schema validation', () => {
   mistake('a non-boolean features.enablePlansPage', 'features.enablePlansPage', c => { c.features.enablePlansPage = 'yes'; });
   mistake('an invalid support.plansWhatsapp', 'support.plansWhatsapp', c => { c.support.plansWhatsapp = '+20123'; });
 
-  test('optional enablePlansPage and support.plansWhatsapp pass when valid', () => {
+  test('optional enablePlansPage and support.plansWhatsapp and outlets pass when valid', () => {
     const config = JSON.parse(JSON.stringify(valid));
     config.features.enablePlansPage = false;
     config.support.plansWhatsapp = '201212208788';
+    config.support.outlets = [
+      { name: 'Al-Nour Store', name_ar: 'سنترال النور', address: 'Main St', address_ar: 'شارع المحطة', phone: '+201000000000' }
+    ];
     expect(validate(config).errors).toEqual([]);
+  });
+
+  mistake('an outlet missing name', 'support.outlets[0].name', c => {
+    c.support.outlets = [{ address: 'Main St' }];
   });
 });

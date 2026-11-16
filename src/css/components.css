@@ -1069,3 +1069,85 @@
     animation: none;
   }
 }
+
+/* Recent voucher history chips */
+.voucher-history {
+  margin-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.voucher-history[hidden] {
+  display: none;
+}
+.voucher-history__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+.voucher-history__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.voucher-history__chip {
+  padding: 6px 10px;
+  min-height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-primary-alpha-30);
+  background: var(--color-primary-alpha-10);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-family: monospace;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.voucher-history__chip:hover {
+  background: var(--color-primary-alpha-20);
+  border-color: var(--color-primary);
+}
+
+/* Outlets / Distributors on plans.html */
+.outlets-section {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+.outlets-section__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+.outlets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-sm);
+}
+.outlet-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: start;
+}
+.outlet-card__name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+.outlet-card__addr {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+.outlet-card__phone {
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  width: fit-content;
+}

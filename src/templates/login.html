@@ -151,6 +151,10 @@
                        placeholder="{{ i18n.voucher_placeholder }}">
                 <button type="button" class="input-clear" id="voucher-clear" hidden onclick="if(window.Hotspot&&window.Hotspot.auth)window.Hotspot.auth.clearVoucher()" data-i18n-aria="clear_input" aria-label="{{ i18n.clear_input }}" data-i18n-title="clear_input" title="{{ i18n.clear_input }}">&times;</button>
               </div>
+              <div id="voucher-history" class="voucher-history" hidden>
+                <span class="voucher-history__label" data-i18n="recent_cards_label">{{ i18n.recent_cards_label }}</span>
+                <div class="voucher-history__chips" id="voucher-history-chips"></div>
+              </div>
               {% if config.features.enableQRScanner %}
                <div class="qr-buttons-row">
                  <button type="button" class="btn btn-secondary qr-scan-btn qr-scan-btn--camera" id="qrScanButton"

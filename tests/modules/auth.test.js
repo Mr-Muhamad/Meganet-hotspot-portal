@@ -679,5 +679,26 @@ describe('Hotspot.auth', () => {
       expect(event.preventDefault).toHaveBeenCalled();
       expect(event.stopImmediatePropagation).toHaveBeenCalled();
     });
+
+    test('maintains up to 3 recent voucher chips and fills #voucher on click', () => {
+      localStorage.removeItem('hotspot_voucher_history');
+      const wrap = document.createElement('div');
+      wrap.id = 'voucher-history';
+      wrap.hidden = true;
+      const chips = document.createElement('div');
+      chips.id = 'voucher-history-chips';
+      wrap.appendChild(chips);
+      document.body.appendChild(wrap);
+
+      ['1111', '2222', '3333', '4444', '2222'].forEach((code) => auth._addVoucherToHistory(code));
+      auth.renderVoucherHistory();
+
+      expect(wrap.hidden).toBe(false);
+      const btns = chips.querySelectorAll('.voucher-history__chip');
+      expect(Array.from(btns).map((b) => b.textContent)).toEqual(['2222', '4444', '3333']);
+
+      btns[1].click();
+      expect(mockVoucher.value).toBe('4444');
+    });
   });
 });

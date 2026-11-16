@@ -142,6 +142,8 @@
     "idle_timeout_label": "مهلة الخمول",
     "copy_diagnostics": "نسخ بيانات التشخيص للدعم",
     "diagnostics_copied": "تم نسخ بيانات التشخيص!",
-    "switch_card": "تغيير الكارت"
+    "switch_card": "تغيير الكارت",
+    "outlets_title": "أماكن شراء الكروت / الموزعون",
+    "recent_cards_label": "كروت استخدمتها مؤخراً:"
   }
 }

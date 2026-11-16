@@ -121,12 +121,14 @@ function createProfileStore(baseDir) {
 
   function sanitizeMikrotikSettings(input = {}, id = '') {
     const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
-    const protocol = src.protocol === 'https' ? 'https' : 'http';
+    const rawProto = String(src.protocol || 'http').toLowerCase();
+    const protocol = rawProto === 'https' ? 'https' : (rawProto === 'ftp' ? 'ftp' : 'http');
     const tlsFingerprint = String(src.tlsFingerprint || '').trim().toUpperCase();
     const rawPort = Number(src.port);
+    const defaultPort = protocol === 'https' ? 443 : (protocol === 'ftp' ? 21 : 80);
     const port = Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535
       ? rawPort
-      : (protocol === 'https' ? 443 : 80);
+      : defaultPort;
     const capportMode = ['https', 'http', 'off'].includes(src.capportMode) ? src.capportMode : 'https';
     const routerOsVersion = src.routerOsVersion === 'v6' ? 'v6' : 'v7';
     let extraHosts = [];

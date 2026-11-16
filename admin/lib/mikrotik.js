@@ -16,6 +16,7 @@
 const crypto = require('crypto');
 const http = require('http');
 const https = require('https');
+const net = require('net');
 const os = require('os');
 
 const COMMENT_TAG = 'meganet-studio';
@@ -254,12 +255,14 @@ function validateConnection(connection = {}) {
   if (!host || /[\s/?#]/.test(host)) {
     throw new Error('invalid router host/IP');
   }
-  const protocol = connection.protocol === 'https' ? 'https' : 'http';
+  const rawProto = String(connection.protocol || 'http').toLowerCase();
+  const protocol = rawProto === 'https' ? 'https' : (rawProto === 'ftp' ? 'ftp' : 'http');
   const pinned = connection.tlsFingerprint ? String(connection.tlsFingerprint).trim() : '';
   if (protocol === 'https' && !pinned) {
     throw new Error('HTTPS to RouterOS requires tlsFingerprint (SHA-256). Refusing an unpinned connection.');
   }
-  const port = Number(connection.port) || (protocol === 'https' ? 443 : 80);
+  const defaultPort = protocol === 'https' ? 443 : (protocol === 'ftp' ? 21 : 80);
+  const port = Number(connection.port) || defaultPort;
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('invalid router port');
   }
@@ -378,6 +381,26 @@ async function rosOptionalGet(conn, restPath) {
  */
 async function inspectRouter(connection = {}) {
   const conn = validateConnection(connection);
+  if (conn.protocol === 'ftp') {
+    const ftpInfo = await ftpInspect(conn);
+    return {
+      ok: true,
+      host: conn.host,
+      port: conn.port,
+      protocol: 'ftp',
+      identity: conn.host,
+      version: ftpInfo.syst || 'FTP',
+      boardName: 'RouterOS FTP',
+      architecture: '',
+      freeHddSpace: 0,
+      totalHddSpace: 0,
+      hasFlashPrefix: false,
+      hotspotProfiles: [],
+      dhcpServers: [],
+      wwwSslEnabled: false,
+      wwwSslCertificate: ''
+    };
+  }
   const resRes = await rosOptionalGet(conn, '/system/resource');
   const idRes = await rosOptionalGet(conn, '/system/identity');
   const hsRes = await rosOptionalGet(conn, '/ip/hotspot/profile?.proplist=name,html-directory,html-directory-override,dns-name');
@@ -512,12 +535,191 @@ function startBinaryPullServer(fileMap, listenHost) {
 }
 
 /**
- * Deploy built portal files to a MikroTik RouterOS v7 router via REST API.
- * Text files are uploaded via /rest/file (PUT/PATCH), while binary assets and
- * oversized scripts are pulled losslessly by RouterOS via /rest/tool/fetch.
+ * Minimal RFC 959 FTP client over TCP PASV for RouterOS v6 / legacy deployments.
+ */
+function openFtpControl(conn) {
+  return new Promise((resolve, reject) => {
+    const sock = net.createConnection({ host: conn.host, port: conn.port });
+    sock.setTimeout(conn.timeoutMs || 10000);
+    let buf = '';
+    const waiters = [];
+
+    const flush = () => {
+      while (waiters.length > 0) {
+        const lines = buf.split(/\r?\n/);
+        let endIdx = -1;
+        let code = 0;
+        for (let i = 0; i < lines.length - 1; i++) {
+          const m = /^(\d{3})([ -])/.exec(lines[i]);
+          if (m && m[2] === ' ') {
+            code = Number(m[1]);
+            endIdx = i;
+            break;
+          }
+        }
+        if (endIdx === -1) break;
+        const text = lines.slice(0, endIdx + 1).join('\n');
+        buf = lines.slice(endIdx + 1).join('\n');
+        const next = waiters.shift();
+        next.resolve({ code, text });
+      }
+    };
+
+    const failAll = (err) => {
+      while (waiters.length > 0) {
+        waiters.shift().reject(err);
+      }
+    };
+
+    sock.on('data', (chunk) => {
+      buf += chunk.toString('utf8');
+      flush();
+    });
+    sock.on('timeout', () => {
+      const err = new Error('FTP connection timed out');
+      sock.destroy(err);
+      failAll(err);
+    });
+    sock.on('error', (err) => failAll(err));
+
+    const readReply = () => new Promise((res, rej) => {
+      waiters.push({ resolve: res, reject: rej });
+      flush();
+    });
+
+    const sendCmd = async (cmd, okCodes) => {
+      sock.write(cmd + '\r\n');
+      const reply = await readReply();
+      if (okCodes && !okCodes.includes(reply.code)) {
+        throw new Error(`FTP command "${cmd.split(' ')[0]}" failed (${reply.code}): ${reply.text}`);
+      }
+      return reply;
+    };
+
+    sock.once('connect', async () => {
+      try {
+        const greet = await readReply();
+        if (greet.code !== 220) {
+          throw new Error(`FTP greeting failed (${greet.code}): ${greet.text}`);
+        }
+        const userReply = await sendCmd(`USER ${conn.username}`, [230, 331]);
+        if (userReply.code === 331) {
+          await sendCmd(`PASS ${conn.password || ''}`, [230]);
+        }
+        resolve({ sock, sendCmd, readReply, close: () => { try { sock.end('QUIT\r\n'); } catch { sock.destroy(); } } });
+      } catch (err) {
+        sock.destroy();
+        reject(err);
+      }
+    });
+  });
+}
+
+async function ftpInspect(conn) {
+  const client = await openFtpControl(conn);
+  try {
+    let syst = '';
+    try {
+      const r = await client.sendCmd('SYST', [215]);
+      syst = r.text.replace(/^215\s+/, '').trim();
+    } catch { /* optional */ }
+    return { syst };
+  } finally {
+    client.close();
+  }
+}
+
+async function ftpDeployFiles(files, connection, conn) {
+  const client = await openFtpControl(conn);
+  const createdDirs = new Set();
+  const ensureDir = async (dirPath) => {
+    const parts = String(dirPath || '').split('/').filter(Boolean);
+    let cur = '';
+    for (const part of parts) {
+      cur = cur ? `${cur}/${part}` : part;
+      if (createdDirs.has(cur)) continue;
+      try {
+        await client.sendCmd(`MKD ${cur}`, [257, 250, 550]);
+      } catch { /* ignore if parent already exists */ }
+      createdDirs.add(cur);
+    }
+  };
+
+  const uploadBuffer = async (remotePath, buf) => {
+    const slashIdx = remotePath.lastIndexOf('/');
+    if (slashIdx > 0) {
+      await ensureDir(remotePath.slice(0, slashIdx));
+    }
+    const pasv = await client.sendCmd('PASV', [227]);
+    const m = /\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/.exec(pasv.text);
+    if (!m) throw new Error(`Invalid FTP PASV response: ${pasv.text}`);
+    const dataPort = (Number(m[5]) << 8) + Number(m[6]);
+
+    await new Promise((resolve, reject) => {
+      const dataSock = net.createConnection({ host: conn.host, port: dataPort });
+      dataSock.setTimeout(conn.timeoutMs || 10000);
+      dataSock.on('error', reject);
+      dataSock.on('timeout', () => dataSock.destroy(new Error('FTP data transfer timed out')));
+      dataSock.once('connect', async () => {
+        try {
+          await client.sendCmd(`STOR ${remotePath}`, [125, 150]);
+          dataSock.end(buf, async () => {
+            try {
+              await client.readReply(); // 226 / 250 transfer complete
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          });
+        } catch (err) {
+          dataSock.destroy();
+          reject(err);
+        }
+      });
+    });
+  };
+
+  try {
+    await client.sendCmd('TYPE I', [200]);
+    const uploaded = [];
+    for (const f of files || []) {
+      const cleanRel = String(f.relPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+      if (!cleanRel || cleanRel.includes('..') || !f.buffer) continue;
+      const remoteName = `${conn.targetDir}/${cleanRel}`;
+      await uploadBuffer(remoteName, f.buffer);
+      uploaded.push(remoteName);
+    }
+    if (connection.rscContent) {
+      const rscName = `${conn.targetDir}/hotspot-setup.rsc`;
+      await uploadBuffer(rscName, Buffer.from(connection.rscContent, 'utf8'));
+      uploaded.push(rscName);
+    }
+    return {
+      ok: true,
+      host: conn.host,
+      port: conn.port,
+      protocol: 'ftp',
+      targetDir: conn.targetDir,
+      uploadedCount: uploaded.length,
+      rscApplied: false,
+      rscUploaded: Boolean(connection.rscContent),
+      backupCreated: false,
+      files: uploaded
+    };
+  } finally {
+    client.close();
+  }
+}
+
+/**
+ * Deploy built portal files to a MikroTik RouterOS v7 router via REST API,
+ * or RouterOS v6/legacy via FTP when protocol="ftp".
  */
 async function deployToRouter(files, connection = {}) {
   const conn = validateConnection(connection);
+  if (conn.protocol === 'ftp') {
+    return ftpDeployFiles(files, connection, conn);
+  }
   const { host, port, targetDir } = conn;
 
   // Optional flash storage preflight check (skips silently on minimal mocks returning 404)

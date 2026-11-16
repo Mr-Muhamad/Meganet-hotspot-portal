@@ -8,8 +8,8 @@ function formMikrotik(c) {
   const slug = state.current.id;
   const mk = state.current.mikrotik || {};
   const extraHostsText = Array.isArray(mk.extraHosts) ? mk.extraHosts.join(', ') : (mk.extraHosts || '');
-  const mkProtocol = mk.protocol === 'https' ? 'https' : 'http';
-  const mkPort = mk.port || (mkProtocol === 'https' ? 443 : 80);
+  const mkProtocol = mk.protocol === 'https' ? 'https' : (mk.protocol === 'ftp' ? 'ftp' : 'http');
+  const mkPort = mk.port || (mkProtocol === 'https' ? 443 : (mkProtocol === 'ftp' ? 21 : 80));
 
   // Card 1: .rsc Generator
   const rscCard = document.createElement('div');
@@ -60,7 +60,7 @@ function formMikrotik(c) {
   const depGrid = document.createElement('div');
   depGrid.className = 'grid';
   depGrid.appendChild(field('عنوان IP الراوتر أو النطاق', '<input id="mk-host" data-ignore-dirty="1" dir="ltr" placeholder="192.168.88.1" value="' + esc(mk.host || '192.168.88.1') + '">'));
-  depGrid.appendChild(field('البروتوكول', '<select id="mk-proto" data-ignore-dirty="1"><option value="http"' + (mkProtocol === 'http' ? ' selected' : '') + '>HTTP (افتراضي 80)</option><option value="https"' + (mkProtocol === 'https' ? ' selected' : '') + '>HTTPS (443)</option></select>'));
+  depGrid.appendChild(field('البروتوكول', '<select id="mk-proto" data-ignore-dirty="1"><option value="http"' + (mkProtocol === 'http' ? ' selected' : '') + '>HTTP REST (v7 - المنفذ 80)</option><option value="https"' + (mkProtocol === 'https' ? ' selected' : '') + '>HTTPS REST (v7 - المنفذ 443)</option><option value="ftp"' + (mkProtocol === 'ftp' ? ' selected' : '') + '>FTP (RouterOS v6 / المنفذ 21)</option></select>'));
   depGrid.appendChild(field('المنفذ (Port)', '<input id="mk-port" type="number" data-ignore-dirty="1" dir="ltr" value="' + esc(String(mkPort)) + '">'));
   depGrid.appendChild(field('اسم مستخدم الراوتر', '<input id="mk-user" data-ignore-dirty="1" dir="ltr" value="' + esc(mk.username || 'admin') + '">'));
   depGrid.appendChild(field('كلمة المرور', '<input id="mk-pass" type="password" data-ignore-dirty="1" dir="ltr" placeholder="لا يتم حفظ كلمة المرور على القرص">'));
@@ -170,8 +170,9 @@ function formMikrotik(c) {
         if (id === 'mk-proto') {
           if ($('#mk-port')) {
             const curPort = Number($('#mk-port').value);
-            if (el.value === 'https' && (!curPort || curPort === 80)) $('#mk-port').value = '443';
-            if (el.value === 'http' && (!curPort || curPort === 443)) $('#mk-port').value = '80';
+            if (el.value === 'https' && (!curPort || curPort === 80 || curPort === 21)) $('#mk-port').value = '443';
+            else if (el.value === 'ftp' && (!curPort || curPort === 80 || curPort === 443)) $('#mk-port').value = '21';
+            else if (el.value === 'http' && (!curPort || curPort === 443 || curPort === 21)) $('#mk-port').value = '80';
           }
           if ($('#mk-tls-fp-wrap')) {
             $('#mk-tls-fp-wrap').style.display = el.value === 'https' ? '' : 'none';
@@ -195,10 +196,12 @@ function formMikrotik(c) {
 
 function collectMikrotikSettings() {
   const rscOpts = mikrotikRscParams();
+  const proto = $('#mk-proto')?.value === 'https' ? 'https' : ($('#mk-proto')?.value === 'ftp' ? 'ftp' : 'http');
+  const defaultPort = proto === 'https' ? 443 : (proto === 'ftp' ? 21 : 80);
   return {
     host: $('#mk-host')?.value?.trim() || '192.168.88.1',
-    protocol: $('#mk-proto')?.value === 'https' ? 'https' : 'http',
-    port: Number($('#mk-port')?.value) || ($('#mk-proto')?.value === 'https' ? 443 : 80),
+    protocol: proto,
+    port: Number($('#mk-port')?.value) || defaultPort,
     username: $('#mk-user')?.value?.trim() || 'admin',
     targetDir: $('#mk-target-dir')?.value?.trim() || 'hotspot',
     htmlDir: rscOpts.htmlDir,
@@ -308,12 +311,12 @@ async function testMikrotikConnection() {
   const box = $('#mk-test-info');
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الفحص…'; }
   try {
-    const proto = $('#mk-proto')?.value === 'https' ? 'https' : 'http';
+    const proto = $('#mk-proto')?.value === 'https' ? 'https' : ($('#mk-proto')?.value === 'ftp' ? 'ftp' : 'http');
     const payload = {
       slug: state.current ? state.current.id : '',
       host: $('#mk-host')?.value?.trim(),
       protocol: proto,
-      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : 80),
+      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : (proto === 'ftp' ? 21 : 80)),
       username: $('#mk-user')?.value?.trim() || 'admin',
       password: $('#mk-pass')?.value || '',
       tlsFingerprint: ($('#mk-tls-fp')?.value?.trim() || state.lastRouterFingerprint || '').toUpperCase()
@@ -383,11 +386,11 @@ async function deployToMikrotik() {
     const saved = await saveConfig();
     if (!saved) return;
     const rscOpts = mikrotikRscParams();
-    const proto = $('#mk-proto')?.value === 'https' ? 'https' : 'http';
+    const proto = $('#mk-proto')?.value === 'https' ? 'https' : ($('#mk-proto')?.value === 'ftp' ? 'ftp' : 'http');
     const payload = {
       host: $('#mk-host')?.value?.trim(),
       protocol: proto,
-      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : 80),
+      port: Number($('#mk-port')?.value) || (proto === 'https' ? 443 : (proto === 'ftp' ? 21 : 80)),
       username: $('#mk-user')?.value?.trim() || 'admin',
       password: $('#mk-pass')?.value || '',
       targetDir: $('#mk-target-dir')?.value?.trim() || 'hotspot',
@@ -413,8 +416,9 @@ async function deployToMikrotik() {
     if (res.mikrotik) state.current.mikrotik = res.mikrotik;
     else syncMikrotikDraft();
     const msg = `✓ تم رفع ${res.uploadedCount} ملف بنجاح إلى ${res.host}:${res.port}/${res.targetDir}` +
+      (res.protocol === 'ftp' ? ' (عبر FTP)' : '') +
       (res.backupCreated ? ' · تم حفظ نسخة احتياطية' : '') +
-      (res.rscApplied ? ' · تم تطبيق السكربت' : '');
+      (res.rscApplied ? ' · تم تطبيق السكربت' : (res.rscUploaded ? ' · تم رفع hotspot-setup.rsc (نفّذ /import بالراوتر)' : ''));
     if (statusEl) { statusEl.textContent = msg; statusEl.className = 'status ok'; }
     toast(msg);
   } catch (e) {

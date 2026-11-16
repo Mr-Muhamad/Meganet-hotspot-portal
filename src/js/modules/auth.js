@@ -19,6 +19,9 @@ var auth = {
       if (clearOnPermanentErr) {
         auth._clearStoredVoucher();
         auth._clearStoredPassword();
+        if (preClearVoucher) {
+          auth._removeVoucherFromHistory(preClearVoucher);
+        }
       }
 
       if (passwordInput) {
@@ -157,6 +160,7 @@ var auth = {
 
       auth.initVoucherMode();
       auth.restoreSavedMode();
+      auth.renderVoucherHistory();
       auth.triggerAutoLogin();
 
       // Always show QR button, we have a file fallback if camera is unavailable
@@ -683,6 +687,78 @@ var auth = {
     auth._removeStorageItem('hotspot_last_voucher_pw');
   },
 
+  _getVoucherHistory: function() {
+    try {
+      if (typeof localStorage === 'undefined') return [];
+      var raw = localStorage.getItem('hotspot_voucher_history');
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(function(item) { return typeof item === 'string' && item.trim().length > 0; }).slice(0, 3) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  _saveVoucherHistory: function(list) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (!list || !list.length) {
+        localStorage.removeItem('hotspot_voucher_history');
+      } else {
+        localStorage.setItem('hotspot_voucher_history', JSON.stringify(list.slice(0, 3)));
+      }
+    } catch (e) {}
+  },
+
+  _addVoucherToHistory: function(code) {
+    var val = String(code || '').trim();
+    if (!val) return;
+    var list = auth._getVoucherHistory().filter(function(item) { return item !== val; });
+    list.unshift(val);
+    auth._saveVoucherHistory(list.slice(0, 3));
+  },
+
+  _removeVoucherFromHistory: function(code) {
+    var val = String(code || '').trim();
+    if (!val) return;
+    var list = auth._getVoucherHistory().filter(function(item) { return item !== val; });
+    auth._saveVoucherHistory(list);
+    auth.renderVoucherHistory();
+  },
+
+  renderVoucherHistory: function() {
+    try {
+      var container = document.getElementById('voucher-history');
+      var chipsWrap = document.getElementById('voucher-history-chips');
+      if (!container || !chipsWrap) return;
+      var list = auth._getVoucherHistory();
+      chipsWrap.innerHTML = '';
+      if (!list.length) {
+        container.hidden = true;
+        return;
+      }
+      container.hidden = false;
+      list.forEach(function(code) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'voucher-history__chip';
+        chip.setAttribute('dir', 'ltr');
+        chip.textContent = code;
+        chip.addEventListener('click', function() {
+          var voucherInput = document.getElementById('voucher');
+          if (voucherInput) {
+            voucherInput.value = code;
+            auth._syncVoucherClearBtn();
+            voucherInput.focus();
+          }
+        });
+        chipsWrap.appendChild(chip);
+      });
+    } catch (err) {
+      console.error('Render voucher history error:', err);
+    }
+  },
+
   _getStoredUsername: function() {
     return auth._getStorageItem('hotspot_username');
   },
@@ -907,6 +983,7 @@ var auth = {
       }
 
       var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
+      auth._addVoucherToHistory(voucherValue);
       if (preventClone) {
         auth._saveStoredVoucher(voucherValue);
         if (scannedPassword) {

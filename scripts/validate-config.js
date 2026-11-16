@@ -108,6 +108,16 @@ const SCHEMA = {
     type: 'object',
     fields: {
       plansWhatsapp: { type: 'string', pattern: /^\d{6,}$/, hint: 'digits only, country code without + (e.g. 201212208788)' },
+      outlets: {
+        type: 'array',
+        itemFields: {
+          name: { type: 'string', required: true },
+          name_ar: { type: 'string' },
+          address: { type: 'string' },
+          address_ar: { type: 'string' },
+          phone: { type: 'string', pattern: /^\+?[\d\s-]+$/, hint: 'phone number, digits with optional +/spaces' }
+        }
+      },
       agents: {
         type: 'array',
         required: true,

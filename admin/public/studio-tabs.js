@@ -109,6 +109,19 @@ function captureDraft(tab) {
       });
       state.drafts.support = agents;
       state.drafts.plansWhatsapp = $('#s-plans-wa') ? $('#s-plans-wa').value.trim() : '';
+      const outlets = [];
+      (state.current.config.support.outlets || []).forEach((o, i) => {
+        const nameEl = $('#o-name-' + i);
+        if (!nameEl) return;
+        outlets.push({
+          name: nameEl.value.trim(),
+          name_ar: $('#o-name-ar-' + i) ? $('#o-name-ar-' + i).value.trim() : '',
+          address: $('#o-addr-' + i) ? $('#o-addr-' + i).value.trim() : '',
+          address_ar: $('#o-addr-ar-' + i) ? $('#o-addr-ar-' + i).value.trim() : '',
+          phone: $('#o-phone-' + i) ? $('#o-phone-' + i).value.trim() : ''
+        });
+      });
+      state.drafts.outlets = outlets;
     } else if (tab === 'announcements') {
       const activeEl = $('#a-active');
       const typeEl = $('#a-type');
@@ -232,6 +245,21 @@ function applyDrafts(c) {
     c.support = c.support || { agents: [] };
     if (d.plansWhatsapp) c.support.plansWhatsapp = d.plansWhatsapp;
     else delete c.support.plansWhatsapp;
+  }
+  if (d.outlets !== undefined) {
+    c.support = c.support || { agents: [] };
+    const cleanedOutlets = d.outlets
+      .filter(o => o && o.name)
+      .map(o => {
+        const row = { name: o.name };
+        if (o.name_ar) row.name_ar = o.name_ar;
+        if (o.address) row.address = o.address;
+        if (o.address_ar) row.address_ar = o.address_ar;
+        if (o.phone) row.phone = o.phone;
+        return row;
+      });
+    if (cleanedOutlets.length > 0) c.support.outlets = cleanedOutlets;
+    else delete c.support.outlets;
   }
 
   if (d.words !== undefined) {
@@ -727,7 +755,63 @@ function formSupport(c) {
     renderTab();
   };
   card.appendChild(add);
-  return card;
+
+  const outletsCard = document.createElement('div');
+  outletsCard.className = 'card';
+  outletsCard.innerHTML = '<h3>أماكن بيع الكروت / الموزعون (اختياري)</h3><div class="planshint">تظهر هذه القائمة أسفل صفحة الباقات ليرشد المشترك إلى أقرب نقطة بيع.</div>';
+  const outletsList = document.createElement('div');
+  const outlets = (c.support && Array.isArray(c.support.outlets)) ? c.support.outlets : [];
+  outlets.forEach((outlet, i) => {
+    const box = document.createElement('div');
+    box.className = 'card';
+    box.style.marginBottom = '10px';
+    const oGrid = document.createElement('div');
+    oGrid.className = 'grid';
+    oGrid.appendChild(field('اسم النقطة (EN / الافتراضي)', '<input id="o-name-' + i + '" value="' + esc(outlet.name || '') + '">'));
+    oGrid.appendChild(field('اسم النقطة (AR - اختياري)', '<input id="o-name-ar-' + i + '" value="' + esc(outlet.name_ar || '') + '" placeholder="مثال: سنترال النور">'));
+    oGrid.appendChild(field('العنوان (EN - اختياري)', '<input id="o-addr-' + i + '" value="' + esc(outlet.address || '') + '">'));
+    oGrid.appendChild(field('العنوان (AR - اختياري)', '<input id="o-addr-ar-' + i + '" value="' + esc(outlet.address_ar || '') + '" placeholder="شارع المحطة بجوار...">'));
+    oGrid.appendChild(field('تليفون (اختياري)', '<input id="o-phone-' + i + '" dir="ltr" value="' + esc(outlet.phone || '') + '" placeholder="+2010...">'));
+    box.appendChild(oGrid);
+    const delO = document.createElement('button');
+    delO.className = 'rowbtn';
+    delO.style.marginTop = '10px';
+    delO.textContent = 'إزالة';
+    delO.onclick = () => removeOutlet(i);
+    box.appendChild(delO);
+    outletsList.appendChild(box);
+  });
+  outletsCard.appendChild(outletsList);
+  const addOutletBtn = document.createElement('button');
+  addOutletBtn.className = 'btn ghost addbtn';
+  addOutletBtn.textContent = '＋ إضافة نقطة بيع';
+  addOutletBtn.onclick = () => {
+    captureDraft(state.tab);
+    applyDrafts(state.current.config);
+    delete state.drafts.outlets;
+    state.current.config.support = state.current.config.support || { agents: [] };
+    state.current.config.support.outlets = state.current.config.support.outlets || [];
+    state.current.config.support.outlets.push({ name: 'Sales Point', name_ar: 'نقطة بيع', address: '', address_ar: '', phone: '' });
+    markDirty(true);
+    renderTab();
+  };
+  outletsCard.appendChild(addOutletBtn);
+
+  const wrap = document.createElement('div');
+  wrap.appendChild(card);
+  wrap.appendChild(outletsCard);
+  return wrap;
+}
+
+function removeOutlet(i) {
+  captureDraft(state.tab);
+  applyDrafts(state.current.config);
+  delete state.drafts.outlets;
+  if (state.current.config.support && Array.isArray(state.current.config.support.outlets)) {
+    state.current.config.support.outlets.splice(i, 1);
+  }
+  markDirty(true);
+  renderTab();
 }
 
 function removeAgent(i) {

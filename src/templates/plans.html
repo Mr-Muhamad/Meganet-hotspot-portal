@@ -87,6 +87,27 @@
     {% endif %}
   </div>
 
+  {% if config.support and config.support.outlets and config.support.outlets.length > 0 %}
+  <div class="outlets-section">
+    <h2 class="outlets-section__title" data-i18n="outlets_title">{{ i18n.outlets_title }}</h2>
+    <div class="outlets-grid">
+      {% for outlet in config.support.outlets %}
+      {% set outletName = outlet.name_ar if (lang == 'ar' and outlet.name_ar) else outlet.name %}
+      {% set outletAddr = outlet.address_ar if (lang == 'ar' and outlet.address_ar) else outlet.address %}
+      <div class="outlet-card">
+        <div class="outlet-card__name">{{ outletName | e }}</div>
+        {% if outletAddr %}
+        <div class="outlet-card__addr">{{ outletAddr | e }}</div>
+        {% endif %}
+        {% if outlet.phone %}
+        <a href="tel:{{ outlet.phone | e }}" class="outlet-card__phone" dir="ltr">{{ outlet.phone | e }}</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="plans-footer">
     <div id="selected-plan-summary" class="alert alert-info plans-selected-summary" style="display:none;" role="status"><span class="alert__text" id="selected-plan-summary-text"></span></div>
     <p class="text-muted text-sm text-center plans-cta-hint" data-i18n="plans_cta_hint">{{ i18n.plans_cta_hint }}</p>

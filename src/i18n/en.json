@@ -142,6 +142,8 @@
     "idle_timeout_label": "Idle Timeout",
     "copy_diagnostics": "Copy Diagnostics for Support",
     "diagnostics_copied": "Diagnostics copied!",
-    "switch_card": "Switch Card"
+    "switch_card": "Switch Card",
+    "outlets_title": "Card Sales Locations",
+    "recent_cards_label": "Recent cards:"
   }
 }

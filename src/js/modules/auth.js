@@ -677,11 +677,12 @@ var auth = {
   },
 
   _getStoredVoucherPassword: function() {
-    return auth._getStorageItem('hotspot_last_voucher_pw');
+    var pw = auth._getStorageItem('hotspot_last_voucher_pw');
+    return pw === '__EMPTY__' ? '' : pw;
   },
 
   _saveStoredVoucherPassword: function(passwordValue) {
-    auth._setStorageItem('hotspot_last_voucher_pw', passwordValue, 30);
+    auth._setStorageItem('hotspot_last_voucher_pw', passwordValue === '' ? '__EMPTY__' : passwordValue, 30);
   },
 
   _clearStoredVoucher: function() {
@@ -847,7 +848,7 @@ var auth = {
           }
           var lastVoucherPw = !permanentErr ? auth._getStoredVoucherPassword() : null;
           var form = document.getElementById('login-form');
-          if (lastVoucherPw && form && !form.getAttribute('data-scanned-password')) {
+          if (lastVoucherPw !== null && form && form.getAttribute('data-scanned-password') === null) {
             form.setAttribute('data-scanned-password', lastVoucherPw);
           }
         }
@@ -972,14 +973,14 @@ var auth = {
 
       // Check password mode: same (username = password) or empty (password = empty)
       var pwMode = form ? (form.getAttribute('data-voucher-password-mode') || 'same') : 'same';
-      // A scanned link card (mikhmon format: ?username=X&password=Y) carries
-      // its own password — prefer it over the configured copy/blank default.
+      // A scanned card (mikhmon link or compact prefix) carries its own password
+      // (including explicit "" for empty-password cards) — prefer it over defaults.
       var scannedPassword = form ? form.getAttribute('data-scanned-password') : null;
 
-      if (pwMode === 'empty' && !scannedPassword) {
-        passwordInput.value = '';
-      } else if (scannedPassword) {
+      if (scannedPassword !== null) {
         passwordInput.value = scannedPassword;
+      } else if (pwMode === 'empty') {
+        passwordInput.value = '';
       } else {
         passwordInput.value = voucherValue;
       }
@@ -988,7 +989,7 @@ var auth = {
       auth._addVoucherToHistory(voucherValue);
       if (preventClone) {
         auth._saveStoredVoucher(voucherValue);
-        if (scannedPassword) {
+        if (scannedPassword !== null) {
           auth._saveStoredVoucherPassword(scannedPassword);
         } else {
           auth._removeStorageItem('hotspot_last_voucher_pw');
@@ -1348,7 +1349,7 @@ var auth = {
         if (!lastVoucher) return;
 
         var lastVoucherPw = auth._getStoredVoucherPassword();
-        if (lastVoucherPw && !form.getAttribute('data-scanned-password')) {
+        if (lastVoucherPw !== null && form.getAttribute('data-scanned-password') === null) {
           form.setAttribute('data-scanned-password', lastVoucherPw);
         }
 

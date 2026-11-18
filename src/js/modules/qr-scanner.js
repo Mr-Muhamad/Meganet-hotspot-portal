@@ -252,6 +252,34 @@ var qrScanner = {
       }
     }
     var bareFmt = (typeof auth !== 'undefined' && auth.getVoucherFormat) ? auth.getVoucherFormat() : 'numeric';
+
+    // Compact credential-card formats (e.g. MikroTik voucher generators):
+    //  1. "-<username>" -> username with an explicit empty password
+    //  2. "<lenLetter><username><password>" where <lenLetter> ('a'..'z') encodes
+    //     username length (1..26), e.g. "g6256868080377" -> user "6256868", pw "080377"
+    var emptyPwMatch = /^-([^\s-]+)$/.exec(cleaned);
+    if (emptyPwMatch) {
+      var emptyPwCode = auth.normalizeVoucherText(emptyPwMatch[1], bareFmt);
+      if (emptyPwCode) {
+        return { action: 'autologin', code: emptyPwCode, password: '' };
+      }
+    }
+
+    var lenPrefixMatch = /^([a-z])([^\s]+)$/.exec(cleaned);
+    if (lenPrefixMatch) {
+      var userLen = lenPrefixMatch[1].charCodeAt(0) - 96;
+      var rest = lenPrefixMatch[2];
+      var isNumericRest = /^[0-9]+$/.test(rest);
+      if (userLen > 0 && userLen < rest.length && (bareFmt !== 'alphanumeric' || (isNumericRest && userLen >= 3))) {
+        var rawUser = rest.slice(0, userLen);
+        var rawPass = rest.slice(userLen);
+        var parsedUser = auth.normalizeVoucherText(rawUser, 'alphanumeric');
+        if (parsedUser) {
+          return { action: 'autologin', code: parsedUser, password: rawPass };
+        }
+      }
+    }
+
     return { action: 'autologin', code: auth.normalizeVoucherText(cleaned, bareFmt) };
   },
 
@@ -560,19 +588,20 @@ var qrScanner = {
       // later scan without a password must clear any previously stashed one.
       var form = document.getElementById('login-form');
       if (form) {
-        if (route.password) {
+        if (route.password !== undefined) {
           form.setAttribute('data-scanned-password', route.password);
         } else {
           form.removeAttribute('data-scanned-password');
         }
       }
-      if (!route.password && typeof auth !== 'undefined' && auth._removeStorageItem) {
+      if (route.password === undefined && typeof auth !== 'undefined' && auth._removeStorageItem) {
         auth._removeStorageItem('hotspot_last_voucher_pw');
       }
       var hasVoucherInput = !!document.getElementById('voucher');
       var hasNormalInputs = !!(document.getElementById('username') && document.getElementById('password'));
       if (!hasVoucherInput && hasNormalInputs) {
-        auth.beginAutoLogin(route.code, true, 'normal', route.password || route.code);
+        var normalPw = route.password !== undefined ? route.password : route.code;
+        auth.beginAutoLogin(route.code, true, 'normal', normalPw);
       } else {
         var voucherTab = document.querySelector('.auth-tab[data-mode="voucher"]');
         if (voucherTab && !voucherTab.classList.contains('auth-tab--active')) {

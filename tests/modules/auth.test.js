@@ -317,6 +317,18 @@ describe('Hotspot.auth', () => {
 
       expect(mockPasswordInput.value).toBe('secret99');
     });
+
+    test('an explicit empty scanned password ("") overrides voucherPasswordMode=same and persists across reloads', () => {
+      mockForm.setAttribute('data-voucher-password-mode', 'same');
+      mockForm.setAttribute('data-clone-prevention', 'true');
+      mockForm.setAttribute('data-scanned-password', '');
+
+      auth.applyVoucherCredentials('81354860');
+
+      expect(mockUsernameInput.value).toBe('81354860');
+      expect(mockPasswordInput.value).toBe('');
+      expect(auth._getStoredVoucherPassword()).toBe('');
+    });
   });
 
   describe('normalizeVoucherText', () => {

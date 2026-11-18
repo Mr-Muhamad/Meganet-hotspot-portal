@@ -92,6 +92,44 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
+    test('the "-" prefix encodes a username with an explicit empty password', () => {
+      expect(qrScanner.routeScan('-81354860')).toEqual({
+        action: 'autologin',
+        code: '81354860',
+        password: ''
+      });
+    });
+
+    test('length-letter prefix [a-z] splits username and separate password', () => {
+      // 'g' (7) -> 7-char username + 6-char password
+      expect(qrScanner.routeScan('g6256868080377')).toEqual({
+        action: 'autologin',
+        code: '6256868',
+        password: '080377'
+      });
+      // 'j' (10) -> 10-char username + 6-char password
+      expect(qrScanner.routeScan('j8772557194108270')).toEqual({
+        action: 'autologin',
+        code: '8772557194',
+        password: '108270'
+      });
+    });
+
+    test('bare alphanumeric vouchers like "ahmed2015" are not misread as length-prefixed in alphanumeric mode', () => {
+      const origGetFmt = auth.getVoucherFormat;
+      auth.getVoucherFormat = () => 'alphanumeric';
+      expect(qrScanner.routeScan('ahmed2015')).toEqual({
+        action: 'autologin',
+        code: 'ahmed2015'
+      });
+      expect(qrScanner.routeScan('j8772557194108270')).toEqual({
+        action: 'autologin',
+        code: '8772557194',
+        password: '108270'
+      });
+      auth.getVoucherFormat = origGetFmt;
+    });
+
     test('an empty payload routes as an empty code (handled as a failure)', () => {
       expect(qrScanner.routeScan('')).toEqual({ action: 'autologin', code: '' });
       expect(qrScanner.routeScan(null).code).toBe('');
@@ -401,6 +439,25 @@ describe('Hotspot.qrScanner', () => {
 
       authSpy.mockRestore();
       localStorage.removeItem('hotspot_last_voucher_pw');
+    });
+
+    test('_handleResult preserves explicit empty password for "-" cards in both voucher and normal modes', () => {
+      const form = document.getElementById('login-form');
+      let seenAttrDuringAutoLogin = null;
+      const authSpy = jest.spyOn(auth, 'beginAutoLogin').mockImplementation(() => {
+        seenAttrDuringAutoLogin = form.getAttribute('data-scanned-password');
+      });
+
+      qrScanner._handleResult('-81354860');
+      expect(authSpy).toHaveBeenCalledWith('81354860', true);
+      expect(seenAttrDuringAutoLogin).toBe('');
+      expect(form.hasAttribute('data-scanned-password')).toBe(false);
+
+      document.body.innerHTML += '<input id="username"><input id="password">';
+      qrScanner._handleResult('-81354860');
+      expect(authSpy).toHaveBeenCalledWith('81354860', true, 'normal', '');
+
+      authSpy.mockRestore();
     });
   });
 });

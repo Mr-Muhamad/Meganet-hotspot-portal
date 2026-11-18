@@ -36,7 +36,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 - **Modern minimalist UI** with dark/light themes, optional two-line `brandTagline`, and compact mobile PWA install banner — first visit shows `theme.defaultTheme` pre-paint; manual toggles persist for a year
 - **Recent 3 Voucher History Chips** — quick-tap chips below the voucher field remember the last 3 used cards across `Cookie` (30 d), `sessionStorage`, `localStorage`, and `status.html` (`$(username-esc)` sync), surviving Android CaptivePortalLogin WebView and iOS CNA
 - **Instant QR Code Login** — one tap opens the phone's native camera; decoded via native `BarcodeDetector` (with 1:1 center crop) or vendored **jsQR** (`1.4.0`, lazy-loaded) across multi-scale passes, native 1:1 corner/center tiles, and percentile contrast-stretch fallback for glare/low-light card photos (auto-retrying script loads on transient network failure)
-- **Both card types supported** — bare-code cards (`=CODE` / `CODE`) auto-log-in in place; mikhmon credential links (`?username=X&password=Y`) extract the credentials and submit them to the portal itself (immune to stale printed hostnames), with the carried password honored for `up`-mode cards
+- **All QR card formats supported** — bare/equal-prefixed codes (`CODE` / `=CODE`), compact empty-password cards (`-CODE`), compact length-prefixed credential cards (`[a-z]<user><pass>`, where `a=1..z=26` gives username length), and mikhmon credential links (`?username=X&password=Y`) auto-log-in in place (immune to stale printed hostnames), honoring explicit or empty carried passwords over `voucherPasswordMode`
 - **Gallery / Screenshot QR Picker** — allows users to upload vouchers received via WhatsApp or image screenshots without needing camera streaming
 - **Paste Auto-Submit & Direct Card Switch** — pasting a code submits instantly; `status.html`'s "Change Card" action logs out cleanly (`erase-cookie=on`) back to `login.html` without MAC-cookie loops
 - **Anti-Phishing & Safe QR Routing** — the portal never navigates to a foreign host because of a scanned payload; credential links are consumed in place and non-credential URLs are restricted to the portal itself
@@ -333,12 +333,14 @@ Multiple methods can be combined:
 
 ### Voucher QR Scanning
 
-The scan button is built for **minimum clicks** — it opens the phone's camera in one tap and never leaves the login page. It supports both card-printing systems:
+The scan button is built for **minimum clicks** — it opens the phone's camera in one tap and never leaves the login page. It supports all common voucher QR printing formats:
 
 | Card QR contains | What happens after scanning |
 |---|---|
 | A full URL (link card) | Credentials (`?voucher=`, `?code=`, `?pin=`, `?username=` + optional `&password=`) are extracted and submitted IN PLACE to the current portal (never leaving for a foreign host) |
-| Just the code digits | The cancellable 3-second auto-login countdown starts with the scanned code — done |
+| `-<username>` (empty-password card) | Submits `username` with an explicit empty password `""`, overriding `voucherPasswordMode: "same"` |
+| `<a-z><username><password>` (compact credential card) | Reads `username` length from the leading letter (`a=1` … `z=26`, e.g. `g6256868080377` → `6256868` / `080377`) and submits both credentials |
+| `=<code>` or bare code digits | Starts instant auto-login with the normalized voucher code and configured `voucherPasswordMode` |
 
 Two environments, two behaviors, both automatic:
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Compact QR Voucher Card Formats (`src/js/modules/qr-scanner.js`, `src/js/modules/auth.js`)**: `qrScanner.routeScan()` now decodes `-<username>` cards (explicit empty password `""`) and `<lenLetter><username><password>` cards (leading lowercase letter `a`–`z` encoding username length `1..26`, e.g., `g6256868080377`, `j8772557194108270`) alongside existing `=<code>` and link cards; `auth.applyVoucherCredentials()` and `_getStoredVoucherPassword()` honor and persist explicit empty scanned passwords (`__EMPTY__` storage sentinel) even when `voucherPasswordMode` is `"same"`.
+
 ### Fixed
 - **Studio Modal IME Composition Bug**: the window-level `keydown` handler in `openStudioModal` (`admin/public/studio-core.js`) confirmed the dialog on the `Enter` keystroke that merely commits an IME candidate conversion (CJK keyboards), submitting `studioPrompt` / new-profile inputs mid-composition; the handler now ignores the composing Enter via `event.isComposing || event.keyCode === 229` (also covering Safari's out-of-order confirming keydown, WebKit bug 165004).
 

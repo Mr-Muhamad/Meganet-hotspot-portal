@@ -528,8 +528,11 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner._isDecoding).toBe(true);
       expect(mockScanBtn.disabled).toBe(true);
       expect(mockGalleryBtn.disabled).toBe(true);
+      expect(mockFileInput.disabled).toBe(true);
+      expect(mockGalleryInput.disabled).toBe(true);
       expect(mockScanBtn.getAttribute('aria-busy')).toBe('true');
       expect(mockScanBtn.classList.contains('qr-scan-btn--loading')).toBe(true);
+      expect(mockScanBtn.classList.contains('qr-scan-btn--disabled')).toBe(true);
       expect(mockScanBtn.classList.contains('qr-scan-btn--attn')).toBe(false);
       expect(label.textContent).toBe('qr_scan_reading');
 
@@ -540,8 +543,11 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner._isDecoding).toBe(false);
       expect(mockScanBtn.disabled).toBe(false);
       expect(mockGalleryBtn.disabled).toBe(false);
+      expect(mockFileInput.disabled).toBe(false);
+      expect(mockGalleryInput.disabled).toBe(false);
       expect(mockScanBtn.hasAttribute('aria-busy')).toBe(false);
       expect(mockScanBtn.classList.contains('qr-scan-btn--loading')).toBe(false);
+      expect(mockScanBtn.classList.contains('qr-scan-btn--disabled')).toBe(false);
       expect(label.textContent).toBe('Scan Card QR Code');
 
       qrScanner._isStrippedWebView = origIsStripped;

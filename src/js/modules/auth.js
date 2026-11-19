@@ -169,17 +169,28 @@ var auth = {
       var qrBtn = document.getElementById('qrScanButton');
       if (qrBtn) {
         qrBtn.style.display = 'flex';
-        qrBtn.addEventListener('click', function() {
+        qrBtn.addEventListener('click', function(e) {
           var externalUrl = qrBtn.getAttribute('data-qr-scanner-url');
           if (externalUrl) {
+            if (e && e.preventDefault) e.preventDefault();
             // config override: an external scanner page (needs its own walled
             // garden entry); pass the return URL so it can send codes back.
             window.location.href = auth.buildQrScannerUrl(externalUrl, window.location.href);
             return;
           }
-          // default: minimum-click flow — working browsers open the native
-          // camera app in one tap; the stripped captive-portal WebView jumps
-          // straight to the full browser (Hotspot.qrScanner.scanDirect).
+          if (typeof qrScanner === 'undefined') return;
+          if (qrScanner._isDecoding) {
+            if (e && e.preventDefault) e.preventDefault();
+            return;
+          }
+          // Native <label for="qr-file-input"> activates the input directly
+          // in normal browsers without JS input.click() or display:none.
+          if (qrBtn.tagName && qrBtn.tagName.toUpperCase() === 'LABEL' && !qrScanner._isStrippedWebView()) {
+            qrScanner._wireFileInput();
+            return;
+          }
+          // Stripped captive-portal WebView or <button> callers route via scanDirect().
+          if (e && e.preventDefault) e.preventDefault();
           qrScanner.scanDirect();
         });
         // Guarded like rateLimiter above — the QR module loads after auth.js

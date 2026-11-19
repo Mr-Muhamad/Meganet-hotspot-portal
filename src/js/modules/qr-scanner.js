@@ -38,18 +38,23 @@ var qrScanner = {
       if (typeof document === 'undefined') return;
       var btn = document.getElementById('qrScanButton');
       var galleryBtn = document.getElementById('qrGalleryButton');
+      var fileInput = document.getElementById('qr-file-input');
+      var galleryInput = document.getElementById('qr-gallery-input');
       var label = btn ? btn.querySelector('[data-i18n="qr_scan_btn_text"]') : null;
 
       if (isLoading) {
         if (btn) {
           btn.disabled = true;
           btn.setAttribute('aria-busy', 'true');
-          btn.classList.add('qr-scan-btn--loading');
+          btn.classList.add('qr-scan-btn--loading', 'qr-scan-btn--disabled');
           btn.classList.remove('qr-scan-btn--attn');
         }
         if (galleryBtn) {
           galleryBtn.disabled = true;
+          galleryBtn.classList.add('qr-scan-btn--disabled');
         }
+        if (fileInput) fileInput.disabled = true;
+        if (galleryInput) galleryInput.disabled = true;
         if (label) {
           if (!label.dataset.origText) {
             label.dataset.origText = label.textContent;
@@ -67,11 +72,14 @@ var qrScanner = {
         if (btn) {
           btn.disabled = false;
           btn.removeAttribute('aria-busy');
-          btn.classList.remove('qr-scan-btn--loading');
+          btn.classList.remove('qr-scan-btn--loading', 'qr-scan-btn--disabled');
         }
         if (galleryBtn) {
           galleryBtn.disabled = false;
+          galleryBtn.classList.remove('qr-scan-btn--disabled');
         }
+        if (fileInput) fileInput.disabled = false;
+        if (galleryInput) galleryInput.disabled = false;
         if (label) {
           var restored = (typeof i18n !== 'undefined' && i18n.t)
             ? i18n.t('qr_scan_btn_text')
@@ -136,12 +144,19 @@ var qrScanner = {
 
     var galleryBtn = document.getElementById('qrGalleryButton');
     if (galleryBtn) {
-      galleryBtn.addEventListener('click', function() {
-        if (self._isDecoding) return;
+      galleryBtn.addEventListener('click', function(e) {
+        if (self._isDecoding) {
+          if (e && e.preventDefault) e.preventDefault();
+          return;
+        }
         if (self._isStrippedWebView()) {
+          if (e && e.preventDefault) e.preventDefault();
           var href = (window.location.href || '').split('#')[0];
           var sep = href.indexOf('?') === -1 ? '?' : '&';
           self.escapeNow(self.buildEscapeIntentUrl(href + sep + 'qrscan=gallery'));
+          return;
+        }
+        if (galleryBtn.tagName && galleryBtn.tagName.toUpperCase() === 'LABEL') {
           return;
         }
         if (galleryInput) {

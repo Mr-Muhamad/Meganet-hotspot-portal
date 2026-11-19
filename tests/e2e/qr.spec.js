@@ -266,3 +266,43 @@ test('inside iOS CNA the Safari switch hint and separator are shown', async ({ b
     await context.close();
   }
 });
+
+test('camera and gallery buttons use native labels with visually-hidden inputs (not display:none)', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+
+  const meta = await page.evaluate(() => {
+    const camBtn = document.getElementById('qrScanButton');
+    const galBtn = document.getElementById('qrGalleryButton');
+    const camInp = document.getElementById('qr-file-input');
+    const galInp = document.getElementById('qr-gallery-input');
+    return {
+      camTag: camBtn.tagName,
+      camFor: camBtn.getAttribute('for'),
+      galTag: galBtn.tagName,
+      galFor: galBtn.getAttribute('for'),
+      camDisplay: getComputedStyle(camInp).display,
+      camCapture: camInp.getAttribute('capture'),
+      camAccept: camInp.getAttribute('accept'),
+      galCapture: galInp.getAttribute('capture'),
+      galAccept: galInp.getAttribute('accept')
+    };
+  });
+  expect(meta.camTag).toBe('LABEL');
+  expect(meta.camFor).toBe('qr-file-input');
+  expect(meta.galTag).toBe('LABEL');
+  expect(meta.galFor).toBe('qr-gallery-input');
+  expect(meta.camDisplay).not.toBe('none');
+  expect(meta.camCapture).toBe('environment');
+  expect(meta.camAccept).toBe('image/*');
+  expect(meta.galCapture).toBeNull();
+  expect(meta.galAccept).toBe('image/*');
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.locator('#qrGalleryButton').click();
+  const chooser = await chooserPromise;
+  expect(await chooser.element().evaluate((el) => el.id)).toBe('qr-gallery-input');
+  await chooser.setFiles(path.join(FIXTURES, 'voucher-code.png'));
+
+  const request = await page.waitForRequest((req) => req.method() === 'POST');
+  expect(request.postData()).toContain('username=1234567890');
+});

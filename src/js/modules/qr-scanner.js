@@ -18,6 +18,10 @@
 var qrScanner = {
   _isDecoding: false,
   _scanWatchdog: null,
+  _NATIVE_TIMEOUT_MS: 1500,
+  _DECODE_BUDGET_MS: 2800,
+  _MIN_CORE_PASSES: 4,
+  _decoderCallbacks: null,
 
   /**
    * Toggle button loading/disabled state during QR decoding so users get
@@ -58,7 +62,7 @@ var qrScanner = {
         this._scanWatchdog = setTimeout(function() {
           self._scanWatchdog = null;
           self._setScanningState(false);
-        }, 20000);
+        }, 10000);
       } else {
         if (btn) {
           btn.disabled = false;
@@ -102,6 +106,7 @@ var qrScanner = {
       var input = document.getElementById('qr-file-input');
       if (!input) return;
       this._wireFileInput();
+      this._preloadDecoderIfNeeded();
       input.click();
     } catch (err) {
       console.error('QR scan error:', err);
@@ -141,6 +146,7 @@ var qrScanner = {
           return;
         }
         if (galleryInput) {
+          self._preloadDecoderIfNeeded();
           galleryInput.click();
         }
       });
@@ -383,6 +389,15 @@ var qrScanner = {
     return { action: 'autologin', code: auth.normalizeVoucherText(cleaned, bareFmt) };
   },
 
+  _preloadDecoderIfNeeded: function() {
+    try {
+      if (typeof window === 'undefined' || window.BarcodeDetector) return;
+      if (typeof jsQR !== 'undefined') return;
+      if (typeof document === 'undefined' || document.getElementById('jsqr-script')) return;
+      this._loadDecoder();
+    } catch (err) {}
+  },
+
   _loadDecoder: function(ready) {
     // jsQR (vendored, lazy) replaced the ancient llqrcode engine: on simulated
     // camera photos of a REAL voucher card llqrcode failed 5/5 (any JPEG noise
@@ -392,27 +407,28 @@ var qrScanner = {
       if (ready) ready();
       return;
     }
+    if (!this._decoderCallbacks) this._decoderCallbacks = [];
+    if (ready) this._decoderCallbacks.push(ready);
     if (document.getElementById('jsqr-script')) {
-      // A previous call is still loading it — poll briefly.
-      var polls = 0;
-      var timer = setInterval(function() {
-        polls++;
-        if (typeof jsQR !== 'undefined' || polls > 50) {
-          clearInterval(timer);
-          if (ready) ready();
-        }
-      }, 100);
       return;
     }
+    var self = this;
+    var flushCallbacks = function() {
+      var queue = self._decoderCallbacks ? self._decoderCallbacks.slice() : [];
+      self._decoderCallbacks = [];
+      for (var i = 0; i < queue.length; i++) {
+        try { queue[i](); } catch (err) {}
+      }
+    };
     var script = document.createElement('script');
     script.id = 'jsqr-script';
     script.src = (window.location.pathname.indexOf('/ar/') !== -1 ? '../' : '') + 'jsQR.js';
-    script.onload = function() { if (ready) ready(); };
+    script.onload = flushCallbacks;
     script.onerror = function() {
       // Drop the failed tag so the next scan retries the download instead of
-      // polling a script that will never define jsQR.
+      // waiting on a script that will never define jsQR.
       if (script.parentNode) script.parentNode.removeChild(script);
-      if (ready) ready();
+      flushCallbacks();
     };
     document.head.appendChild(script);
   },
@@ -423,13 +439,62 @@ var qrScanner = {
     this._decodeFile(file);
   },
 
+  _withTimeout: function(promise, ms) {
+    return new Promise(function(resolve, reject) {
+      var settled = false;
+      var timer = setTimeout(function() {
+        if (settled) return;
+        settled = true;
+        resolve(null);
+      }, ms);
+      promise.then(function(val) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(val);
+      }).catch(function(err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  },
+
+  _detectFullWithNative: function(detector, bitmap) {
+    if (!bitmap || Math.max(bitmap.width, bitmap.height) <= 2048) {
+      return detector.detect(bitmap);
+    }
+    try {
+      var scale = 2048 / Math.max(bitmap.width, bitmap.height);
+      var cw = Math.max(1, Math.round(bitmap.width * scale));
+      var ch = Math.max(1, Math.round(bitmap.height * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, cw, ch);
+      return detector.detect(canvas).then(function(barcodes) {
+        canvas.width = 0;
+        canvas.height = 0;
+        return barcodes;
+      }).catch(function(err) {
+        canvas.width = 0;
+        canvas.height = 0;
+        throw err;
+      });
+    } catch (e) {
+      return detector.detect(bitmap);
+    }
+  },
+
   _detectCenterWithNative: function(detector, bitmap) {
     if (!bitmap || bitmap.width <= 1200 || bitmap.height <= 1200) {
       return Promise.resolve(null);
     }
     try {
-      var cw = Math.min(bitmap.width, 1400);
-      var ch = Math.min(bitmap.height, 1400);
+      var cw = Math.min(bitmap.width, 1200);
+      var ch = Math.min(bitmap.height, 1200);
       var sx = Math.round((bitmap.width - cw) / 2);
       var sy = Math.round((bitmap.height - ch) / 2);
       var canvas = document.createElement('canvas');
@@ -460,38 +525,33 @@ var qrScanner = {
 
     // 1. Fast Native Path: BarcodeDetector API (Android Chrome 83+ & modern WebViews)
     // Uses Google Play services / OS-level Barcode Scanner (fast, robust, supports tilted/curved shots).
-    // On dense link QRs shot from comfortable distance in a 12MP frame, retry on a 1:1 native
-    // center crop so surrounding card text does not cause MLKit downscaling to blur fine modules.
+    // Caps giant photos to 2048px, retries on a 1:1 native center crop, enforces a 1.5s
+    // timeout, and reuses the decoded ImageBitmap if falling back to jsQR.
     if (typeof window !== 'undefined' && window.BarcodeDetector) {
       try {
         var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
         var imageBitmapPromise = window.createImageBitmap ? window.createImageBitmap(file) : null;
         if (imageBitmapPromise) {
           imageBitmapPromise.then(function(bitmap) {
-            return detector.detect(bitmap).then(function(barcodes) {
+            var nativeChain = self._detectFullWithNative(detector, bitmap).then(function(barcodes) {
               if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
                 return barcodes[0].rawValue;
               }
               return self._detectCenterWithNative(detector, bitmap);
-            }).then(function(rawValue) {
-              if (bitmap && bitmap.close) bitmap.close();
+            });
+            return self._withTimeout(nativeChain, self._NATIVE_TIMEOUT_MS).then(function(rawValue) {
               if (rawValue) {
+                if (bitmap && bitmap.close) bitmap.close();
                 var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
                 inputs.forEach(function(inp) { inp.value = ''; });
                 self._setScanningState(false);
                 self._handleResult(rawValue);
-                return true;
+                return;
               }
-              return false;
-            }).catch(function(err) {
-              if (bitmap && bitmap.close) bitmap.close();
-              throw err;
+              self._decodeWithJsQR(file, bitmap);
+            }).catch(function() {
+              self._decodeWithJsQR(file, bitmap);
             });
-          }).then(function(detected) {
-            if (!detected) {
-              // Fallback to vendored decoder if native found nothing
-              self._decodeWithJsQR(file);
-            }
           }).catch(function() {
             self._decodeWithJsQR(file);
           });
@@ -507,9 +567,9 @@ var qrScanner = {
 
   /**
    * Build lightweight scale and native 1:1 tile passes for jsQR.
-   * Dense link cards photographed from comfortable distance (~20-30cm) become
-   * blurry when scaled down; native 1:1 center + quadrant crops preserve raw
-   * camera pixels without heavy pixel-contrast distortion.
+   * Starts with the fastest full-frame pass (600px), then 1100px, native 1:1
+   * center crop, contrast-stretched passes, and corner tiles. Uses attemptBoth
+   * only on the first two fast passes and dontInvert on heavier ones.
    * @param {number} w
    * @param {number} h
    * @returns {Array<Object>}
@@ -518,32 +578,29 @@ var qrScanner = {
     var maxDim = Math.max(w, h);
     var cfW, cfH;
     var attempts = [
-      { x: 0, y: 0, w: 1, h: 1, cap: 1200 },
-      { x: 0, y: 0, w: 1, h: 1, cap: 600 }
+      { x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' },
+      { x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' }
     ];
-    if (maxDim > 1200) {
+    if (maxDim > 1100) {
       // Native 1:1 center slice (no downscaling) catches dense link QRs cleanly
-      cfW = Math.min(1, 1400 / w);
-      cfH = Math.min(1, 1400 / h);
-      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1400 });
-      attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 2200 });
+      cfW = Math.min(1, 1200 / w);
+      cfH = Math.min(1, 1200 / h);
+      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1200, invert: 'dontInvert' });
+    }
+    // Contrast stretch on medium frame and center crop for glared/dim photos
+    attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 900, enhance: true, invert: 'dontInvert' });
+    if (maxDim > 1100) {
+      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1200, enhance: true, invert: 'dontInvert' });
+      attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1800, invert: 'dontInvert' });
     }
     if (w > 1800 || h > 1800) {
       // Native 1:1 quadrant slices catch small corner QRs on large 12MP card shots
-      var qW = Math.min(1, 1400 / w);
-      var qH = Math.min(1, 1400 / h);
-      attempts.push({ x: 0, y: 0, w: qW, h: qH, cap: 1400 });
-      attempts.push({ x: 1 - qW, y: 0, w: qW, h: qH, cap: 1400 });
-      attempts.push({ x: 0, y: 1 - qH, w: qW, h: qH, cap: 1400 });
-      attempts.push({ x: 1 - qW, y: 1 - qH, w: qW, h: qH, cap: 1400 });
-    }
-    // Last resort for glare / dim / washed-out prints: the same full frame
-    // and 1:1 center crop after a percentile contrast stretch. Runs only when
-    // every plain pass failed, so well-lit shots never pay for it.
-    attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1000, enhance: true });
-    if (maxDim > 1200) {
-      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1400, enhance: true });
-      attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1800, enhance: true });
+      var qW = Math.min(1, 1200 / w);
+      var qH = Math.min(1, 1200 / h);
+      attempts.push({ x: 0, y: 0, w: qW, h: qH, cap: 1200, invert: 'dontInvert' });
+      attempts.push({ x: 1 - qW, y: 0, w: qW, h: qH, cap: 1200, invert: 'dontInvert' });
+      attempts.push({ x: 0, y: 1 - qH, w: qW, h: qH, cap: 1200, invert: 'dontInvert' });
+      attempts.push({ x: 1 - qW, y: 1 - qH, w: qW, h: qH, cap: 1200, invert: 'dontInvert' });
     }
     return attempts;
   },
@@ -583,10 +640,11 @@ var qrScanner = {
    * center/quadrant tiles so both close-up codes and dense link cards shot at
    * comfortable distances decode reliably, with both inversion attempts.
    */
-  _decodeWithJsQR: function(file) {
+  _decodeWithJsQR: function(file, existingBitmap) {
     var self = this;
     this._loadDecoder(function() {
       if (typeof jsQR === 'undefined') {
+        if (existingBitmap && existingBitmap.close) existingBitmap.close();
         document.querySelectorAll('#qr-file-input, #qr-gallery-input').forEach(function(input) {
           input.value = '';
         });
@@ -610,11 +668,33 @@ var qrScanner = {
         var attempts = self._buildDecodeAttempts(w, h);
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d', { willReadFrequently: true });
-        var found = null;
+        var startTime = Date.now();
+        var idx = 0;
+        var finished = false;
+        var stepTimer = null;
 
-        try {
-          for (var i = 0; i < attempts.length; i++) {
-            var cfg = attempts[i];
+        var done = function(codeText) {
+          if (finished) return;
+          finished = true;
+          if (stepTimer) {
+            clearTimeout(stepTimer);
+            stepTimer = null;
+          }
+          canvas.width = 0;
+          canvas.height = 0;
+          if (release) release();
+          finish(codeText);
+        };
+
+        var runNext = function() {
+          if (finished) return;
+          if (idx >= attempts.length ||
+              (idx >= self._MIN_CORE_PASSES && (Date.now() - startTime) >= self._DECODE_BUDGET_MS)) {
+            done(null);
+            return;
+          }
+          try {
+            var cfg = attempts[idx++];
             var sx = Math.round(w * cfg.x);
             var sy = Math.round(h * cfg.y);
             var sw = Math.max(1, Math.round(w * cfg.w));
@@ -627,24 +707,30 @@ var qrScanner = {
             ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
             var imageData = ctx.getImageData(0, 0, cw, ch);
             if (cfg.enhance) self._enhanceContrast(imageData.data);
-            var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+            var code = jsQR(imageData.data, cw, ch, { inversionAttempts: cfg.invert || 'dontInvert' });
             if (code && code.data) {
-              found = code.data;
-              break;
+              done(code.data);
+              return;
             }
+            if (idx >= attempts.length) {
+              done(null);
+              return;
+            }
+            stepTimer = setTimeout(runNext, 0);
+          } catch (err) {
+            console.error('QR decode error:', err);
+            done(null);
           }
-        } catch (err) {
-          console.error('QR decode error:', err);
-          found = null;
-        } finally {
-          canvas.width = 0;
-          canvas.height = 0;
-          if (release) release();
-        }
-        finish(found);
+        };
+
+        runNext();
       };
 
-      if (typeof window !== 'undefined' && window.createImageBitmap) {
+      if (existingBitmap) {
+        tryScales(existingBitmap, existingBitmap.width, existingBitmap.height, function() {
+          if (existingBitmap.close) existingBitmap.close();
+        });
+      } else if (typeof window !== 'undefined' && window.createImageBitmap) {
         window.createImageBitmap(file).then(function(bitmap) {
           tryScales(bitmap, bitmap.width, bitmap.height, function() {
             if (bitmap.close) bitmap.close();

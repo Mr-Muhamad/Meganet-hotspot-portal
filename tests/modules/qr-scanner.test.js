@@ -160,15 +160,15 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
-    test('_buildDecodeAttempts builds full-frame scales, native 1:1 center/corner tiles, and contrast-stretched center/full passes for large photos', () => {
+    test('_buildDecodeAttempts puts fastest 600px first, uses attemptBoth only on first two passes, and builds 1200px tiles', () => {
       const attempts = qrScanner._buildDecodeAttempts(4000, 3000);
-      expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1200 });
-      expect(attempts.some(a => a.cap === 2200 && a.w === 1)).toBe(true);
-      const nativeTiles = attempts.filter(a => !a.enhance && a.w < 1 && a.h < 1 && a.cap === 1400);
+      expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' });
+      expect(attempts[1]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' });
+      const nativeTiles = attempts.filter(a => !a.enhance && a.w < 1 && a.h < 1 && a.cap === 1200);
       expect(nativeTiles.length).toBe(5);
-      expect(attempts.filter(a => a.enhance).length).toBe(3);
-      expect(attempts.slice(0, -3).every(a => !a.enhance)).toBe(true);
-      expect(attempts.some(a => a.enhance && a.w < 1 && a.h < 1 && a.cap === 1400)).toBe(true);
+      expect(attempts.filter(a => a.enhance).length).toBe(2);
+      expect(attempts.slice(2).every(a => a.invert === 'dontInvert')).toBe(true);
+      expect(attempts.some(a => a.enhance && a.w < 1 && a.h < 1 && a.cap === 1200)).toBe(true);
     });
 
     test('_enhanceContrast stretches a low-contrast buffer and skips flat ones', () => {
@@ -358,6 +358,9 @@ describe('Hotspot.qrScanner', () => {
 
     afterEach(() => {
       qrScanner._setScanningState(false);
+      const jsqrScript = document.getElementById('jsqr-script');
+      if (jsqrScript && jsqrScript.parentNode) jsqrScript.parentNode.removeChild(jsqrScript);
+      qrScanner._decoderCallbacks = [];
       delete global.util;
       delete global.i18n;
       document.body.innerHTML = '';
@@ -598,6 +601,110 @@ describe('Hotspot.qrScanner', () => {
 
       qrScanner._isStrippedWebView = origIsStripped;
       qrScanner._isIosCna = origIsIosCna;
+    });
+
+    test('_decodeFile decodes image once and reuses ImageBitmap on BarcodeDetector miss', async () => {
+      const origDetector = window.BarcodeDetector;
+      const origCreateImageBitmap = window.createImageBitmap;
+      const mockBitmap = { width: 800, height: 600, close: jest.fn() };
+      window.createImageBitmap = jest.fn(() => Promise.resolve(mockBitmap));
+      window.BarcodeDetector = jest.fn().mockImplementation(() => ({
+        detect: jest.fn(() => Promise.resolve([]))
+      }));
+      const jsQrSpy = jest.spyOn(qrScanner, '_decodeWithJsQR').mockImplementation((_f, bmp) => {
+        if (bmp && bmp.close) bmp.close();
+        qrScanner._setScanningState(false);
+      });
+
+      try {
+        const file = new Blob(['img'], { type: 'image/png' });
+        qrScanner._decodeFile(file);
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(window.createImageBitmap).toHaveBeenCalledTimes(1);
+        expect(jsQrSpy).toHaveBeenCalledWith(file, mockBitmap);
+      } finally {
+        jsQrSpy.mockRestore();
+        if (origDetector === undefined) delete window.BarcodeDetector;
+        else window.BarcodeDetector = origDetector;
+        if (origCreateImageBitmap === undefined) delete window.createImageBitmap;
+        else window.createImageBitmap = origCreateImageBitmap;
+      }
+    });
+
+    test('_decodeFile falls back to _decodeWithJsQR when BarcodeDetector stalls past _NATIVE_TIMEOUT_MS', async () => {
+      const origDetector = window.BarcodeDetector;
+      const origCreateImageBitmap = window.createImageBitmap;
+      const origTimeout = qrScanner._NATIVE_TIMEOUT_MS;
+      const mockBitmap = { width: 800, height: 600, close: jest.fn() };
+      qrScanner._NATIVE_TIMEOUT_MS = 20;
+      window.createImageBitmap = jest.fn(() => Promise.resolve(mockBitmap));
+      window.BarcodeDetector = jest.fn().mockImplementation(() => ({
+        detect: jest.fn(() => new Promise(() => {}))
+      }));
+      const jsQrSpy = jest.spyOn(qrScanner, '_decodeWithJsQR').mockImplementation((_f, bmp) => {
+        if (bmp && bmp.close) bmp.close();
+        qrScanner._setScanningState(false);
+      });
+
+      try {
+        const file = new Blob(['img'], { type: 'image/png' });
+        qrScanner._decodeFile(file);
+        await new Promise((r) => setTimeout(r, 60));
+
+        expect(jsQrSpy).toHaveBeenCalledWith(file, mockBitmap);
+      } finally {
+        qrScanner._NATIVE_TIMEOUT_MS = origTimeout;
+        jsQrSpy.mockRestore();
+        if (origDetector === undefined) delete window.BarcodeDetector;
+        else window.BarcodeDetector = origDetector;
+        if (origCreateImageBitmap === undefined) delete window.createImageBitmap;
+        else window.createImageBitmap = origCreateImageBitmap;
+      }
+    });
+
+    test('_preloadDecoderIfNeeded appends script only when BarcodeDetector is absent', () => {
+      const origDetector = window.BarcodeDetector;
+      try {
+        window.BarcodeDetector = function() {};
+        qrScanner._preloadDecoderIfNeeded();
+        expect(document.getElementById('jsqr-script')).toBeNull();
+
+        delete window.BarcodeDetector;
+        qrScanner._preloadDecoderIfNeeded();
+        expect(document.getElementById('jsqr-script')).not.toBeNull();
+      } finally {
+        if (origDetector === undefined) delete window.BarcodeDetector;
+        else window.BarcodeDetector = origDetector;
+      }
+    });
+
+    test('_decodeWithJsQR stops early after _MIN_CORE_PASSES when _DECODE_BUDGET_MS is exceeded', async () => {
+      const origBudget = qrScanner._DECODE_BUDGET_MS;
+      const origJsQR = global.jsQR;
+      qrScanner._DECODE_BUDGET_MS = 0;
+      global.jsQR = jest.fn(() => null);
+      const ctxSpy = jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+        drawImage: jest.fn(),
+        getImageData: jest.fn((_x, _y, cw, ch) => ({ data: new Uint8ClampedArray(cw * ch * 4) }))
+      });
+      const mockBitmap = { width: 4000, height: 3000, close: jest.fn() };
+
+      try {
+        qrScanner._decodeWithJsQR(new Blob(['img'], { type: 'image/png' }), mockBitmap);
+        for (let i = 0; i < 20 && mockBitmap.close.mock.calls.length === 0; i++) {
+          await new Promise((r) => setTimeout(r, 5));
+        }
+
+        expect(mockBitmap.close).toHaveBeenCalledTimes(1);
+        expect(global.jsQR).toHaveBeenCalledTimes(qrScanner._MIN_CORE_PASSES);
+        expect(global.util.showToast).toHaveBeenCalledWith('qr_scan_failed', 'error');
+      } finally {
+        qrScanner._DECODE_BUDGET_MS = origBudget;
+        ctxSpy.mockRestore();
+        if (origJsQR === undefined) delete global.jsQR;
+        else global.jsQR = origJsQR;
+      }
     });
   });
 });

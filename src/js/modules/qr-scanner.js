@@ -106,7 +106,6 @@ var qrScanner = {
       var input = document.getElementById('qr-file-input');
       if (!input) return;
       this._wireFileInput();
-      this._preloadDecoderIfNeeded();
       input.click();
     } catch (err) {
       console.error('QR scan error:', err);
@@ -146,7 +145,6 @@ var qrScanner = {
           return;
         }
         if (galleryInput) {
-          self._preloadDecoderIfNeeded();
           galleryInput.click();
         }
       });
@@ -387,15 +385,6 @@ var qrScanner = {
     }
 
     return { action: 'autologin', code: auth.normalizeVoucherText(cleaned, bareFmt) };
-  },
-
-  _preloadDecoderIfNeeded: function() {
-    try {
-      if (typeof window === 'undefined' || window.BarcodeDetector) return;
-      if (typeof jsQR !== 'undefined') return;
-      if (typeof document === 'undefined' || document.getElementById('jsqr-script')) return;
-      this._loadDecoder();
-    } catch (err) {}
   },
 
   _loadDecoder: function(ready) {

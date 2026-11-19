@@ -663,19 +663,20 @@ describe('Hotspot.qrScanner', () => {
       }
     });
 
-    test('_preloadDecoderIfNeeded appends script only when BarcodeDetector is absent', () => {
+    test('scanDirect triggers file input click without pre-click script injection', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
       const origDetector = window.BarcodeDetector;
-      try {
-        window.BarcodeDetector = function() {};
-        qrScanner._preloadDecoderIfNeeded();
-        expect(document.getElementById('jsqr-script')).toBeNull();
+      qrScanner._isStrippedWebView = () => false;
+      delete window.BarcodeDetector;
+      const clickSpy = jest.spyOn(mockFileInput, 'click');
 
-        delete window.BarcodeDetector;
-        qrScanner._preloadDecoderIfNeeded();
-        expect(document.getElementById('jsqr-script')).not.toBeNull();
+      try {
+        qrScanner.scanDirect();
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+        expect(document.getElementById('jsqr-script')).toBeNull();
       } finally {
-        if (origDetector === undefined) delete window.BarcodeDetector;
-        else window.BarcodeDetector = origDetector;
+        qrScanner._isStrippedWebView = origIsStripped;
+        if (origDetector !== undefined) window.BarcodeDetector = origDetector;
       }
     });
 

@@ -160,14 +160,15 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
-    test('_buildDecodeAttempts builds full-frame scales and native 1:1 center/corner tiles for large photos', () => {
+    test('_buildDecodeAttempts builds full-frame scales, native 1:1 center/corner tiles, and contrast-stretched center/full passes for large photos', () => {
       const attempts = qrScanner._buildDecodeAttempts(4000, 3000);
       expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1200 });
       expect(attempts.some(a => a.cap === 2200 && a.w === 1)).toBe(true);
-      const nativeTiles = attempts.filter(a => a.w < 1 && a.h < 1 && a.cap === 1400);
+      const nativeTiles = attempts.filter(a => !a.enhance && a.w < 1 && a.h < 1 && a.cap === 1400);
       expect(nativeTiles.length).toBe(5);
-      expect(attempts.filter(a => a.enhance).length).toBe(2);
-      expect(attempts.slice(0, -2).every(a => !a.enhance)).toBe(true);
+      expect(attempts.filter(a => a.enhance).length).toBe(3);
+      expect(attempts.slice(0, -3).every(a => !a.enhance)).toBe(true);
+      expect(attempts.some(a => a.enhance && a.w < 1 && a.h < 1 && a.cap === 1400)).toBe(true);
     });
 
     test('_enhanceContrast stretches a low-contrast buffer and skips flat ones', () => {
@@ -251,6 +252,58 @@ describe('Hotspot.qrScanner', () => {
     });
   });
 
+  describe('_isIosCna', () => {
+    const withUA = (ua) => {
+      Object.defineProperty(window.navigator, 'userAgent', { get: () => ua, configurable: true });
+    };
+    const origStandaloneDesc = Object.getOwnPropertyDescriptor(window.navigator, 'standalone');
+
+    afterEach(() => {
+      Object.defineProperty(window.navigator, 'userAgent', { get: () => 'jsdom', configurable: true });
+      if (origStandaloneDesc) {
+        Object.defineProperty(window.navigator, 'standalone', origStandaloneDesc);
+      } else {
+        delete window.navigator.standalone;
+      }
+    });
+
+    const IOS_CNA_UA =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+
+    test('detects iOS Captive Network Assistant (WebKit without Safari/ or browser token)', () => {
+      withUA(IOS_CNA_UA);
+      expect(qrScanner._isIosCna()).toBe(true);
+    });
+
+    test('real iOS Safari is not CNA', () => {
+      withUA(IOS_CNA_UA + ' Version/17.5 Safari/604.1');
+      expect(qrScanner._isIosCna()).toBe(false);
+    });
+
+    test('iOS Chrome (CriOS) is not CNA', () => {
+      withUA('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0 Mobile/15E148 Safari/604.1');
+      expect(qrScanner._isIosCna()).toBe(false);
+    });
+
+    test('iOS in-app browser (FBAN/FBIOS) is excluded', () => {
+      withUA(IOS_CNA_UA + ' [FBAN/FBIOS;FBAV/440.0]');
+      expect(qrScanner._isIosCna()).toBe(false);
+    });
+
+    test('iOS installed standalone PWA is excluded', () => {
+      withUA(IOS_CNA_UA);
+      Object.defineProperty(window.navigator, 'standalone', { get: () => true, configurable: true });
+      expect(qrScanner._isIosCna()).toBe(false);
+    });
+
+    test('Android and desktop UAs return false', () => {
+      withUA('Mozilla/5.0 (Linux; Android 11; M2101K6G) AppleWebKit/537.36 Version/4.0 Chrome/119.0 Mobile Safari/537.36');
+      expect(qrScanner._isIosCna()).toBe(false);
+      withUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36');
+      expect(qrScanner._isIosCna()).toBe(false);
+    });
+  });
+
   describe('buildEscapeIntentUrl', () => {
     test('builds intent URL with http fallback', () => {
       const intent = qrScanner.buildEscapeIntentUrl('http://10.5.50.1/login.html?qrscan=1');
@@ -281,7 +334,7 @@ describe('Hotspot.qrScanner', () => {
     beforeEach(() => {
       qrScanner._fileInputWired = false;
       document.body.innerHTML = `
-        <button id="qrScanButton" class="qr-scan-btn"></button>
+        <button id="qrScanButton" class="qr-scan-btn"><span data-i18n="qr_scan_btn_text">Scan Card QR Code</span></button>
         <button id="qrGalleryButton"></button>
         <input type="file" id="qr-file-input" style="display:none">
         <input type="file" id="qr-gallery-input" style="display:none">
@@ -304,6 +357,7 @@ describe('Hotspot.qrScanner', () => {
     });
 
     afterEach(() => {
+      qrScanner._setScanningState(false);
       delete global.util;
       delete global.i18n;
       document.body.innerHTML = '';
@@ -458,6 +512,92 @@ describe('Hotspot.qrScanner', () => {
       expect(authSpy).toHaveBeenCalledWith('81354860', true, 'normal', '');
 
       authSpy.mockRestore();
+    });
+
+    test('_setScanningState toggles disabled/loading UI, blocks concurrent scanDirect, and restores state', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      qrScanner._isStrippedWebView = () => false;
+      const label = mockScanBtn.querySelector('[data-i18n="qr_scan_btn_text"]');
+      mockScanBtn.classList.add('qr-scan-btn--attn');
+      const clickSpy = jest.spyOn(mockFileInput, 'click');
+
+      qrScanner._setScanningState(true);
+      expect(qrScanner._isDecoding).toBe(true);
+      expect(mockScanBtn.disabled).toBe(true);
+      expect(mockGalleryBtn.disabled).toBe(true);
+      expect(mockScanBtn.getAttribute('aria-busy')).toBe('true');
+      expect(mockScanBtn.classList.contains('qr-scan-btn--loading')).toBe(true);
+      expect(mockScanBtn.classList.contains('qr-scan-btn--attn')).toBe(false);
+      expect(label.textContent).toBe('qr_scan_reading');
+
+      qrScanner.scanDirect();
+      expect(clickSpy).not.toHaveBeenCalled();
+
+      qrScanner._setScanningState(false);
+      expect(qrScanner._isDecoding).toBe(false);
+      expect(mockScanBtn.disabled).toBe(false);
+      expect(mockGalleryBtn.disabled).toBe(false);
+      expect(mockScanBtn.hasAttribute('aria-busy')).toBe(false);
+      expect(mockScanBtn.classList.contains('qr-scan-btn--loading')).toBe(false);
+      expect(label.textContent).toBe('Scan Card QR Code');
+
+      qrScanner._isStrippedWebView = origIsStripped;
+    });
+
+    test('_decodeFile sets loading state during BarcodeDetector and resets on completion', async () => {
+      const origDetector = window.BarcodeDetector;
+      const origCreateImageBitmap = window.createImageBitmap;
+      const handleSpy = jest.spyOn(qrScanner, '_handleResult').mockImplementation(() => {});
+
+      let resolveDetect;
+      const closeMock = jest.fn();
+      window.createImageBitmap = jest.fn(() => Promise.resolve({ width: 800, height: 600, close: closeMock }));
+      window.BarcodeDetector = jest.fn().mockImplementation(() => ({
+        detect: jest.fn(() => new Promise((resolve) => { resolveDetect = resolve; }))
+      }));
+
+      try {
+        qrScanner._decodeFile(new Blob(['img'], { type: 'image/png' }));
+        expect(qrScanner._isDecoding).toBe(true);
+        expect(mockScanBtn.disabled).toBe(true);
+        expect(mockGalleryBtn.disabled).toBe(true);
+
+        await Promise.resolve();
+        resolveDetect([{ rawValue: '123456' }]);
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(qrScanner._isDecoding).toBe(false);
+        expect(mockScanBtn.disabled).toBe(false);
+        expect(mockGalleryBtn.disabled).toBe(false);
+        expect(handleSpy).toHaveBeenCalledWith('123456');
+        expect(closeMock).toHaveBeenCalled();
+      } finally {
+        handleSpy.mockRestore();
+        if (origDetector === undefined) delete window.BarcodeDetector;
+        else window.BarcodeDetector = origDetector;
+        if (origCreateImageBitmap === undefined) delete window.createImageBitmap;
+        else window.createImageBitmap = origCreateImageBitmap;
+      }
+    });
+
+    test('onPageLoad reveals iOS CNA hint without blocking scanDirect file input', () => {
+      const origIsStripped = qrScanner._isStrippedWebView;
+      const origIsIosCna = qrScanner._isIosCna;
+      qrScanner._isStrippedWebView = () => false;
+      qrScanner._isIosCna = () => true;
+      const clickSpy = jest.spyOn(mockFileInput, 'click');
+
+      qrScanner.onPageLoad();
+      expect(mockWebviewHint.style.display).toBe('block');
+      expect(mockHintOr.style.display).toBe('block');
+      expect(mockWebviewHint.getAttribute('data-i18n')).toBe('qr_scan_ios_cna_hint');
+      expect(mockWebviewHint.textContent).toBe('qr_scan_ios_cna_hint');
+
+      qrScanner.scanDirect();
+      expect(clickSpy).toHaveBeenCalled();
+
+      qrScanner._isStrippedWebView = origIsStripped;
+      qrScanner._isIosCna = origIsIosCna;
     });
   });
 });

@@ -16,6 +16,74 @@
  * pulse the button so the user knows where to tap next.
  */
 var qrScanner = {
+  _isDecoding: false,
+  _scanWatchdog: null,
+
+  /**
+   * Toggle button loading/disabled state during QR decoding so users get
+   * immediate feedback and double-taps cannot race in-flight decodes.
+   * @param {boolean} isLoading
+   */
+  _setScanningState: function(isLoading) {
+    try {
+      this._isDecoding = !!isLoading;
+      if (this._scanWatchdog) {
+        clearTimeout(this._scanWatchdog);
+        this._scanWatchdog = null;
+      }
+      if (typeof document === 'undefined') return;
+      var btn = document.getElementById('qrScanButton');
+      var galleryBtn = document.getElementById('qrGalleryButton');
+      var label = btn ? btn.querySelector('[data-i18n="qr_scan_btn_text"]') : null;
+
+      if (isLoading) {
+        if (btn) {
+          btn.disabled = true;
+          btn.setAttribute('aria-busy', 'true');
+          btn.classList.add('qr-scan-btn--loading');
+          btn.classList.remove('qr-scan-btn--attn');
+        }
+        if (galleryBtn) {
+          galleryBtn.disabled = true;
+        }
+        if (label) {
+          if (!label.dataset.origText) {
+            label.dataset.origText = label.textContent;
+          }
+          label.textContent = (typeof i18n !== 'undefined' && i18n.t)
+            ? i18n.t('qr_scan_reading')
+            : 'Reading…';
+        }
+        var self = this;
+        this._scanWatchdog = setTimeout(function() {
+          self._scanWatchdog = null;
+          self._setScanningState(false);
+        }, 20000);
+      } else {
+        if (btn) {
+          btn.disabled = false;
+          btn.removeAttribute('aria-busy');
+          btn.classList.remove('qr-scan-btn--loading');
+        }
+        if (galleryBtn) {
+          galleryBtn.disabled = false;
+        }
+        if (label) {
+          var restored = (typeof i18n !== 'undefined' && i18n.t)
+            ? i18n.t('qr_scan_btn_text')
+            : '';
+          if (restored && restored !== 'qr_scan_btn_text') {
+            label.textContent = restored;
+          } else if (label.dataset.origText) {
+            label.textContent = label.dataset.origText;
+          }
+          delete label.dataset.origText;
+        }
+      }
+    } catch (err) {
+      console.error('QR scanning state error:', err);
+    }
+  },
 
   /**
    * Entry point wired to the scan button. Routes by environment:
@@ -24,6 +92,7 @@ var qrScanner = {
    */
   scanDirect: function() {
     try {
+      if (this._isDecoding) return;
       if (this._isStrippedWebView()) {
         var href = (window.location.href || '').split('#')[0];
         var sep = href.indexOf('?') === -1 ? '?' : '&';
@@ -64,6 +133,7 @@ var qrScanner = {
     var galleryBtn = document.getElementById('qrGalleryButton');
     if (galleryBtn) {
       galleryBtn.addEventListener('click', function() {
+        if (self._isDecoding) return;
         if (self._isStrippedWebView()) {
           var href = (window.location.href || '').split('#')[0];
           var sep = href.indexOf('?') === -1 ? '?' : '&';
@@ -94,11 +164,20 @@ var qrScanner = {
       this._wireFileInput();
 
       // If user is inside stripped captive-portal WebView, reveal the explanatory hint
+      var hint = document.getElementById('qr-webview-hint');
+      var orSep = document.getElementById('qr-hint-or');
       if (this._isStrippedWebView()) {
-        var hint = document.getElementById('qr-webview-hint');
         if (hint) hint.style.display = 'block';
         // and the "أو" separator — scanning and typing are the two alternatives
-        var orSep = document.getElementById('qr-hint-or');
+        if (orSep) orSep.style.display = 'block';
+      } else if (this._isIosCna()) {
+        if (hint) {
+          hint.setAttribute('data-i18n', 'qr_scan_ios_cna_hint');
+          if (typeof i18n !== 'undefined' && i18n.t) {
+            hint.textContent = i18n.t('qr_scan_ios_cna_hint');
+          }
+          hint.style.display = 'block';
+        }
         if (orSep) orSep.style.display = 'block';
       }
 
@@ -137,6 +216,27 @@ var qrScanner = {
       var isAndroidWebView = /;\s*wv\)/i.test(ua) || /Version\/4\.0\s+Chrome/i.test(ua);
       var inAppWithChooser = /FB_IAB|FB4A|Instagram|WhatsApp|FBAV/i.test(ua);
       return isAndroidWebView && !inAppWithChooser;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  /**
+   * Detect iOS Captive Network Assistant (CNA): iOS WebKit sheet that omits
+   * Safari/ and third-party browser tokens and is not an installed PWA
+   * (navigator.standalone !== true). Unlike Android WebView, iOS has no
+   * intent:// escape, so the scanner still lets the user try the file input
+   * while revealing a hint on how to switch to Safari if the camera is blocked.
+   * @returns {boolean}
+   */
+  _isIosCna: function() {
+    try {
+      var ua = navigator.userAgent || '';
+      var isIos = /iPhone|iPad|iPod/i.test(ua);
+      var isWebKit = /AppleWebKit/i.test(ua);
+      var hasFullBrowser = /Safari\/|CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|FB_IAB|Instagram|WhatsApp/i.test(ua);
+      var isStandalonePwa = !!(typeof navigator !== 'undefined' && navigator.standalone === true);
+      return isIos && isWebKit && !hasFullBrowser && !isStandalonePwa;
     } catch (err) {
       return false;
     }
@@ -318,6 +418,7 @@ var qrScanner = {
   },
 
   _handleFile: function(file) {
+    if (this._isDecoding) return;
     // Try native BarcodeDetector first; lazy-load jsQR.js ONLY as fallback.
     this._decodeFile(file);
   },
@@ -354,6 +455,7 @@ var qrScanner = {
 
   _decodeFile: function(file) {
     var self = this;
+    this._setScanningState(true);
     util.showToast(i18n.t('qr_scan_reading'), 'info');
 
     // 1. Fast Native Path: BarcodeDetector API (Android Chrome 83+ & modern WebViews)
@@ -376,6 +478,7 @@ var qrScanner = {
               if (rawValue) {
                 var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
                 inputs.forEach(function(inp) { inp.value = ''; });
+                self._setScanningState(false);
                 self._handleResult(rawValue);
                 return true;
               }
@@ -413,14 +516,15 @@ var qrScanner = {
    */
   _buildDecodeAttempts: function(w, h) {
     var maxDim = Math.max(w, h);
+    var cfW, cfH;
     var attempts = [
       { x: 0, y: 0, w: 1, h: 1, cap: 1200 },
       { x: 0, y: 0, w: 1, h: 1, cap: 600 }
     ];
     if (maxDim > 1200) {
       // Native 1:1 center slice (no downscaling) catches dense link QRs cleanly
-      var cfW = Math.min(1, 1400 / w);
-      var cfH = Math.min(1, 1400 / h);
+      cfW = Math.min(1, 1400 / w);
+      cfH = Math.min(1, 1400 / h);
       attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1400 });
       attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 2200 });
     }
@@ -434,10 +538,11 @@ var qrScanner = {
       attempts.push({ x: 1 - qW, y: 1 - qH, w: qW, h: qH, cap: 1400 });
     }
     // Last resort for glare / dim / washed-out prints: the same full frame
-    // after a percentile contrast stretch. Runs only when every plain pass
-    // failed, so well-lit shots never pay for it.
+    // and 1:1 center crop after a percentile contrast stretch. Runs only when
+    // every plain pass failed, so well-lit shots never pay for it.
     attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1000, enhance: true });
     if (maxDim > 1200) {
+      attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1400, enhance: true });
       attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 1800, enhance: true });
     }
     return attempts;
@@ -485,6 +590,7 @@ var qrScanner = {
         document.querySelectorAll('#qr-file-input, #qr-gallery-input').forEach(function(input) {
           input.value = '';
         });
+        self._setScanningState(false);
         util.showToast(i18n.t('qr_scan_unavailable'), 'error');
         return;
       }
@@ -492,6 +598,7 @@ var qrScanner = {
       var finish = function(codeText) {
         var inputs = document.querySelectorAll('#qr-file-input, #qr-gallery-input');
         inputs.forEach(function(input) { input.value = ''; });
+        self._setScanningState(false);
         if (codeText) {
           self._handleResult(codeText);
         } else {
@@ -505,29 +612,35 @@ var qrScanner = {
         var ctx = canvas.getContext('2d', { willReadFrequently: true });
         var found = null;
 
-        for (var i = 0; i < attempts.length; i++) {
-          var cfg = attempts[i];
-          var sx = Math.round(w * cfg.x);
-          var sy = Math.round(h * cfg.y);
-          var sw = Math.max(1, Math.round(w * cfg.w));
-          var sh = Math.max(1, Math.round(h * cfg.h));
-          var scale = Math.min(1, cfg.cap / Math.max(sw, sh));
-          var cw = Math.max(1, Math.round(sw * scale));
-          var ch = Math.max(1, Math.round(sh * scale));
-          canvas.width = cw;
-          canvas.height = ch;
-          ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
-          var imageData = ctx.getImageData(0, 0, cw, ch);
-          if (cfg.enhance) self._enhanceContrast(imageData.data);
-          var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
-          if (code && code.data) {
-            found = code.data;
-            break;
+        try {
+          for (var i = 0; i < attempts.length; i++) {
+            var cfg = attempts[i];
+            var sx = Math.round(w * cfg.x);
+            var sy = Math.round(h * cfg.y);
+            var sw = Math.max(1, Math.round(w * cfg.w));
+            var sh = Math.max(1, Math.round(h * cfg.h));
+            var scale = Math.min(1, cfg.cap / Math.max(sw, sh));
+            var cw = Math.max(1, Math.round(sw * scale));
+            var ch = Math.max(1, Math.round(sh * scale));
+            canvas.width = cw;
+            canvas.height = ch;
+            ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
+            var imageData = ctx.getImageData(0, 0, cw, ch);
+            if (cfg.enhance) self._enhanceContrast(imageData.data);
+            var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+            if (code && code.data) {
+              found = code.data;
+              break;
+            }
           }
+        } catch (err) {
+          console.error('QR decode error:', err);
+          found = null;
+        } finally {
+          canvas.width = 0;
+          canvas.height = 0;
+          if (release) release();
         }
-        canvas.width = 0;
-        canvas.height = 0;
-        if (release) release();
         finish(found);
       };
 

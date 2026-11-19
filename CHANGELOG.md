@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Studio Modal IME Composition Bug**: the window-level `keydown` handler in `openStudioModal` (`admin/public/studio-core.js`) confirmed the dialog on the `Enter` keystroke that merely commits an IME candidate conversion (CJK keyboards), submitting `studioPrompt` / new-profile inputs mid-composition; the handler now ignores the composing Enter via `event.isComposing || event.keyCode === 229` (also covering Safari's out-of-order confirming keydown, WebKit bug 165004).
 
 ### Changed
+- **Offline QR Scanner UX & Decoding (`src/js/modules/qr-scanner.js`, `src/css/media.css`, `src/i18n/*.json`)**: added a contrast-stretched 1:1 center-crop pass (`1400px`) for glared/dim large photos, an explicit loading/disabled button state (`_setScanningState` with 20s watchdog and double-tap guard), actionable Arabic/English scan-failure guidance (`qr_scan_failed`), and an iOS Captive Network Assistant (`_isIosCna`) Safari-switch hint (`qr_scan_ios_cna_hint`).
 - **Modernized DOM Clearing & Deep Cloning (behavior-neutral)**: empty `innerHTML = ''` clears replaced with `replaceChildren()` (9 sites: `src/js/modules/auth.js` voucher chips + Studio profile list, tabs, content, words/RADIUS lists, assets), and `JSON.parse(JSON.stringify(...))` deep-copy workarounds replaced with native `structuredClone()` (5 sites across Studio tabs/simulator).
 
 ## [2.8.0] - 2026-11-16

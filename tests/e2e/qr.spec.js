@@ -248,3 +248,21 @@ test('scanning a bare voucher (=CODE) after a mikhmon link-card error reload nev
   expect(body2).toContain('password=09408628');
   expect(body2).not.toContain('password=54052307');
 });
+
+test('inside iOS CNA the Safari switch hint and separator are shown', async ({ browser }) => {
+  const iosCnaUA =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+  const context = await browser.newContext({ userAgent: iosCnaUA });
+  const page = await context.newPage();
+  try {
+    await page.goto(`${DEFAULT}/ar/login.html`);
+    const hint = page.locator('#qr-webview-hint');
+    const hintOr = page.locator('#qr-hint-or');
+    await expect(hint).toBeVisible();
+    await expect(hint).toContainText('Safari');
+    await expect(hint).toContainText('الاستخدام بدون إنترنت');
+    await expect(hintOr).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});

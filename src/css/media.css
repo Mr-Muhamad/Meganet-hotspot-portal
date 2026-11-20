@@ -58,6 +58,10 @@
   display: flex;
 }
 
+.caps-lock-warning[hidden] {
+  display: none;
+}
+
 .caps-lock-warning__icon {
   width: 14px;
   height: 14px;
@@ -75,7 +79,8 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
-  z-index: 300;
+  max-width: calc(100vw - 32px);
+  z-index: 1100;
   animation: toast-in 0.3s ease;
 }
 
@@ -318,7 +323,8 @@
 /* Small devices (360px+) */
 @media (min-width: 360px) {
   .page-shell {
-    padding: var(--space-sm) var(--space-md);
+    padding-top: var(--space-sm);
+    padding-inline: max(var(--space-md), env(safe-area-inset-left, 0px));
   }
 
   .card {

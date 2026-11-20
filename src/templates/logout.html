@@ -12,7 +12,8 @@
           <p class="card-header__subtitle" data-i18n="logout_success">{{ i18n.logout_success }}</p>
         </div>
 
-        <div class="card-body">
+        <div class="card-body" id="logout-target">
+          <!--ros:login:$(link-login)-->
           <!-- Session Summary -->
           <div class="status-grid" role="region" data-i18n-aria="session_summary_aria" aria-label="{{ i18n.session_summary_aria }}" data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase | e }}{% else %}1000{% endif %}">
             <div class="stat-card">
@@ -118,10 +119,19 @@
         // Keep saved voucher & credentials across explicit logout so returning via
         // browser or WebView can auto-reconnect without re-typing the card.
 
-        // Auto-redirect countdown (20s). Guard against an un-substituted token
-        // (local preview / cached page): navigating to the literal
-        // '$(link-login)' would 404.
-        var loginUrl = '$(link-login)';
+        // Auto-redirect countdown (20s). Read $(link-login) from comment carrier
+        // so characters like single quotes in dst= cannot break inline script.
+        var loginUrl = '';
+        var logoutTarget = document.getElementById('logout-target');
+        if (logoutTarget) {
+          var nodes = logoutTarget.childNodes;
+          for (var nIdx = 0; nIdx < nodes.length; nIdx++) {
+            if (nodes[nIdx].nodeType === 8 && nodes[nIdx].data.indexOf('ros:login:') === 0) {
+              loginUrl = nodes[nIdx].data.slice('ros:login:'.length);
+              break;
+            }
+          }
+        }
         if (!loginUrl || loginUrl.indexOf('$(') === 0) loginUrl = './login.html';
         var cancelLogoutRedirect = util.safeRedirect(loginUrl, 20, 'redirect-countdown');
 

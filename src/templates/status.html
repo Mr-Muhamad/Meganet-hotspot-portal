@@ -44,6 +44,7 @@
           <!-- Session countdown / remaining quota (always shown above promotional PWA banner) -->
           <div class="session-countdown" id="sessionCountdownSection"
                data-limit-bytes-total="$(limit-bytes-total)"
+               data-remain-bytes-total="$(remain-bytes-total)"
                data-bytes-in="$(bytes-in)"
                data-bytes-out="$(bytes-out)"
                data-quota-format="{% if config.features.quotaDisplayFormat %}{{ config.features.quotaDisplayFormat | e }}{% else %}MB{% endif %}"

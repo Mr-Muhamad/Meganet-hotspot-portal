@@ -231,10 +231,20 @@ document.body.appendChild(mockSmartUsageCard);
       // Remaining Percentage text = "85% remaining"
       expect(mockQuotaRemainingPercentage.textContent).toBe('85% remaining');
 
-      // Smart usage tip (85 MB remaining is <= 500 MB)
-      expect(mockSmartUsageTip.textContent).toBe('Your balance is very low! Stop auto-downloads and avoid videos to save quota.');
+      // Smart usage tip (85% remaining is >= 50%)
+      expect(mockSmartUsageTip.textContent).toBe('Your remaining balance is abundant! Feel free to stream videos and browse.');
       expect(mockSmartUsageActivities.style.display).toBe('block');
       expect(mockBrowsingHours.textContent).toBe('51 min');
+    });
+
+    test('shows very low Smart Usage tip when remaining quota is under 20%', () => {
+      mockCountdownSection.setAttribute('data-bytes-in', '62914560'); // 60 MB
+      mockCountdownSection.setAttribute('data-bytes-out', '31457280'); // 30 MB -> 10% left
+      statusModule.calculateRemainingQuota();
+
+      expect(mockCountdownValue.textContent).toBe('10 MB');
+      expect(mockQuotaRemainingPercentage.textContent).toBe('10% remaining');
+      expect(mockSmartUsageTip.textContent).toBe('Your balance is very low! Stop auto-downloads and avoid videos to save quota.');
     });
 
     test('sets quota to Unlimited when limit is 0', () => {
@@ -626,7 +636,7 @@ document.body.appendChild(mockSmartUsageCard);
   });
 
   describe('switchCard', () => {
-    test('clears stored voucher credentials and navigates to ./login.html', () => {
+    test('clears stored voucher credentials and navigates to ./login.html', async () => {
       localStorage.setItem('hotspot_last_voucher', '123456');
       localStorage.setItem('hotspot_last_voucher_pw', '123456');
       localStorage.setItem('hotspot_password', 'secret');
@@ -657,6 +667,7 @@ document.body.appendChild(mockSmartUsageCard);
           'http://10.5.50.1/logout?erase-cookie=on',
           expect.objectContaining({ method: 'GET', keepalive: true })
         );
+        await new Promise((resolve) => setTimeout(resolve, 0));
         expect(window.location.href).toBe('./login.html');
       } finally {
         window.location = origLocation;

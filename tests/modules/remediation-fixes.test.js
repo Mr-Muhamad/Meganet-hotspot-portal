@@ -404,7 +404,7 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(enLogin).not.toContain('$(if captive)');
       expect(enLogin).not.toMatch(/id="remember-me"[^>]*checked/);
       expect(enLogin).toContain('qr_gallery_btn_text');
-      expect(enLogin).not.toContain('HotspotErrorMap');
+      expect(enLogin).toContain('HotspotErrorMap');
       expect(enLogin).not.toContain('name="target"');
     });
 

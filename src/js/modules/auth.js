@@ -10,11 +10,23 @@ var auth = {
       var rememberCheckbox = document.getElementById('remember-me');
       var hasInitError = auth._hasRouterError();
       var clearOnPermanentErr = hasInitError && auth._isPermanentCredentialError();
-      var routerSubmittedUser = (usernameInput && usernameInput.value && usernameInput.value.indexOf('$(') === -1)
+      if (usernameInput && usernameInput.value) {
+        if (usernameInput.value.indexOf('$(') !== -1) {
+          usernameInput.value = '';
+        } else {
+          try {
+            usernameInput.value = decodeURIComponent(usernameInput.value);
+          } catch (uErr) {
+            usernameInput.value = usernameInput.value.replace(/%3A/gi, ':');
+          }
+        }
+      }
+      var routerSubmittedUser = (usernameInput && usernameInput.value)
         ? usernameInput.value.trim()
         : '';
       var preClearVoucher = auth._getStoredVoucher();
       auth._fallbackVoucherDisplay = routerSubmittedUser || preClearVoucher || '';
+      auth._rawChapPassword = null;
 
       if (clearOnPermanentErr) {
         auth._clearStoredVoucher();
@@ -32,6 +44,8 @@ var auth = {
         });
 
         passwordInput.addEventListener('input', function(e) {
+          auth._rawChapPassword = null;
+          passwordInput.removeAttribute('data-chap-hashed');
           var converted = auth.convertArabicNumerals(passwordInput.value);
           var val = converted.replace(/[^\x20-\x7E]/g, '');
 
@@ -46,9 +60,6 @@ var auth = {
       }
 
       if (usernameInput) {
-        if (usernameInput.value && usernameInput.value.indexOf('$(') !== -1) {
-          usernameInput.value = '';
-        }
         var savedUsername = auth._getStoredUsername();
         if (savedUsername && !usernameInput.value) {
           usernameInput.value = savedUsername;
@@ -103,7 +114,7 @@ var auth = {
           if (val !== auth._getStoredVoucher()) {
             var voucherForm = document.getElementById('login-form');
             if (voucherForm) voucherForm.removeAttribute('data-scanned-password');
-            auth._removeStorageItem('hotspot_last_voucher_pw');
+            auth._removeLocalStorageOnly('hotspot_last_voucher_pw');
           }
           auth._syncVoucherClearBtn();
 
@@ -155,6 +166,8 @@ var auth = {
           lowerErr.indexOf('خطأ تقني مؤقت') !== -1;
         if (isSystemOrSessionErr && typeof rateLimiter !== 'undefined' && rateLimiter.reset) {
           rateLimiter.reset('device');
+          if (preClearVoucher) rateLimiter.reset('voucher:' + preClearVoucher);
+          if (routerSubmittedUser) rateLimiter.reset('user:' + routerSubmittedUser);
         }
       }
 
@@ -201,14 +214,17 @@ var auth = {
         }
       }
 
-      // Check query parameters for auto-login from native camera scan
+      // Check query parameters for auto-login from native camera scan (skip if router already returned an error)
       var urlParams = new URLSearchParams(window.location.search);
       var voucherCode = urlParams.get('voucher');
       var usernameVal = urlParams.get('username');
-      var passwordVal = urlParams.get('password');
-      var voucherParam = voucherCode || usernameVal;
+      var hasPasswordParam = urlParams.has('password');
+      var passwordVal = hasPasswordParam ? (urlParams.get('password') || '') : '';
+      var voucherParam = voucherCode
+        ? auth.normalizeVoucherText(voucherCode, auth.getVoucherFormat())
+        : (usernameVal ? String(usernameVal).trim() : '');
 
-      if (voucherParam) {
+      if (voucherParam && !hasInitError) {
         var targetTab = document.querySelector('.auth-tab[data-mode="voucher"]');
         var memberTab = document.querySelector('.auth-tab[data-mode="member"], .auth-tab[data-mode="normal"]');
 
@@ -230,10 +246,8 @@ var auth = {
           usernameInput.value = voucherParam;
         }
 
-        // A scanned link card may carry its own password (mikhmon prints
-        // /login?username=X&password=Y). Stash it so onFormSubmit prefers it
-        // over copying the voucher into the password field.
-        if (passwordVal) {
+        // A scanned link card may carry its own password (including empty "").
+        if (hasPasswordParam) {
           var scannedForm = document.getElementById('login-form');
           if (scannedForm) {
             scannedForm.setAttribute('data-scanned-password', passwordVal);
@@ -241,6 +255,17 @@ var auth = {
           if (passwordInput) {
             passwordInput.value = passwordVal;
           }
+        }
+
+        if (typeof window !== 'undefined' && window.history && typeof window.history.replaceState === 'function') {
+          try {
+            urlParams.delete('voucher');
+            urlParams.delete('username');
+            urlParams.delete('password');
+            var remainingQs = urlParams.toString();
+            var cleanHref = window.location.pathname + (remainingQs ? '?' + remainingQs : '') + (window.location.hash || '');
+            window.history.replaceState({}, '', cleanHref);
+          } catch (histErr) {}
         }
 
         form = document.getElementById('login-form');
@@ -262,6 +287,7 @@ var auth = {
         auth._pageshowBound = true;
         window.addEventListener('pageshow', function(ev) {
           if (ev && ev.persisted) {
+            auth._restoreRawChapPassword();
             auth.setLoadingState(false);
             auth.triggerAutoLogin();
           }
@@ -418,6 +444,7 @@ var auth = {
       var alertDiv = document.createElement('div');
       alertDiv.className = 'alert alert-error';
       alertDiv.id = 'voucher-min-length-alert';
+      alertDiv.setAttribute('role', 'alert');
       var rawMsg = i18n.t('voucher_min_length_error', { n: minLength });
       var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(rawMsg) : rawMsg;
       alertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
@@ -451,18 +478,21 @@ var auth = {
     try {
       if (typeof form.requestSubmit === 'function') {
         form.requestSubmit();
-      } else if (typeof doLogin === 'function') {
-        // Legacy browsers: form.submit() bypasses submit listeners, so run the
-        // handler's work by hand before CHAP-hashing.
-        var fallbackMode = auth._detectActiveMode();
-        if (fallbackMode === 'voucher') {
-          var voucherInput = document.getElementById('voucher');
-          auth.applyVoucherCredentials(voucherInput ? (voucherInput.value || '') : '');
-        } else if (fallbackMode === 'normal') {
-          auth.rememberUsername();
-        }
-        if (doLogin()) form.submit();
       } else {
+        // Browsers without requestSubmit (e.g. Safari 15.4-15.6): run
+        // validation/rate-limit submit hook explicitly before form.submit().
+        var syntheticEvent = {
+          defaultPrevented: false,
+          preventDefault: function() { this.defaultPrevented = true; },
+          stopImmediatePropagation: function() {}
+        };
+        auth.onFormSubmit(syntheticEvent);
+        if (syntheticEvent.defaultPrevented) return;
+        if (typeof doLogin === 'function') {
+          if (!doLogin()) return;
+        } else {
+          auth.chapHashOnSubmit();
+        }
         form.submit();
       }
     } catch (err) {
@@ -506,19 +536,20 @@ var auth = {
       var rateAlertDiv = document.createElement('div');
       rateAlertDiv.className = 'alert alert-error';
       rateAlertDiv.id = 'rate-limit-alert';
+      rateAlertDiv.setAttribute('role', 'alert');
 
-      var timeRemainingMs = limitStatus.remainingTime;
+      var endTime = Date.now() + Math.max(0, limitStatus.remainingTime || 0);
 
       var updateAlertText = function(remainingMs) {
         var msg = i18n.t('rate_limit_message', { time: auth.formatRetryTime(remainingMs) });
         var safeMsg = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(msg) : msg;
         rateAlertDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
-          '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+          '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
           '<span class="alert__text">' + safeMsg + '</span>' +
           '</div>';
       };
 
-      updateAlertText(timeRemainingMs);
+      updateAlertText(limitStatus.remainingTime);
       alertsContainer.appendChild(rateAlertDiv);
       alertsContainer.scrollIntoView({ behavior: 'smooth' });
 
@@ -527,17 +558,17 @@ var auth = {
         clearInterval(auth._rateLimitInterval);
       }
 
-      // Start countdown
+      // Start wall-clock countdown (resilient to mobile tab suspend)
       auth._rateLimitInterval = setInterval(function() {
-        timeRemainingMs -= 1000;
-        if (timeRemainingMs <= 0) {
+        var remainingMs = endTime - Date.now();
+        if (remainingMs <= 0) {
           clearInterval(auth._rateLimitInterval);
           auth._rateLimitInterval = null;
           var alertEl = document.getElementById('rate-limit-alert');
           if (alertEl) alertEl.remove();
           loginButton.disabled = false;
         } else {
-          updateAlertText(timeRemainingMs);
+          updateAlertText(remainingMs);
         }
       }, 1000);
 
@@ -565,6 +596,28 @@ var auth = {
   },
 
   _removeStorageItem: function(key) {
+    try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key); } catch (e1) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem(key); } catch (e2) {}
+    try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie(key, '', -1); } catch (e3) {}
+  },
+
+  _getLocalStorageOnly: function(key) {
+    var val = null;
+    try { if (typeof sessionStorage !== 'undefined') val = sessionStorage.getItem(key); } catch (e) {}
+    if (!val) {
+      try { if (typeof localStorage !== 'undefined') val = localStorage.getItem(key); } catch (e2) {}
+    }
+    return val || null;
+  },
+
+  _setLocalStorageOnly: function(key, value) {
+    try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value); } catch (e1) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(key, value); } catch (e2) {}
+    // Ensure sensitive values are not sent in Cookie HTTP headers
+    try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie(key, '', -1); } catch (e3) {}
+  },
+
+  _removeLocalStorageOnly: function(key) {
     try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key); } catch (e1) {}
     try { if (typeof localStorage !== 'undefined') localStorage.removeItem(key); } catch (e2) {}
     try { if (typeof util !== 'undefined' && util.setCookie) util.setCookie(key, '', -1); } catch (e3) {}
@@ -688,17 +741,17 @@ var auth = {
   },
 
   _getStoredVoucherPassword: function() {
-    var pw = auth._getStorageItem('hotspot_last_voucher_pw');
+    var pw = auth._getLocalStorageOnly('hotspot_last_voucher_pw');
     return pw === '__EMPTY__' ? '' : pw;
   },
 
   _saveStoredVoucherPassword: function(passwordValue) {
-    auth._setStorageItem('hotspot_last_voucher_pw', passwordValue === '' ? '__EMPTY__' : passwordValue, 30);
+    auth._setLocalStorageOnly('hotspot_last_voucher_pw', passwordValue === '' ? '__EMPTY__' : passwordValue);
   },
 
   _clearStoredVoucher: function() {
     auth._removeStorageItem('hotspot_last_voucher');
-    auth._removeStorageItem('hotspot_last_voucher_pw');
+    auth._removeLocalStorageOnly('hotspot_last_voucher_pw');
   },
 
   _getVoucherHistory: function() {
@@ -762,6 +815,11 @@ var auth = {
           var voucherInput = document.getElementById('voucher');
           if (voucherInput) {
             voucherInput.value = code;
+            if (code !== auth._getStoredVoucher()) {
+              var voucherForm = document.getElementById('login-form');
+              if (voucherForm) voucherForm.removeAttribute('data-scanned-password');
+              auth._removeLocalStorageOnly('hotspot_last_voucher_pw');
+            }
             auth._syncVoucherClearBtn();
             voucherInput.focus();
           }
@@ -786,15 +844,15 @@ var auth = {
   },
 
   _getStoredPassword: function() {
-    return auth._getStorageItem('hotspot_password');
+    return auth._getLocalStorageOnly('hotspot_password');
   },
 
   _saveStoredPassword: function(passwordValue) {
-    auth._setStorageItem('hotspot_password', passwordValue, 30);
+    auth._setLocalStorageOnly('hotspot_password', passwordValue);
   },
 
   _clearStoredPassword: function() {
-    auth._removeStorageItem('hotspot_password');
+    auth._removeLocalStorageOnly('hotspot_password');
   },
 
   clearVoucher: function() {
@@ -910,10 +968,11 @@ var auth = {
       if (mode === 'voucher' && voucherInput) {
         var lenForm = document.getElementById('login-form');
         var voucherMinLength = lenForm ? parseInt(lenForm.getAttribute('data-voucher-min-length'), 10) : NaN;
-        if (voucherMinLength && voucherInput.value.trim().length < voucherMinLength) {
+        var trimmedVoucher = voucherInput.value.trim();
+        if (!trimmedVoucher || (voucherMinLength && trimmedVoucher.length < voucherMinLength)) {
           e.preventDefault();
           if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
-          auth.showVoucherMinLengthError(voucherMinLength);
+          auth.showVoucherMinLengthError(voucherMinLength || 1);
           return;
         }
       }
@@ -1003,7 +1062,7 @@ var auth = {
         if (scannedPassword !== null) {
           auth._saveStoredVoucherPassword(scannedPassword);
         } else {
-          auth._removeStorageItem('hotspot_last_voucher_pw');
+          auth._removeLocalStorageOnly('hotspot_last_voucher_pw');
         }
       } else {
         auth._clearStoredVoucher();
@@ -1058,13 +1117,29 @@ var auth = {
       var idVal = decodeOctal(rawId);
       var challengeVal = decodeOctal(rawChallenge);
 
-      passwordInput.value = md5Fn(idVal + passwordInput.value + challengeVal);
+      var rawPw = (passwordInput.getAttribute('data-chap-hashed') === '1' && typeof auth._rawChapPassword === 'string')
+        ? auth._rawChapPassword
+        : passwordInput.value;
+      auth._rawChapPassword = rawPw;
+      passwordInput.setAttribute('data-chap-hashed', '1');
+      passwordInput.value = md5Fn(idVal + rawPw + challengeVal);
       if (plainPasswordHidden) {
         plainPasswordHidden.removeAttribute('name');
       }
     } catch (err) {
       console.error('CHAP login error:', err);
     }
+  },
+
+  _restoreRawChapPassword: function() {
+    var passwordInput = document.getElementById('password');
+    if (passwordInput && passwordInput.getAttribute('data-chap-hashed') === '1') {
+      if (typeof auth._rawChapPassword === 'string') {
+        passwordInput.value = auth._rawChapPassword;
+      }
+      passwordInput.removeAttribute('data-chap-hashed');
+    }
+    auth._rawChapPassword = null;
   },
 
   togglePassword: function() {
@@ -1076,15 +1151,19 @@ var auth = {
         if (passwordInput.type === 'password') {
           passwordInput.type = 'text';
           var hideLabel = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('password_hide') : 'Hide password';
+          toggleBtn.setAttribute('data-i18n-aria', 'password_hide');
+          toggleBtn.setAttribute('data-i18n-title', 'password_hide');
           toggleBtn.setAttribute('aria-label', hideLabel);
           toggleBtn.setAttribute('title', hideLabel);
-          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
         } else {
           passwordInput.type = 'password';
           var showLabel = (typeof i18n !== 'undefined' && i18n.t) ? i18n.t('password_show') : 'Show password';
+          toggleBtn.setAttribute('data-i18n-aria', 'password_show');
+          toggleBtn.setAttribute('data-i18n-title', 'password_show');
           toggleBtn.setAttribute('aria-label', showLabel);
           toggleBtn.setAttribute('title', showLabel);
-          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
         }
       }
     } catch (err) {
@@ -1154,7 +1233,7 @@ var auth = {
         btn.disabled = true;
         btn.classList.add('btn--loading');
         btn.dataset.originalHtml = btn.innerHTML;
-        btn.innerHTML = (typeof i18n !== 'undefined' && i18n.t)
+        btn.textContent = (typeof i18n !== 'undefined' && i18n.t)
           ? i18n.t('login_loading')
           : 'Connecting…';
         if (auth._loadWatchdog) clearTimeout(auth._loadWatchdog);
@@ -1164,6 +1243,7 @@ var auth = {
         }, 15000);
       } else {
         if (auth._loadWatchdog) { clearTimeout(auth._loadWatchdog); auth._loadWatchdog = null; }
+        auth._restoreRawChapPassword();
         btn.disabled = false;
         btn.classList.remove('btn--loading');
         if (btn.dataset.originalHtml) {
@@ -1267,23 +1347,25 @@ var auth = {
       var autoLoginDiv = document.createElement('div');
       autoLoginDiv.className = 'alert alert-info';
       autoLoginDiv.id = 'auto-login-alert';
+      autoLoginDiv.setAttribute('role', 'status');
       autoLoginDiv.style.display = 'flex';
       autoLoginDiv.style.alignItems = 'center';
       autoLoginDiv.style.justifyContent = 'space-between';
       autoLoginDiv.style.gap = 'var(--space-sm)';
 
       var rawCountdown = i18n.t('auto_login_countdown') || '';
-      var text;
-      if (rawCountdown.indexOf('id="auto-login-sec"') !== -1 || rawCountdown.indexOf("id='auto-login-sec'") !== -1) {
-        text = rawCountdown.replace('{n}', '3');
-      } else {
-        text = rawCountdown.replace('{n}', '<strong id="auto-login-sec">3</strong>');
-      }
+      var secToken = '__HOTSPOT_AUTO_SEC__';
+      var withSlot = rawCountdown
+        .replace('<strong id="auto-login-sec">{n}</strong>', secToken)
+        .replace("<strong id='auto-login-sec'>{n}</strong>", secToken)
+        .replace('{n}', secToken);
+      var escapedCountdown = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(withSlot) : withSlot;
+      var text = escapedCountdown.replace(secToken, '<strong id="auto-login-sec">3</strong>');
 
       var cancelLabel = (typeof util !== 'undefined' && util.escapeHtml) ? util.escapeHtml(i18n.t('cancel')) : i18n.t('cancel');
 
       autoLoginDiv.innerHTML = '<div style="display:flex;align-items:center;gap:var(--space-sm);">' +
-        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+        '<svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
         '<span class="alert__text">' + text + '</span>' +
         '</div>' +
         '<button type="button" id="cancel-auto-login-btn" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin:0;width:auto;">' + cancelLabel + '</button>';

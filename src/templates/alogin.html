@@ -19,7 +19,7 @@
           <!--ros:status:$(link-status)-->
           <!-- Username display -->
           <div class="text-center text-muted text-sm alogin-user-info">
-            <span data-i18n="username">{{ i18n.username }}</span>: <strong><bdi dir="auto">$(username-esc)</bdi></strong>
+            <span data-i18n="username">{{ i18n.username }}</span>: <strong id="alogin-username"><bdi dir="auto">$(username-esc)</bdi></strong>
           </div>
 
           <!-- Countdown display -->
@@ -91,7 +91,7 @@
           }
         }
       </script>
-      $(if popup)
+      $(if popup == 'true')
       <script>
         if (window.open) {
           var statusUrl = rosUrl('status');
@@ -135,6 +135,19 @@
         i18n.init();
         ui.initTheme();
         ui.initLang();
+
+        var aloginUser = document.getElementById('alogin-username');
+        if (aloginUser) {
+          var uTarget = (aloginUser.querySelector && aloginUser.querySelector('bdi')) || aloginUser;
+          var rawUser = uTarget.textContent.trim();
+          if (rawUser && rawUser.indexOf('$(') !== 0) {
+            try {
+              uTarget.textContent = decodeURIComponent(rawUser);
+            } catch (uErr) {
+              uTarget.textContent = rawUser.replace(/%3A/gi, ':');
+            }
+          }
+        }
 
         // IMMEDIATE redirect countdown — iOS CNA & mobile Captive Portal critical path.
         // MUST use location.replace() rather than href so the Android back button

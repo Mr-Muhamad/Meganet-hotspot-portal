@@ -24,7 +24,7 @@
         var m = document.cookie.match(/(?:^| )hotspot_theme=([^;]+)/);
         var t = m ? decodeURIComponent(m[1]) : null;
         if (t !== 'light' && t !== 'dark') {
-          t = '{% if config.theme and config.theme.defaultTheme %}{{ config.theme.defaultTheme | e }}{% else %}dark{% endif %}';
+          t = {{ (config.theme.defaultTheme if (config.theme and config.theme.defaultTheme) else 'dark') | scriptjson }};
         }
         document.documentElement.setAttribute('data-theme', t);
       } catch (err) { /* keep the hardcoded dark default */ }

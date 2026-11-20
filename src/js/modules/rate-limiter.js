@@ -69,10 +69,23 @@ var rateLimiter = {
       };
     }
 
-    // Clean up old attempts outside the window
-    var recentAttempts = entry.timestamps.filter(function(timestamp) {
+    // Clean up old attempts outside the window (expired blocks reset old timestamps)
+    var sourceTimestamps = (!entry.blockedUntil && Array.isArray(entry.timestamps)) ? entry.timestamps : [];
+    var recentAttempts = sourceTimestamps.filter(function(timestamp) {
       return now - timestamp < this.config.windowMs;
     }.bind(this));
+
+    if (recentAttempts.length === 0) {
+      delete this.attempts[key];
+      this.saveAttempts();
+      return {
+        blocked: false,
+        attempts: 0,
+        attemptsRemaining: maxAttempts,
+        remainingTime: 0,
+        warning: false
+      };
+    }
 
     this.attempts[key] = {
       timestamps: recentAttempts,

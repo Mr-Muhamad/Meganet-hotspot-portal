@@ -36,8 +36,8 @@ var statusModule = {
       var techMacTarget = document.querySelector('#tech-mac bdi') || document.getElementById('tech-mac');
       var macTypeEl = document.getElementById('status-mac-type');
       if (techMacTarget && macTypeEl) {
-        var cleanMac = techMacTarget.textContent.replace(/[:-]/g, '');
-        if (cleanMac.length >= 2) {
+        var cleanMac = techMacTarget.textContent.trim().replace(/[:-]/g, '');
+        if (cleanMac.length === 12 && /^[0-9A-Fa-f]{12}$/.test(cleanMac)) {
           var secondChar = cleanMac.charAt(1).toUpperCase();
           var isRandom = ['2', '6', 'A', 'E'].indexOf(secondChar) !== -1;
           var macLang = document.documentElement.getAttribute('lang') || 'en';
@@ -75,9 +75,16 @@ var statusModule = {
         }
       }
 
-      // Show PWA banner on every page load for a 5-second grace period
+      // Show PWA banner on load for 5s unless already running inside installed PWA
+      var isStandalonePwa = false;
+      try {
+        isStandalonePwa = Boolean(
+          (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+          (typeof navigator !== 'undefined' && navigator.standalone === true)
+        );
+      } catch (pwaErr) {}
       var pwaBanner = document.getElementById('pwaBanner');
-      if (pwaBanner) {
+      if (pwaBanner && !isStandalonePwa) {
         if (statusModule._pwaHideTimer) {
           clearTimeout(statusModule._pwaHideTimer);
           statusModule._pwaHideTimer = null;
@@ -150,7 +157,16 @@ var statusModule = {
         // Update remaining quota header value
         var currentLang = document.documentElement.getAttribute('lang') || 'en';
         var kbBase = parseInt(quotaSection.getAttribute('data-kb-base')) || 1000;
-        var remaining = limit > 0 ? Math.max(0, limit - totalUsed) : 0;
+        var rawRemainAttr = quotaSection.getAttribute('data-remain-bytes-total');
+        var remainAttrTrimmed = rawRemainAttr ? String(rawRemainAttr).trim() : '';
+        var hasRemainAttr = remainAttrTrimmed.length > 0 && remainAttrTrimmed.indexOf('$(') === -1 && /^\d+$/.test(remainAttrTrimmed);
+        var parsedRemainAttr = hasRemainAttr ? parseInt(remainAttrTrimmed, 10) : NaN;
+        var remaining = 0;
+        if (limit > 0) {
+          remaining = (!isNaN(parsedRemainAttr) && parsedRemainAttr >= 0)
+            ? Math.min(limit, parsedRemainAttr)
+            : Math.max(0, limit - totalUsed);
+        }
         var percentRemaining = limit > 0 ? Math.min(100, Math.max(0, (remaining / limit) * 100)) : 0;
 
         if (quotaValueEl) {
@@ -175,6 +191,10 @@ var statusModule = {
         }
 
         // Update remaining progress bar and percentage
+        var progressContainer = document.getElementById('quota-progress-container');
+        if (progressContainer) {
+          progressContainer.style.display = limit > 0 ? '' : 'none';
+        }
         if (limit > 0) {
           if (quotaRemainingProgressFill) {
             quotaRemainingProgressFill.style.width = percentRemaining + '%';
@@ -205,16 +225,16 @@ var statusModule = {
           }
         }
 
-                // Update smart usage assistant card
+        // Update smart usage assistant card
         var isAr = currentLang === 'ar';
         if (smartUsageTip) {
           if (limit > 0) {
             var tipText = '';
-            if (remaining > 2147483648) {
+            if (percentRemaining >= 50) {
               tipText = isAr 
                 ? 'باقي رصيدك وفير جداً! يمكنك الاستمتاع بمشاهدة الفيديوهات والتصفح بحرية.' 
                 : 'Your remaining balance is abundant! Feel free to stream videos and browse.';
-            } else if (remaining > 524288000) {
+            } else if (percentRemaining >= 20) {
               tipText = isAr 
                 ? 'باقي رصيدك متوسط. ننصحك بجودة متوسطة للفيديوهات لتوفير الرصيد.' 
                 : 'Your balance is moderate. We suggest medium quality for videos to save data.';
@@ -299,7 +319,14 @@ var statusModule = {
     }
     
     var seconds = 0;
-    
+
+    // Check for weeks (e.g. "4w2d12:30:20")
+    var weekMatch = timeStr.match(/(\d+)w/);
+    if (weekMatch) {
+      seconds += parseInt(weekMatch[1], 10) * 604800;
+      timeStr = timeStr.replace(/(\d+)w/, '');
+    }
+
     // Check for days (e.g. "1d" or "1d12:30:20")
     var dayMatch = timeStr.match(/(\d+)d/);
     if (dayMatch) {
@@ -321,13 +348,20 @@ var statusModule = {
       return seconds;
     }
     
-    // Otherwise, check for HH:MM:SS format (which now has days stripped)
+    // Otherwise, check for HH:MM:SS format (which now has weeks/days stripped)
     var parts = timeStr.split(':');
     if (parts.length === 3) {
-      seconds += (parseInt(parts[0], 10) * 3600) + (parseInt(parts[1], 10) * 60) + parseInt(parts[2], 10);
+      var p0 = parseInt(parts[0], 10);
+      var p1 = parseInt(parts[1], 10);
+      var p2 = parseInt(parts[2], 10);
+      if (isNaN(p0) || isNaN(p1) || isNaN(p2)) return seconds;
+      seconds += (p0 * 3600) + (p1 * 60) + p2;
       return seconds;
     } else if (parts.length === 2) {
-      seconds += (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+      var m0 = parseInt(parts[0], 10);
+      var m1 = parseInt(parts[1], 10);
+      if (isNaN(m0) || isNaN(m1)) return seconds;
+      seconds += (m0 * 60) + m1;
       return seconds;
     }
     
@@ -621,25 +655,35 @@ var statusModule = {
     }
   },
 
+  _internetController: null,
+
   _verifyInternet: function(valEl) {
     try {
       if (!window.AbortController) return; // legacy browsers: keep the local reading
 
+      if (statusModule._internetController) {
+        try { statusModule._internetController.abort(); } catch (abortErr) {}
+      }
       var controller = new AbortController();
+      statusModule._internetController = controller;
       var timer = setTimeout(function() { controller.abort(); }, 4000);
 
-      // Standard Android connectivity probe — a tiny 204 endpoint fetched in
-      // no-cors mode (only reachability matters, not the body). The portal is
-      // served over plain http, so an http probe is not mixed content; if the
-      // portal ever moves to https, switch this URL to an https endpoint too.
-      fetch('http://connectivitycheck.gstatic.com/generate_204', {
+      var scheme = (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:')
+        ? 'https://'
+        : 'http://';
+      fetch(scheme + 'connectivitycheck.gstatic.com/generate_204', {
         mode: 'no-cors',
         cache: 'no-store',
         signal: controller.signal
       }).then(function() {
-        clearTimeout(timer); // internet confirmed — latency reading stands
+        clearTimeout(timer);
+        if (statusModule._internetController === controller) {
+          statusModule._internetController = null;
+        }
       }).catch(function() {
         clearTimeout(timer);
+        if (statusModule._internetController !== controller) return;
+        statusModule._internetController = null;
         if (document.getElementById('connection-status-val') !== valEl) return;
         valEl.textContent = i18n.t('status_no_internet');
         valEl.className = 'stat-card__value';
@@ -706,16 +750,24 @@ var statusModule = {
       
       var showWarning = false;
       var warningText = '';
+      var isCritical = false;
 
       if (timeLeftElement) {
         var timeLeft = parseInt(timeLeftElement.getAttribute('data-seconds')) || 0;
-        if (timeLeft > 0 && timeLeft < 300) {
+        if (timeLeft > 0 && timeLeft <= 60) {
           showWarning = true;
+          isCritical = true;
+          statusModule._expiryCritical = true;
+          statusModule._expiryWarned = true;
+          warningText = i18n.t('session_expiring_critical');
+        } else if (timeLeft > 0 && timeLeft < 300) {
+          showWarning = true;
+          statusModule._expiryWarned = true;
           warningText = i18n.t('session_expiring_soon');
         }
       }
 
-      if (quotaSection) {
+      if (!showWarning && quotaSection) {
         var limit = parseInt(quotaSection.getAttribute('data-limit-bytes-total')) || 0;
         if (limit > 0) {
           var bytesIn = parseInt(quotaSection.getAttribute('data-bytes-in')) || 0;
@@ -731,6 +783,10 @@ var statusModule = {
 
       if (showWarning && warningBanner) {
         warningBanner.hidden = false;
+        if (isCritical) {
+          warningBanner.classList.remove('alert-warning');
+          warningBanner.classList.add('alert-error');
+        }
         var textElement = warningBanner.querySelector('.session-warning__text');
         if (textElement && warningText) {
           textElement.textContent = warningText;
@@ -795,12 +851,27 @@ var statusModule = {
       var link = document.getElementById('switchCardLink');
       var loginHref = (link && link.getAttribute('href')) || './login.html';
       var logoutUrl = link ? link.getAttribute('data-logout-url') : '';
+      var navigated = false;
+      var navTimer = null;
+      var navigateOnce = function() {
+        if (navigated) return;
+        navigated = true;
+        if (navTimer) {
+          clearTimeout(navTimer);
+          navTimer = null;
+        }
+        window.location.href = loginHref;
+      };
       if (logoutUrl && logoutUrl.indexOf('$(') !== 0 && typeof fetch === 'function') {
         try {
-          fetch(logoutUrl, { method: 'GET', credentials: 'include', mode: 'no-cors', keepalive: true }).catch(function() {});
+          navTimer = setTimeout(navigateOnce, 600);
+          Promise.resolve(
+            fetch(logoutUrl, { method: 'GET', credentials: 'include', mode: 'no-cors', keepalive: true })
+          ).then(navigateOnce, navigateOnce);
+          return false;
         } catch (fetchErr) {}
       }
-      window.location.href = loginHref;
+      navigateOnce();
       return false;
     } catch (err) {
       window.location.href = './login.html';

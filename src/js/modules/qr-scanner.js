@@ -283,15 +283,28 @@ var qrScanner = {
     }
   },
 
-  _getLinkParam: function(parsed, names) {
-    var hashParams = null;
+  _getLinkHashParams: function(parsed) {
     if (parsed.hash && parsed.hash.indexOf('=') !== -1) {
       try {
-        hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+        return new URLSearchParams(parsed.hash.replace(/^#/, ''));
       } catch (e) {
-        hashParams = null;
+        return null;
       }
     }
+    return null;
+  },
+
+  _hasLinkParam: function(parsed, names) {
+    var hashParams = this._getLinkHashParams(parsed);
+    for (var i = 0; i < names.length; i++) {
+      if (parsed.searchParams.has(names[i])) return true;
+      if (hashParams && hashParams.has(names[i])) return true;
+    }
+    return false;
+  },
+
+  _getLinkParam: function(parsed, names) {
+    var hashParams = this._getLinkHashParams(parsed);
     for (var i = 0; i < names.length; i++) {
       var val = parsed.searchParams.get(names[i]);
       if (val) return val;
@@ -347,9 +360,8 @@ var qrScanner = {
             ? auth.normalizeVoucherText(voucherParam, voucherFmt)
             : String(usernameParam).trim();
           var route = { action: 'autologin', code: code };
-          var passwordParam = this._getLinkParam(parsed, ['password', 'pass']);
-          if (passwordParam) {
-            route.password = passwordParam;
+          if (this._hasLinkParam(parsed, ['password', 'pass'])) {
+            route.password = this._getLinkParam(parsed, ['password', 'pass']);
           }
           return route;
         }

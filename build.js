@@ -51,10 +51,12 @@ const nunjucksEnv = nunjucks.configure(templatesDir, {
 
 nunjucksEnv.addFilter('scriptjson', value => JSON.stringify(value).replace(/</g, '\\u003c'));
 
-// Read translations
-function loadTranslations(lang) {
+// Read translations (root login/error also carry Arabic so in-place error fallback works)
+function loadTranslations(lang, page) {
   const enPath = path.join(__dirname, 'src', 'i18n', 'en.json');
   const langPath = path.join(__dirname, 'src', 'i18n', `${lang}.json`);
+  const needsArabicFallback = lang === 'en' && (page === 'login' || page === 'error');
+  const arPath = path.join(__dirname, 'src', 'i18n', 'ar.json');
 
   let result = {};
 
@@ -66,6 +68,9 @@ function loadTranslations(lang) {
   if (fs.existsSync(langPath) && lang !== 'en') {
     const langData = JSON.parse(fs.readFileSync(langPath, 'utf8'));
     result = { ...result, ...langData };
+  } else if (needsArabicFallback && fs.existsSync(arPath)) {
+    const arData = JSON.parse(fs.readFileSync(arPath, 'utf8'));
+    result = { ...result, ...arData };
   }
 
   return result;
@@ -311,7 +316,7 @@ function generatePage(page, lang, options = {}) {
     const assetsDir = options.assetsDir || path.join(__dirname, 'src', 'assets');
     const svgCache = options.svgCache || null;
 
-    const allTranslations = applyI18nOverrides(loadTranslations(lang) || {}, config.i18nOverrides);
+    const allTranslations = applyI18nOverrides(loadTranslations(lang, page) || {}, config.i18nOverrides);
     const i18n = allTranslations[lang] || allTranslations.en || {};
     const pageTranslations = filterTranslationsForPage(allTranslations, page);
     const pageTranslationsJson = JSON.stringify(pageTranslations).replace(/<\//g, '<\\/');

@@ -161,7 +161,9 @@
 
 .btn--loading::after {
   content: '';
-  position: absolute;
+  position: static;
+  display: inline-block;
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
   border: 2px solid transparent;

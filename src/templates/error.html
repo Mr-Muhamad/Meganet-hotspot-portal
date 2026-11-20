@@ -14,6 +14,7 @@
 
         <div class="card-body">
           <!-- Error Alert -->
+          $(if error)
           <div class="alert alert-error" role="alert">
             <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
@@ -22,6 +23,7 @@
             </svg>
             <span class="alert__text" id="errorMessage"><bdi dir="auto">$(error)</bdi></span>
           </div>
+          $(endif)
 
           <div class="actions actions--stack mt-lg">
             <a href="./login.html" class="btn btn-primary btn-block">
@@ -47,11 +49,9 @@
 
 {% block scripts %}
   <script>
-    {% if lang == 'ar' %}
     // RADIUS/User Manager error translation map (from config.json).
     // Consumed by ui.translateRouterError() during initLang()/toggleLang().
     window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | scriptjson }}{% else %}{}{% endif %};
-    {% endif %}
 
     // Initialize modules
     (function() {

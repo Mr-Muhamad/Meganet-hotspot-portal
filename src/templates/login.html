@@ -111,7 +111,7 @@
                        aria-required="true"
                        data-i18n-placeholder="password_placeholder"
                        placeholder="{{ i18n.password_placeholder }}">
-                <button type="button" class="input-toggle" onclick="auth.togglePassword()" aria-label="{{ i18n.password_show }}" data-i18n-aria="password_show" title="{{ i18n.password_show }}" data-i18n-title="password_show">
+                <button type="button" class="input-toggle" onclick="togglePassword()" aria-label="{{ i18n.password_show }}" data-i18n-aria="password_show" title="{{ i18n.password_show }}" data-i18n-title="password_show">
                   <svg class="input-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
@@ -223,11 +223,9 @@
 {% block scripts %}
   <script src="{% if lang == 'ar' %}../{% endif %}md5.js"></script>
   <script>
-    {% if lang == 'ar' %}
     // RADIUS/User Manager error translation map (from config.json).
     // Consumed by ui.translateRouterError() during initLang()/toggleLang().
     window.HotspotErrorMap = {% if config.radiusErrorTranslations %}{{ config.radiusErrorTranslations | scriptjson }}{% else %}{}{% endif %};
-    {% endif %}
 
     // Initialize modules
     (function() {
@@ -235,6 +233,15 @@
         i18n.init();
         ui.initTheme();
         ui.initLang();
+
+        {% if lang == 'ar' %}
+        // RouterOS target=ar renders Arabic login at root /login (without /ar/).
+        // Keep relative plans link pointing to the Arabic plans page there.
+        if (window.location && window.location.pathname && window.location.pathname.indexOf('/ar/') === -1) {
+          var plansLinkEl = document.querySelector('.plans-link');
+          if (plansLinkEl) plansLinkEl.setAttribute('href', './ar/plans.html');
+        }
+        {% endif %}
 
         // Dynamically override active panel on start based on config before auth.init()
         {% if config.features.loginMode == 'voucher_only' %}

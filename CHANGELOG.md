@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.8.1] - 2026-11-20
 
 ### Added
 - **Compact QR Voucher Card Formats (`src/js/modules/qr-scanner.js`, `src/js/modules/auth.js`)**: `qrScanner.routeScan()` now decodes `-<username>` cards (explicit empty password `""`) and `<lenLetter><username><password>` cards (leading lowercase letter `a`–`z` encoding username length `1..26`, e.g., `g6256868080377`, `j8772557194108270`) alongside existing `=<code>` and link cards; `auth.applyVoucherCredentials()` and `_getStoredVoucherPassword()` honor and persist explicit empty scanned passwords (`__EMPTY__` storage sentinel) even when `voucherPasswordMode` is `"same"`.

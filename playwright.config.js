@@ -21,7 +21,7 @@ const ports = { default: 8790, error: 8791 };
 const webServer = (port, extra = '') => ({
   command: `node scripts/preview.mjs --port ${port} --no-pin-lang ${extra}`,
   url: `http://127.0.0.1:${port}/login.html`,
-  reuseExistingPort: true,
+  reuseExistingServer: !process.env.CI,
   timeout: 20_000
 });
 

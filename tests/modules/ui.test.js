@@ -186,6 +186,17 @@ describe('Hotspot.ui', () => {
       expect(util.getCookie('hotspot_theme')).toBe('dark');
       expect(document.getElementById('metaThemeColor').getAttribute('content')).toBe('#020617');
     });
+
+    test('updateThemeIcon updates data-i18n-aria and sets aria-hidden="true" on SVG icon', () => {
+      ui.updateThemeIcon('dark');
+      const toggleBtn = document.querySelector('.theme-toggle');
+      expect(toggleBtn.getAttribute('data-i18n-aria')).toBe('theme_switch_to_light');
+      expect(toggleBtn.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+
+      ui.updateThemeIcon('light');
+      expect(toggleBtn.getAttribute('data-i18n-aria')).toBe('theme_switch_to_dark');
+      expect(toggleBtn.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    });
   });
 
   describe('Language routing & toggleLang', () => {
@@ -445,14 +456,28 @@ describe('Hotspot.ui', () => {
       expect(banner.style.display).toBe('none');
     });
 
-    test('dismissAnnouncement hides banner and records cookie', () => {
-      const banner = document.getElementById('announcement-banner');
-      banner.style.display = 'flex';
-      ui._currentAnnouncementMessage = 'Notice 1';
+    test('dismissAnnouncement hides banner, clears rotation interval, and records cookie', () => {
+      document.cookie = 'hotspot_dismissed_msg=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.documentElement.setAttribute('lang', 'en');
+      ui.loadAnnouncements();
+      xhrMock.responseText = JSON.stringify({
+        active: true,
+        type: 'info',
+        message_en: ['Fresh Notice 1', 'Fresh Notice 2']
+      });
+      xhrMock.onreadystatechange();
 
+      const banner = document.getElementById('announcement-banner');
+      expect(banner.style.display).toBe('flex');
+      expect(ui._announcementInterval).not.toBeNull();
+
+      const clearSpy = jest.spyOn(global, 'clearInterval');
       ui.dismissAnnouncement();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(ui._announcementInterval).toBeNull();
       expect(banner.style.display).toBe('none');
-      expect(util.getCookie('hotspot_dismissed_msg')).toBe('Notice 1');
+      expect(util.getCookie('hotspot_dismissed_msg')).toBe('Fresh Notice 1');
+      clearSpy.mockRestore();
     });
   });
 

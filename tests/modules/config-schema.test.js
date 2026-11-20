@@ -8,6 +8,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { validateConfigFile, validate } = require('../../scripts/validate-config.js');
 
@@ -22,12 +23,22 @@ describe('config schema validation', () => {
     expect(errors).toEqual([]);
   });
 
-  test('JSON parse errors are reported, not thrown', () => {
-    const { validateConfigFile: fromPath } = require('../../scripts/validate-config.js');
-    // validateConfigFile() reads the default path; exercise the same code path
-    // by feeding a broken file through validate() on a raw string instead.
-    const { errors } = validate({});
-    expect(errors.length).toBeGreaterThan(0); // empty object is missing all sections
+  test('JSON parse errors and missing files are reported, not thrown', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-cfg-test-'));
+    const badPath = path.join(tmpDir, 'bad.json');
+    const missingPath = path.join(tmpDir, 'missing.json');
+    try {
+      fs.writeFileSync(badPath, '{ "general": ', 'utf8');
+      const badRes = validateConfigFile(badPath);
+      expect(badRes.config).toBeNull();
+      expect(badRes.errors.length).toBeGreaterThan(0);
+
+      const missingRes = validateConfigFile(missingPath);
+      expect(missingRes.config).toBeNull();
+      expect(missingRes.errors.length).toBeGreaterThan(0);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   // Each case below maps one realistic editing mistake to the field path the
@@ -151,5 +162,32 @@ describe('config schema validation', () => {
 
   mistake('an outlet missing name', 'support.outlets[0].name', c => {
     c.support.outlets = [{ address: 'Main St' }];
+  });
+
+  ['general', 'theme', 'features', 'support'].forEach((section) => {
+    mistake(`missing top-level ${section} section`, section, c => {
+      delete c[section];
+    });
+  });
+
+  mistake('a non-object item in plans', 'plans[0]', c => { c.plans = [null]; });
+  mistake('a non-object item in support.agents', 'support.agents[0]', c => { c.support.agents = [null]; });
+  mistake('a non-object item in support.outlets', 'support.outlets[0]', c => { c.support.outlets = [null]; });
+
+  test('rejects theme.cardRadius = null when no preset provides it', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    delete config.theme.preset;
+    config.theme.cardRadius = null;
+    const { errors } = validate(config);
+    expect(errors.some(e => e.startsWith('theme.cardRadius'))).toBe(true);
+  });
+
+  test('validate() does not mutate the caller config object', () => {
+    const config = JSON.parse(JSON.stringify(valid));
+    config.theme.preset = 'cafe';
+    delete config.theme.cardRadius;
+    const snapshot = JSON.parse(JSON.stringify(config));
+    validate(config);
+    expect(config).toEqual(snapshot);
   });
 });

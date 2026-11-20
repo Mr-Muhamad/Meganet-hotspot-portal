@@ -163,6 +163,33 @@ describe('color-utils', () => {
       expect(customCss).toContain('--color-primary:#3B82F6');
       expect(customCss).toMatch(/\[data-theme=["']?light["']?\]/);
       expect(customCss).toMatch(/\[data-theme=["']?dark["']?\]/);
+
+      const radiusCss = buildCSS(true, { theme: { cardRadius: '24px' } });
+      expect(radiusCss).toContain('--radius-lg:24px');
+      expect(radiusCss).toContain('--radius-md:15px');
+      expect(radiusCss).toContain('--radius-sm:9px');
+    });
+  });
+
+  describe('validate-templates validateAll programmatic failure reporting', () => {
+    const fs = require('fs');
+    const { validateAll } = require('../../scripts/validate-templates.js');
+
+    test('returns valid: false and totalErrors > 0 when dist/ or files are missing without calling process.exit', () => {
+      const existsSpy = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      try {
+        const missingDirSummary = validateAll();
+        expect(missingDirSummary.valid).toBe(false);
+        expect(missingDirSummary.totalErrors).toBeGreaterThan(0);
+
+        let calls = 0;
+        existsSpy.mockImplementation((p) => (calls++ === 0 ? true : !String(p).endsWith('.html')));
+        const missingFilesSummary = validateAll();
+        expect(missingFilesSummary.valid).toBe(false);
+        expect(missingFilesSummary.totalErrors).toBe(17);
+      } finally {
+        existsSpy.mockRestore();
+      }
     });
   });
 });

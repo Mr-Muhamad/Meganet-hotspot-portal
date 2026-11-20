@@ -17,12 +17,13 @@ const net = require('net');
 const zlib = require('zlib');
 
 const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-studio-extras-'));
+const PREV_ADMIN_DATA_DIR = process.env.ADMIN_DATA_DIR;
 process.env.ADMIN_DATA_DIR = ADMIN_TMP;
 
 const { generateRscScript, previewRscPlan, inspectRouter, deployToRouter, COMMENT_TAG } = require('../../admin/lib/mikrotik.js');
 const { encodeQrMatrix, generateQrSvg } = require('../../admin/lib/qr-generator.js');
 const { generateLogoSvg, generateBrandTitleSvg, generateIconPngBuffer, generateBrandAssets } = require('../../admin/lib/logo-maker.js');
-const { sanitizeSvg } = require('../../scripts/svg-utils.js');
+const { sanitizeSvg, stripDangerousMarkup } = require('../../scripts/svg-utils.js');
 const { startServer, server } = require('../../admin/server.js');
 
 jest.setTimeout(120000);
@@ -470,9 +471,11 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     await request('POST', `${base}/api/profiles`, { slug: SLUG, name: 'فرع المهندسين', preset: 'cafe' });
   });
 
-  afterAll(() => {
-    server.close();
+  afterAll(async () => {
+    await new Promise((r) => server.close(r));
     fs.rmSync(ADMIN_TMP, { recursive: true, force: true });
+    if (PREV_ADMIN_DATA_DIR === undefined) delete process.env.ADMIN_DATA_DIR;
+    else process.env.ADMIN_DATA_DIR = PREV_ADMIN_DATA_DIR;
   });
 
   test('GET /api/qr returns SVG QR code and rejects missing text', async () => {
@@ -798,5 +801,102 @@ describe('Admin Server Endpoints for All 5 Studio Packages', () => {
     });
     expect(importFail.status).toBe(400);
     expect(fs.existsSync(path.join(ADMIN_TMP, 'profiles', rollbackSlug))).toBe(false);
+  });
+});
+
+describe('Batch 1 Hardening Regressions — SVG, QR Copy-1, and MikroTik', () => {
+  test('SVG sanitizer neutralizes nested script tags, SMIL, dangerous @import/url, entity-encoded URIs, and preserves @keyframes', () => {
+    const nestedRaw = stripDangerousMarkup('<svg><scr<script>x</script>ipt>alert(1)</script><rect/></svg>');
+    expect(nestedRaw.toLowerCase()).not.toContain('<script');
+    expect(nestedRaw).toContain('<rect/>');
+
+    const dirtySvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+      '<style>@import url("https://evil.example/a.css"); @keyframes pulse{0%{opacity:1}100%{opacity:.5}} .a{background:url(https://evil.example/track.png);animation:pulse 2s infinite}</style>' +
+      '<animate attributeName="href" to="javascript:alert(1)"/>' +
+      '<set attributeName="href" to="javascript:alert(2)"/>' +
+      '<a href="&#106;avascript:alert(3)"><circle cx="6" cy="6" r="4"/></a>' +
+      '<a href="data:text/html,&lt;script&gt;alert(4)&lt;/script&gt;"><rect width="4" height="4"/></a>' +
+      '<a href="data:image/svg+xml,&lt;svg onload=alert(5)&gt;"><line x1="0" y1="0" x2="4" y2="4"/></a>' +
+      '</svg>';
+    const clean = sanitizeSvg(dirtySvg);
+    expect(clean).not.toMatch(/<(animate|set)\b/i);
+    expect(clean).not.toContain('@import');
+    expect(clean).not.toContain('evil.example');
+    expect(clean).toContain('@keyframes pulse');
+    expect(clean).not.toMatch(/javascript:|data:text\/html|data:image\/svg\+xml/i);
+  });
+
+  test('QR generator Format Info Copy 1 alone decodes across payloads when Copy 2 is erased', () => {
+    const jsQR = require('../../src/static/jsQR.js');
+    const payloads = ['88442299', 'http://10.5.50.1/login?voucher=123456', 'WIFI:T:WPA;S:Meganet;P:secret123;;'];
+    for (const payload of payloads) {
+      const { size: n, matrix } = encodeQrMatrix(payload);
+      const margin = 4;
+      const scale = 4;
+      const dim = (n + margin * 2) * scale;
+      const rgba = new Uint8ClampedArray(dim * dim * 4).fill(255);
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const isCopy2 = (c === 8 && r >= n - 7) || (r === 8 && c >= n - 8);
+          const dark = isCopy2 ? false : matrix[r][c];
+          if (!dark) continue;
+          for (let dy = 0; dy < scale; dy++) {
+            for (let dx = 0; dx < scale; dx++) {
+              const py = (margin + r) * scale + dy;
+              const px = (margin + c) * scale + dx;
+              const idx = (py * dim + px) * 4;
+              rgba[idx] = 0;
+              rgba[idx + 1] = 0;
+              rgba[idx + 2] = 0;
+            }
+          }
+        }
+      }
+
+      const decoded = jsQR(rgba, dim, dim);
+      expect(decoded).not.toBeNull();
+      expect(decoded.data).toBe(payload);
+    }
+  });
+
+  test('inspectRouter rejects HTTP 404, FTP deploy rejects refused port & CRLF, and RSC detaches Option 114 & handles IPv4', async () => {
+    const srv404 = http.createServer((_req, res) => {
+      res.writeHead(404);
+      res.end('Not Found');
+    });
+    await new Promise((resolve) => srv404.listen(0, '127.0.0.1', resolve));
+    const port404 = srv404.address().port;
+    try {
+      await expect(inspectRouter({ host: '127.0.0.1', port: port404, protocol: 'http', username: 'admin', password: '' }))
+        .rejects.toThrow(/404|failed/i);
+    } finally {
+      await new Promise((resolve) => srv404.close(resolve));
+    }
+
+    const deadSrv = net.createServer();
+    await new Promise((resolve) => deadSrv.listen(0, '127.0.0.1', resolve));
+    const deadPort = deadSrv.address().port;
+    await new Promise((resolve) => deadSrv.close(resolve));
+    await expect(deployToRouter([], { host: '127.0.0.1', port: deadPort, protocol: 'ftp', username: 'admin', password: '', timeoutMs: 2000 }))
+      .rejects.toThrow();
+
+    await expect(deployToRouter([], { host: '10.5.50.1', protocol: 'ftp', username: 'admin\r\nUSER evil', password: '' }))
+      .rejects.toThrow(/username/i);
+    await expect(deployToRouter([], { host: '10.5.50.1', protocol: 'ftp', username: 'admin', targetDir: 'hotspot\r\nCWD /' }))
+      .rejects.toThrow(/target directory/i);
+
+    const rsc = generateRscScript({ general: { networkName: 'Net' } }, {
+      capportMode: 'http',
+      extraHosts: ['192.168.10.50', 'pay.example.com']
+    });
+    const detachIdx = rsc.indexOf('dhcp-option-set=""');
+    const removeIdx = rsc.indexOf('/ip/dhcp-server/option/sets/remove');
+    expect(detachIdx).toBeGreaterThan(-1);
+    expect(removeIdx).toBeGreaterThan(detachIdx);
+    expect(rsc).toContain('dst-host="192.168.10.50"');
+    expect(rsc).not.toContain('dst-host="*.192.168.10.50"');
+    expect(rsc).toContain('dst-host="*.pay.example.com"');
   });
 });

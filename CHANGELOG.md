@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security & Hardening
+- **SVG & Markup Sanitizer (`scripts/svg-utils.js`)**: looped tag stripping including SMIL (`<animate>`, `<set>`, `<animateTransform>`, `<animateMotion>`), `<style>` `@import` / `expression()` / remote `url()` removal while preserving `@keyframes`, attribute `on*` delimiter stripping, and HTML-entity decoding before blocking `javascript:` / `vbscript:` / `data:text/html` / `data:image/svg+xml`.
+- **RouterOS TLS Pinning, FTP & Script Hardening (`admin/lib/mikrotik.js`)**: pre-credential SHA-256 certificate verification during `secureConnect`, non-swallowing `/system/resource` checks, CRLF rejection in FTP/REST connection inputs, RFC 959 multiline FTP parsing & `STOR` reply verification, `.rsc` relocated outside the web root (`meganet-hotspot-setup.rsc`), DHCP Option 114 pre-detach before remove, IPv4 walled-garden support, and `Connection: close` on the pull server.
+- **Studio Server & Electron Guards (`admin/server.js`, `admin/public/*`, `desktop/main.js`, `electron-builder.yml`)**: exact `host`+`port` CSRF `Origin` validation, `X-Content-Type-Options: nosniff` + `X-Frame-Options: SAMEORIGIN`, iframe `sandbox` on `#simFrame`, stale ZIP cleanup on profile delete, packed desktop icon fix (`extraResources`), and `did-create-window` restrictions.
+
+### Fixed
+- **QR Generator & Build Engine (`admin/lib/qr-generator.js`, `build.js`, `scripts/color-utils.js`, `scripts/validate-config.js`, `scripts/validate-templates.js`, `scripts/preview.mjs`)**: corrected ISO/IEC 18004 Fig. 25 Format Info Copy 1 bit placement (`default margin = 4`), emitted `--radius-lg/md/sm` from `theme.cardRadius`, forced ES5 inline HTML `<script>` minification (`compress: { arrows: false }`), honored `ADMIN_DATA_DIR`, guarded `api.json` replacers, validated missing `dist/` files without throwing in `validateAll()`, and improved preview RouterOS conditionals (`!=`, `captive.vars`, `.html`-only lang cookie).
+- **Portal Runtime, RouterOS Vars & CSS/A11y (`src/templates/*.html`, `src/js/modules/*.js`, `src/css/*.css`)**: exposed `ar` translations and `HotspotErrorMap` consistently for Arabic users landing at `/login`, fixed `$(if popup == 'true')` and safe `$(link-login)` comment parsing, fixed `chapHashOnSubmit` re-hash/bfcache restore, kept sensitive passwords out of `document.cookie`, supported Mikhmon `?username=&password=` explicit empty password, fixed `statusModule` `data-remain-bytes-total` / `limit=0` / weeks `w` parsing / `switchCard` logout wait, fixed `dismissAnnouncement` interval leak, and fixed dark-mode token cascade, `.toast` `z-index`/width, and `.caps-lock-warning[hidden]`.
+
+### Changed & Tooling
+- **ES5 ESLint Override, Regression Tests & CI/Docs (`.eslintrc.json`, `playwright.config.js`, `tests/modules/*.test.js`, `.github/workflows/*.yml`)**: enforced ES5 parsing on `src/js/**/*.js`, fixed test server `ADMIN_DATA_DIR`/`server.close()` isolation, added Batch 1–3 regression unit tests, upgraded workflows to Node 22 with test gates, failure artifact uploads, and `-build.<N>` tag extraction, removed stale `.superdesign/` & text stubs, and synced docs (`AGENTS.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `config.example.json`).
+
 ## [2.8.1] - 2026-11-20
 
 ### Added

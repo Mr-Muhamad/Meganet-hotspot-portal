@@ -69,9 +69,13 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
     let serverMod;
     let port;
     let tmpDir;
+    let prevAdminDataDir;
+    let prevBuildWorkDir;
 
     beforeAll(async () => {
       jest.resetModules();
+      prevAdminDataDir = process.env.ADMIN_DATA_DIR;
+      prevBuildWorkDir = process.env.BUILD_WORK_DIR;
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-srv-sec-'));
       process.env.ADMIN_DATA_DIR = tmpDir;
       process.env.BUILD_WORK_DIR = path.join(tmpDir, 'work');
@@ -83,6 +87,10 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       if (serverMod && serverMod.server) {
         await new Promise((r) => serverMod.server.close(r));
       }
+      if (prevAdminDataDir === undefined) delete process.env.ADMIN_DATA_DIR;
+      else process.env.ADMIN_DATA_DIR = prevAdminDataDir;
+      if (prevBuildWorkDir === undefined) delete process.env.BUILD_WORK_DIR;
+      else process.env.BUILD_WORK_DIR = prevBuildWorkDir;
       if (tmpDir && fs.existsSync(tmpDir)) {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }

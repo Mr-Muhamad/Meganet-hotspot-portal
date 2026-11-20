@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -40,33 +40,41 @@ jobs:
             Copy-Item config.example.json config.json
           }
 
-      - name: Lint & validate
+      - name: Lint, validate & test
         run: |
           npm run lint
           npm run validate:config
-
-      - name: Build and package portal
-        shell: pwsh
-        env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
-        run: |
-          npm run portal:package
-          npm run validate
+          npm test
 
       - name: Prepare release metadata
         id: meta
         shell: pwsh
         env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           $pkg = Get-Content package.json -Raw | ConvertFrom-Json
           $ver = $pkg.version
-          $bn = $env:BUILD_NUMBER
+          $bn = "$env:INPUT_BUILD_NUMBER".Trim()
+          if (-not $bn -and $env:GITHUB_REF_NAME -match '-build\.(\d+)$') {
+            $bn = $Matches[1]
+          }
+          if (-not $bn) {
+            $bn = "$env:RUN_NUMBER"
+          }
           $tag = "portal-v$ver-build.$bn"
           echo "version=$ver" >> $env:GITHUB_OUTPUT
           echo "build_number=$bn" >> $env:GITHUB_OUTPUT
           echo "tag=$tag" >> $env:GITHUB_OUTPUT
           echo "zip_file=dist-release/Meganet-Hotspot-Portal-v$ver-build.$bn.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Build and package portal
+        shell: pwsh
+        env:
+          BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
+        run: |
+          npm run portal:package
+          npm run validate
 
       - name: Create Portal GitHub Release
         uses: softprops/action-gh-release@v2

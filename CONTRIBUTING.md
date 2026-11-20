@@ -35,8 +35,8 @@ Please be respectful and constructive in all interactions. We are committed to p
 
 ### Prerequisites
 
-- Node.js 16.0.0 or higher
-- npm 8.0.0 or higher
+- Node.js 22.0.0 or higher
+- npm 10.0.0 or higher
 
 ### Installation
 
@@ -71,10 +71,14 @@ mikrotik-hotspot-portal/
 ├── src/                          # Source files
 │   ├── templates/                # Nunjucks templates
 │   │   ├── base.html            # Base template with shared structure
+│   │   ├── index.html           # Language router
 │   │   ├── login.html           # Login page template
 │   │   ├── status.html          # Status page template
 │   │   ├── logout.html          # Logout page template
-│   │   └── error.html           # Error page template
+│   │   ├── error.html           # Error page template
+│   │   ├── expired.html         # Suspended service template
+│   │   ├── plans.html           # Plans & sales outlets template
+│   │   └── alogin.html          # Auto-login connected template
 │   ├── css/                     # CSS modules
 │   │   ├── variables.css        # CSS custom properties
 │   │   ├── theme.css            # Dark/light theme
@@ -83,25 +87,30 @@ mikrotik-hotspot-portal/
 │   │   ├── components.css       # UI components
 │   │   ├── utilities.css        # Utility classes
 │   │   └── media.css            # Responsive design
-│   ├── js/modules/              # JavaScript modules
+│   ├── js/modules/              # JavaScript modules (strict ES5)
 │   │   ├── util.js              # Utility functions
 │   │   ├── auth.js              # Authentication
 │   │   ├── ui.js                # UI management
 │   │   ├── i18n.js              # Internationalization
 │   │   ├── status.js            # Status display
+│   │   ├── qr-scanner.js        # QR voucher scanner
 │   │   └── rate-limiter.js      # Rate limiting
-│   └── i18n/                    # Translations
-│       ├── en.json              # English
-│       └── ar.json              # Arabic
-├── tests/                       # Test files
+│   ├── i18n/                    # Translations
+│   │   ├── en.json              # English
+│   │   └── ar.json              # Arabic
+│   └── static/                  # RouterOS verbatim files & jsQR.js
+├── admin/                        # Hotspot Studio server & Web UI
+├── desktop/                      # Electron desktop wrapper
+├── tests/                        # Test files
 │   ├── setup.js                 # Test setup
-│   └── modules/                 # Unit tests
-├── scripts/                     # Build scripts
-│   └── validate-templates.js    # Template validation
-├── dist/                        # Built files (generated)
-├── build.js                     # Build script
-├── package.json                 # Dependencies
-└── README.md                    # Documentation
+│   ├── modules/                 # Jest unit & API tests
+│   ├── a11y/                    # Accessibility checks
+│   └── e2e/                     # Playwright E2E specs (Edge)
+├── scripts/                      # Build, validation & packaging scripts
+├── dist/                         # Built files (generated)
+├── build.js                      # Build script
+├── package.json                  # Dependencies
+└── README.md                     # Documentation
 ```
 
 ## Coding Standards
@@ -170,17 +179,20 @@ test(auth): add voucher length validation tests
 
 1. **Update documentation** if needed
 2. **Add tests** for new features
-3. **Run all tests** and ensure they pass:
+3. **Lint code & validate config**:
    ```bash
-   npm test
+   npm run lint
+   npm run validate:config
    ```
-4. **Validate templates**:
-   ```bash
-   npm run validate
-   ```
-5. **Build the project**:
+4. **Build and validate templates**:
    ```bash
    npm run build
+   npm run validate
+   ```
+5. **Run unit & E2E tests** and ensure they pass:
+   ```bash
+   npm test
+   npm run test:e2e
    ```
 6. **Create a pull request** with:
    - Clear description of changes
@@ -192,8 +204,15 @@ test(auth): add voucher length validation tests
 ### Running Tests
 
 ```bash
-# Run all tests
+# Lint & config validation
+npm run lint
+npm run validate:config
+
+# Run Jest unit & API tests
 npm test
+
+# Run Playwright E2E tests
+npm run test:e2e
 
 # Run specific test file
 npm test -- tests/modules/auth.test.js

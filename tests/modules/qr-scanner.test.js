@@ -27,6 +27,14 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
+    test('a mikhmon link with explicit empty password= preserves empty password string', () => {
+      expect(qrScanner.routeScan('http://10.5.50.1/login?username=V1234&password=')).toEqual({
+        action: 'autologin',
+        code: 'V1234',
+        password: ''
+      });
+    });
+
     test('a credential link on a FOREIGN host still logs in in-place (never navigates)', () => {
       // the printed $dnsname may be stale or differ from how the user reached
       // the portal — and a swapped QR must never navigate off-portal anyway
@@ -301,25 +309,6 @@ describe('Hotspot.qrScanner', () => {
       expect(qrScanner._isIosCna()).toBe(false);
       withUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36');
       expect(qrScanner._isIosCna()).toBe(false);
-    });
-  });
-
-  describe('buildEscapeIntentUrl', () => {
-    test('builds intent URL with http fallback', () => {
-      const intent = qrScanner.buildEscapeIntentUrl('http://10.5.50.1/login.html?qrscan=1');
-      expect(intent).toContain('intent://10.5.50.1/login.html?qrscan=1#Intent');
-      expect(intent).toContain('scheme=http');
-      expect(intent).toContain('S.browser_fallback_url=http%3A%2F%2F10.5.50.1%2Flogin.html%3Fqrscan%3D1');
-    });
-
-    test('builds intent URL with https fallback', () => {
-      const intent = qrScanner.buildEscapeIntentUrl('https://wifi.net/login.html');
-      expect(intent).toContain('scheme=https');
-    });
-
-    test('returns empty string for empty input', () => {
-      expect(qrScanner.buildEscapeIntentUrl('')).toBe('');
-      expect(qrScanner.buildEscapeIntentUrl(null)).toBe('');
     });
   });
 

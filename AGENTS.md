@@ -32,5 +32,5 @@ The project ships two distinct browser targets. Do not blur their floors:
 2. **Raising a floor is a deliberate decision**: if a change needs a newer API
    than recorded here, update this file **and** the README "Browser
    Compatibility" table in the same commit.
-3. **Vendored libraries** (`src/js/md5.js`, `src/static/jsQR.js`) are excluded
+3. **Vendored libraries** (`md5.js`, `src/static/jsQR.js`) are excluded
    from all of the above — never refactor them for style.

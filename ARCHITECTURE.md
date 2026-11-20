@@ -189,9 +189,9 @@ User Request
     ↓
 MikroTik Router
     ↓
-Captive Portal Detection (RFC 7710)
+Captive Portal Detection (RFC 7710 / RFC 8910)
     ↓
-HTML Page (inline CSS/JS)
+HTML Page (shared portal.css / portal-*.js + inline pre-paint init)
     ↓
 Browser Rendering
     ↓
@@ -254,14 +254,16 @@ Authentication
 <!DOCTYPE html>
 <html lang="{{ lang }}" dir="{{ dir }}">
 <head>
-  <style>{{ css }}</style>
+  <script>/* pre-paint theme init */</script>
+  <style>{{ inlineCssTokens }}</style>
+  <link rel="stylesheet" href="{{ assetPrefix }}portal.css">
 </head>
 <body>
   <header class="header">...</header>
   <main id="main">{% block content %}{% endblock %}</main>
   <footer class="footer">...</footer>
-  
-  <script>{{ js }}</script>
+
+  <script defer src="{{ assetPrefix }}portal-core.js"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
@@ -296,7 +298,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 ### Page Weight
 
-- HTML page size: ~18–48 KB per page (`login.html` ~35 KB / `ar/login.html` ~48 KB; shared styles and JS live in `portal.css` ~53 KB and `portal-core.js` / `portal-login.js` / `portal-status.js` ~80 KB total; `dist/` totals ~696 KB across 31 files including `jsQR.js` ~127 KB which lazy-loads only when scanning)
+- Total bundle budget: `< 1 MB` for RouterOS flash constraints (`dist/` currently ~747 KB across built assets including `portal.css`, `portal-*.js`, localized HTML pages, `md5.js`, and lazy-loaded `jsQR.js` ~127 KB).
 - No external requests
 - System fonts only
 - Inline SVG icons

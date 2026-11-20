@@ -28,5 +28,20 @@
     "no-empty": ["warn", { "allowEmptyCatch": true }],
     "no-redeclare": "warn",
     "no-useless-escape": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/js/**/*.js"],
+      "env": {
+        "es6": false,
+        "es2021": false
+      },
+      "globals": {
+        "Promise": "readonly"
+      },
+      "parserOptions": {
+        "ecmaVersion": 5
+      }
+    }
+  ]
 }

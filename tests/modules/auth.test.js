@@ -417,6 +417,18 @@ describe('Hotspot.auth', () => {
       expect(document.querySelectorAll('#auto-login-alert')).toHaveLength(1);
       expect(mockVoucher.value).toBe('2222');
     });
+
+    test('escapes injected HTML in auto_login_countdown while preserving #auto-login-sec and ARIA status attributes', () => {
+      mockForm.requestSubmit = jest.fn();
+      i18nModule.data.en.auto_login_countdown = '<img src=x onerror=alert(1)> Connecting <strong id="auto-login-sec">{n}</strong>s';
+
+      auth.beginAutoLogin('9999');
+      const alertEl = document.getElementById('auto-login-alert');
+      expect(alertEl).not.toBeNull();
+      expect(alertEl.getAttribute('role')).toBe('status');
+      expect(alertEl.querySelector('img')).toBeNull();
+      expect(document.getElementById('auto-login-sec').textContent).toBe('3');
+    });
   });
 
   describe('setLoadingState', () => {
@@ -559,6 +571,28 @@ describe('Hotspot.auth', () => {
       expect(passwordInput.value).toBe(expected);
     });
 
+    test('re-running chapHashOnSubmit re-hashes raw password instead of double-hashing MD5 output', () => {
+      const passwordInput = document.getElementById('password');
+      passwordInput.value = 'mysecret';
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = 'a0';
+      document.body.appendChild(chapId);
+
+      const chapChallenge = document.createElement('input');
+      chapChallenge.id = 'chap-challenge';
+      chapChallenge.value = 'b'.repeat(32);
+      document.body.appendChild(chapChallenge);
+
+      global.hexMD5 = md5.hexMD5;
+      auth.chapHashOnSubmit();
+      const firstHash = passwordInput.value;
+      auth.chapHashOnSubmit();
+      expect(passwordInput.value).toBe(firstHash);
+      expect(firstHash).toBe(md5.hexMD5('a0' + 'mysecret' + 'b'.repeat(32)));
+    });
+
     test('removes name attribute from #plain-password input upon successful hashing', () => {
       const passwordInput = document.getElementById('password');
       passwordInput.value = 'secret';
@@ -606,13 +640,6 @@ describe('Hotspot.auth', () => {
   });
 
   describe('QR Scanner & URL Params Auto-login', () => {
-    test('debug window.location', () => {
-      window.history.pushState({}, '', '/login?voucher=987654');
-      expect(window.location.search).toBe('?voucher=987654');
-    });
-
-
-
     test('auto-logins when voucher query parameter is present on page load', () => {
       jest.useFakeTimers();
       // Mock window.location using native history API (using relative path to keep same origin in JSDOM)
@@ -711,6 +738,67 @@ describe('Hotspot.auth', () => {
 
       btns[1].click();
       expect(mockVoucher.value).toBe('4444');
+    });
+
+    test('never stores hotspot_password or hotspot_last_voucher_pw in document.cookie', () => {
+      document.cookie = 'hotspot_password=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'hotspot_last_voucher_pw=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      mockRememberCheckbox.checked = true;
+      mockUsernameInput.value = 'user1';
+      mockPasswordInput.value = 'secretPw';
+      auth.rememberUsername();
+      auth.applyVoucherCredentials('778899');
+
+      expect(document.cookie).not.toContain('hotspot_password=');
+      expect(document.cookie).not.toContain('hotspot_last_voucher_pw=');
+      expect(localStorage.getItem('hotspot_password')).toBe('secretPw');
+    });
+
+    test('empty voucher submission is blocked before calling rateLimiter.recordAttempt', () => {
+      global.rateLimiter = {
+        check: jest.fn(() => ({ blocked: false, attemptsRemaining: 5 })),
+        recordAttempt: jest.fn()
+      };
+      mockVoucher.value = '   ';
+      const event = { preventDefault: jest.fn(), stopImmediatePropagation: jest.fn() };
+      auth.onFormSubmit(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(global.rateLimiter.recordAttempt).not.toHaveBeenCalled();
+      delete global.rateLimiter;
+    });
+
+    test('clicking a voucher history chip clears stale data-scanned-password on #login-form', () => {
+      localStorage.removeItem('hotspot_voucher_history');
+      mockForm.setAttribute('data-scanned-password', 'old-secret');
+      const wrap = document.createElement('div');
+      wrap.id = 'voucher-history';
+      const chips = document.createElement('div');
+      chips.id = 'voucher-history-chips';
+      wrap.appendChild(chips);
+      document.body.appendChild(wrap);
+
+      auth._addVoucherToHistory('9191');
+      auth.renderVoucherHistory();
+      chips.querySelector('.voucher-history__chip').click();
+
+      expect(mockVoucher.value).toBe('9191');
+      expect(mockForm.hasAttribute('data-scanned-password')).toBe(false);
+    });
+
+    test('skips ?voucher= auto-login when #errorMessage already holds a live RouterOS error', () => {
+      const errEl = document.createElement('div');
+      errEl.id = 'errorMessage';
+      errEl.textContent = 'invalid password';
+      document.body.appendChild(errEl);
+
+      window.history.pushState({}, '', '/login?voucher=554433');
+      const mockSubmit = jest.fn();
+      mockForm.requestSubmit = mockSubmit;
+      mockForm.submit = mockSubmit;
+
+      auth.init();
+      expect(mockSubmit).not.toHaveBeenCalled();
+      window.history.pushState({}, '', 'http://localhost/');
     });
   });
 });

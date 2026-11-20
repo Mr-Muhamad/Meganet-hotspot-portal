@@ -55,8 +55,8 @@ coverage/
 # Mimosa scanner local state
 .mimosa/
 
-# Superdesign temp artifacts (draft HTML fetches)
-.superdesign/tmp/
+# Superdesign scratch artifacts
+.superdesign/
 
 # Admin generator local data (profiles, tmp zips)
 .admin/

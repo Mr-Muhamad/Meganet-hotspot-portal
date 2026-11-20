@@ -248,12 +248,28 @@ document.body.appendChild(mockSmartUsageCard);
     });
 
     test('sets quota to Unlimited when limit is 0', () => {
+      const progressContainer = document.createElement('div');
+      progressContainer.id = 'quota-progress-container';
+      document.body.appendChild(progressContainer);
       mockCountdownSection.setAttribute('data-limit-bytes-total', '0');
       statusModule.calculateRemainingQuota();
 
       expect(mockCountdownValue.textContent).toBe('Unlimited');
+      expect(progressContainer.style.display).toBe('none');
       expect(mockSmartUsageTip.textContent).toBe('Your balance is unlimited! Enjoy browsing and downloading without limits.');
       expect(mockSmartUsageActivities.style.display).toBe('none');
+    });
+
+    test('honors data-remain-bytes-total attribute when valid', () => {
+      const progressContainer = document.createElement('div');
+      progressContainer.id = 'quota-progress-container';
+      document.body.appendChild(progressContainer);
+      mockCountdownSection.setAttribute('data-remain-bytes-total', '26214400'); // 25 MB
+      statusModule.calculateRemainingQuota();
+
+      expect(mockCountdownValue.textContent).toBe('25 MB');
+      expect(mockQuotaRemainingPercentage.textContent).toBe('25% remaining');
+      expect(progressContainer.style.display).toBe('');
     });
   });
 
@@ -574,6 +590,7 @@ document.body.appendChild(mockSmartUsageCard);
       expect(statusModule.parseTimeValue('02:30')).toBe(150);
 
       // RouterOS shorthand formats
+      expect(statusModule.parseTimeValue('1w2d03:04:05')).toBe(604800 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5);
       expect(statusModule.parseTimeValue('1d02:30:15')).toBe(95415);
       expect(statusModule.parseTimeValue('1d')).toBe(86400);
       expect(statusModule.parseTimeValue('2h30m')).toBe(9000);
@@ -583,6 +600,8 @@ document.body.appendChild(mockSmartUsageCard);
       expect(statusModule.parseTimeValue('')).toBe(0);
       expect(statusModule.parseTimeValue(null)).toBe(0);
       expect(statusModule.parseTimeValue('invalid')).toBe(0);
+      expect(statusModule.parseTimeValue('abc:def')).toBe(0);
+      expect(Number.isNaN(statusModule.parseTimeValue('12:xx:34'))).toBe(false);
     });
   });
 

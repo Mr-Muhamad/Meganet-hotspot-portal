@@ -26,7 +26,7 @@
     "enableNetworkBackground": true,
     "enableNetworkBackground_hints": "تفعيل (true) أو إيقاف (false) خلفية الشبكة العصبية التفاعلية المتحركة بالـ Canvas",
     "preset": "meganet",
-    "preset_hints": "بريسيت 'شخصية المكان' الجاهز — يملأ الإعدادات غير المحددة فقط (أي قيمة صريحة هنا تتغلب عليه). الخيارات: meganet (دارك نيون)، cafe (نهاري، حواف 24px، بدون شبكة)، hotel (دارك فخم، حواف 12px)، clinic (نهاري نظيف، حواف 18px). اتركه فارغاً أو احذفه لتفعيل يدوي كامل",
+    "preset_hints": "بريسيت 'شخصية المكان' الجاهز — يملأ الإعدادات غير المحددة فقط (أي قيمة صريحة هنا تتغلب عليه). الخيارات (12): meganet، cafe، hotel، clinic، restaurant، gym، netcafe، mall، school، coworking، bakery، mobile-shop (أو custom:<id> للبريست المخصص). اتركه فارغاً أو احذفه لتفعيل يدوي كامل",
     "defaultTheme": "dark",
     "defaultTheme_hints": "الثيم اللي أول زيارة للزائر تشوفه قبل أي تبديل: light أو dark. (عند غيابه: dark). زر التبديل وكوكيز المستخدم يكملوا كما هم"
   },

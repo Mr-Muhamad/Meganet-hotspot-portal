@@ -13,6 +13,7 @@ const http = require('http');
 // Isolate ALL admin data (profiles + custom presets) in a temp dir BEFORE the
 // server module loads — jest runs must never pollute the real .admin store.
 const ADMIN_TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'meganet-admin-data-'));
+const PREV_ADMIN_DATA_DIR = process.env.ADMIN_DATA_DIR;
 process.env.ADMIN_DATA_DIR = ADMIN_TMP;
 
 const { startServer, server, store } = require('../../admin/server.js');
@@ -45,7 +46,7 @@ function request(method, url, body, extraHeaders) {
         const text = Buffer.concat(chunks).toString('utf8');
         let json = null;
         try { json = JSON.parse(text); } catch { /* non-json */ }
-        resolve({ status: res.statusCode, json, text });
+        resolve({ status: res.statusCode, headers: res.headers, json, text });
       });
     });
     req.on('error', reject);
@@ -68,9 +69,8 @@ describe('admin HTTP API', () => {
   });
 
   afterAll(async () => {
-    server.close();
+    await new Promise((r) => server.close(r));
     fs.rmSync(tmp, { recursive: true, force: true });
-    fs.rmSync(ADMIN_TMP, { recursive: true, force: true });
   });
 
   function api(method, p, body) {
@@ -170,7 +170,10 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
   });
 
   afterAll(async () => {
-    server.close();
+    await new Promise((r) => server.close(r));
+    fs.rmSync(ADMIN_TMP, { recursive: true, force: true });
+    if (PREV_ADMIN_DATA_DIR === undefined) delete process.env.ADMIN_DATA_DIR;
+    else process.env.ADMIN_DATA_DIR = PREV_ADMIN_DATA_DIR;
   });
 
   function api(method, p, body) {
@@ -344,5 +347,26 @@ describe('admin HTTP API — v2.7.0 personalities', () => {
 
     const badDownload = await request('GET', base + '/api/download/INVALID_SLUG!');
     expect(badDownload.status).toBe(400);
+  });
+
+  test('enforces exact Host+port Origin CSRF check, sets security headers, and cleans stale ZIP on profile delete', async () => {
+    const badOrigin = await request('POST', base + '/api/profiles', { slug: 'csrf-test', name: 'x' }, {
+      Origin: 'http://127.0.0.1:9999'
+    });
+    expect(badOrigin.status).toBe(403);
+    expect(badOrigin.headers['x-content-type-options']).toBe('nosniff');
+    expect(badOrigin.headers['x-frame-options']).toBe('SAMEORIGIN');
+
+    const delSlug = 'del-zip-' + Date.now().toString(36);
+    const created = await api('POST', '/profiles', { slug: delSlug, name: 'حذف', preset: 'cafe' });
+    expect(created.status).toBe(201);
+    const built = await api('POST', `/profiles/${delSlug}/build`, {});
+    expect(built.status).toBe(200);
+    const zipPath = path.join(ADMIN_TMP, 'tmp', `${delSlug}-dist.zip`);
+    expect(fs.existsSync(zipPath)).toBe(true);
+
+    const delRes = await api('DELETE', `/profiles/${delSlug}`);
+    expect(delRes.status).toBe(200);
+    expect(fs.existsSync(zipPath)).toBe(false);
   });
 });

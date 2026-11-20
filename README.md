@@ -27,7 +27,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
   <strong>Meganet Hotspot Studio — Split-screen Live Simulator, RouterOS v6 FTP / v7 Deploy & QR Tester</strong>
 </p>
 
-**Latest release: [v2.8.2](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases)** — separate numbered releases for **[Hotspot Portal (`portal-v2.8.2-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/portal-v2.8.2-build.145)** (~730 KB router-ready `dist/` bundle) and **[Meganet Hotspot Studio (`studio-v2.8.2-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/studio-v2.8.2-build.145)** (`.exe` / `npm run admin`). Features verified-only post-login **last-3-voucher history chips** (saved exclusively after confirmed RouterOS authentication on `alogin.html`/`status.html` with automatic rejected-card pruning), **pre-credential RouterOS TLS pinning** & SVG/CSRF/CHAP hardening, fixed ISO 18004 **QR Copy 1**, strict ES5 portal enforcement, upgraded **QR scanner** (native `<label>` camera/gallery triggers, compact `-`/`[a-z]` voucher formats, chunked `jsQR` decoding + contrast-stretch fallback), 12 place presets, SVG Logo Maker, QR Login Tester, and direct **RouterOS v6 FTP** & **v7 REST/`/tool/fetch`** deployment.
+**Latest release: [v2.8.3](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases)** — separate numbered releases for **[Hotspot Portal (`portal-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/portal-v2.8.3-build.149)** (~732 KB router-ready `dist/` bundle) and **[Meganet Hotspot Studio (`studio-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/studio-v2.8.3-build.149)** (`.exe` / `npm run admin`). Features prioritized **bright-card 60% center-crop QR decoding** for faded gray-ink cards over dark backgrounds, **CHAP `no-cache` + `bfcache` reload** guard preventing stale-challenge rejections, clean **MAC-login status view** (hiding logout & switch-card buttons), verified-only post-login **last-3-voucher history chips**, pre-credential RouterOS TLS pinning, fixed ISO 18004 QR Copy 1, 12 place presets, SVG Logo Maker, QR Login Tester, and direct **RouterOS v6 FTP** & **v7 REST/`/tool/fetch`** deployment.
 
 ---
 
@@ -45,7 +45,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 - **Full RouterOS v6 and v7 compatibility** — uses `$(var)` safe templates, CHAP MD5 (`md5.js`) / PAP, and zero external dependencies
 - **Arabic (RTL) and English (LTR) bilingual support** — with `dir="rtl"` and `lang="ar"`
 - **Mobile-first & Captive-Portal compatible** — optimized for 340px+ phones, iOS CNA, macOS CNA (900×572), Android, Windows
-- **~18–48 KB per HTML page** — shared same-host bundles (`portal.css` ~53 KB, `portal-*.js` ~80 KB total) keep the 31-file `dist/` folder around ~730 KB total with zero external requests and zero CDN calls
+- **~18–48 KB per HTML page** — shared same-host bundles (`portal.css` ~53 KB, `portal-*.js` ~80 KB total) keep the 31-file `dist/` folder around ~732 KB total with zero external requests and zero CDN calls
 - **WCAG AA accessible & system font stack** — semantic HTML, inline SVG icons, live Studio WCAG contrast badge, and instant rendering
 
 ---
@@ -57,7 +57,7 @@ A modern, lightweight captive portal template system designed for MikroTik route
 The portal uses a **multi-page architecture** tailored for **iOS Captive Network Assistant (CNA)**, macOS CNA (~900×572px), Android, and Windows captive portal browsers — with **zero external requests** (no CDNs, no external fonts, no third-party scripts):
 
 - **Critical pre-paint inline layer (`base.html`)**: the pre-paint theme script (`hotspot_theme` cookie / `theme.defaultTheme`), config-derived CSS custom properties (`--color-*`, `--radius-*` from `scripts/color-utils.js`), inline SVG brand logo/title, and global handler stubs remain inline in every HTML page so first paint never flashes or breaks.
-- **Shared same-host static bundles**: static styles and JS modules are compiled once into `portal.css` (~53 KB), `portal-core.js`, `portal-login.js` (login page only), and `portal-status.js` (status page only — ~80 KB JS combined), alongside vendored `md5.js` (CHAP) and lazy-loaded `jsQR.js` (omitted when `enableQRScanner: false`). Serving them from the router's own hotspot directory keeps `dist/` at ~730 KB total (31 files, ~18–48 KB per HTML page), fitting comfortably inside MikroTik 1 MB flash budgets.
+- **Shared same-host static bundles**: static styles and JS modules are compiled once into `portal.css` (~53 KB), `portal-core.js`, `portal-login.js` (login page only), and `portal-status.js` (status page only — ~80 KB JS combined), alongside vendored `md5.js` (CHAP) and lazy-loaded `jsQR.js` (omitted when `enableQRScanner: false`). Serving them from the router's own hotspot directory keeps `dist/` at ~732 KB total (31 files, ~18–48 KB per HTML page), fitting comfortably inside MikroTik 1 MB flash budgets.
 
 ### Page Flow
 
@@ -127,11 +127,11 @@ Meganet-New-hotspot/
 
 ### Standalone Releases (Portal & Studio — Separate Build-Numbered Packages)
 This repository ships two independent release streams with automatic build numbers:
-- **Hotspot Portal Package** ([`portal-v2.8.2-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / `dist-release/`):
-  - **`Meganet-Hotspot-Portal-v2.8.2-build.<N>.zip`**: Router-ready bundle (`dist/`), upload directly to MikroTik `/hotspot` via WinBox, FTP, or Studio.
-- **Meganet Hotspot Studio (Windows Desktop App — No Node.js Required)** ([`studio-v2.8.2-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / [`dist-app/`](dist-app/)):
-  - **Portable (`Meganet.Hotspot.Studio-Portable-2.8.2-build.<N>.exe`)**: Single-file executable, zero installation required, runs directly from USB.
-  - **Installer (`Meganet.Hotspot.Studio-Setup-2.8.2-build.<N>.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
+- **Hotspot Portal Package** ([`portal-v2.8.3-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / `dist-release/`):
+  - **`Meganet-Hotspot-Portal-v2.8.3-build.<N>.zip`**: Router-ready bundle (`dist/`), upload directly to MikroTik `/hotspot` via WinBox, FTP, or Studio.
+- **Meganet Hotspot Studio (Windows Desktop App — No Node.js Required)** ([`studio-v2.8.3-build.*`](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases) / [`dist-app/`](dist-app/)):
+  - **Portable (`Meganet.Hotspot.Studio-Portable-2.8.3-build.<N>.exe`)**: Single-file executable, zero installation required, runs directly from USB.
+  - **Installer (`Meganet.Hotspot.Studio-Setup-2.8.3-build.<N>.exe`)**: NSIS installer with Desktop and Start Menu shortcuts.
 - Studio features: 12 built-in place presets + custom presets, live split-screen simulator (zoom `50%–150%`, drag resizer, expand toggle, Dark/Light `hotspot_theme` switcher, `340px`/`412px`/`768px` device presets), live WCAG 2.1 contrast badge, SVG Logo & Brand Identity Maker, Portal QR Login Tester, RouterOS v6/v7 `.rsc` & Option 114 generator, direct **RouterOS v6 FTP** & **v7 REST/`/tool/fetch`** router deploy with per-profile `mikrotik.json` persistence (no passwords written to disk), sales outlets & plans WhatsApp configuration, batch build all, 1 MB flash meter, and one-click **Build & Download** ZIP export.
 
 ### Developer Commands

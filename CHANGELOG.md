@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.8.3] - 2026-11-20
 
 ### Fixed
 - **Faded Thermal QR Cards on Dark/Textured Backgrounds (`src/js/modules/qr-scanner.js`)**: added a bright-card luminance stretch (`_enhanceBrightCard` via shared `_stretchLuminance`) paired with an unconditional relative 60% center-crop pass prioritized 2nd (right after 600px full-frame) so mid-resolution photos (`<= 1100px`) of gray-ink QR cards on dark surfaces decode in a fraction of a second.

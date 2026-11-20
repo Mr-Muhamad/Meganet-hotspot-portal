@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2026-11-21
+
+### Added
+- **Conditional Free Trial Login (`src/templates/login.html`, `src/js/modules/auth.js`, `src/i18n/*.json`, `scripts/preview.mjs`)**: renders a Free Trial (`#trialLoginBtn`) action strictly inside RouterOS `$(if trial == 'yes') ... $(endif)` linking to `$(link-login-only)?dst=$(link-orig-esc)&username=T-$(mac-esc)&popup=$(popup)` (preserving `&target=ar` on Arabic pages) with rapid double-tap protection (`auth.onTrialClick`, `auth.resetTrialButton` on `pageshow` / 15s watchdog) and updated `trial` simulation scenario.
+- **Smart Status Auto-Refresh (`src/templates/status.html`, `src/js/modules/status.js`, `src/css/components.css`)**: reads RouterOS `$(if refresh-timeout)` (`$(refresh-timeout-secs)` / `$(refresh-timeout)`, minimum 15s floor) and refreshes quota, uptime, countdowns, and warnings in-place via `fetch` + `DOMParser` without page flicker; automatically defers when tabs are hidden, confirmation bars/modals are open, or a connection quality probe is running, navigates cleanly when a session expires, and adds a session-persisted Pause/Resume control (`#auto-refresh-bar`).
+- **Secondary RouterOS Servlet Coverage (`src/templates/fstatus.html`, `src/templates/flogout.html`, `src/static/rlogin.html`, `src/static/rstatus.html`, `src/js/modules/ui.js`)**: ships bilingual (EN/AR RTL) unauthenticated `/status` (`fstatus.html`) and `/logout` (`flogout.html`) pages powered by shared `ui.initFooterMacDisplay()` and `ui.initLoginRedirectNotice()` helpers alongside `rlogin.html` and `rstatus.html` HTTP-302 redirectors (`$(link-redirect)`), updating `build.js`, `validate-templates.js`, `tests/a11y/basic.test.js`, `tests/e2e/`, and `color-utils.test.js` (`dist/` 37 files, ~829 KB).
+
+### Fixed
+- **Light-Theme `.alert-info` Contrast (`src/css/components.css`)**: switched `.alert-info` text color to `var(--color-text)` while keeping `var(--color-primary)` border and `.alert__icon` accent so light-mode informational banners (`fstatus`, `flogout`, `#auto-login-alert`) exceed WCAG 2.1 AA contrast (`4.5:1`) verified by `axe-core`.
+
 ## [2.8.3] - 2026-11-20
 
 ### Fixed

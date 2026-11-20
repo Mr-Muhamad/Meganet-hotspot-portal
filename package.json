@@ -1,6 +1,6 @@
 {
   "name": "mikrotik-hotspot-portal",
-  "version": "2.8.3",
+  "version": "2.8.4",
   "description": "Production-ready bilingual (AR/EN) MikroTik RouterOS v6/v7 captive portal & Meganet Hotspot Studio — QR card scanner (BarcodeDetector + jsQR contrast-stretch; bare, =/- prefix, [a-z] user+pass & link cards), WebView-resilient recent vouchers, white-label presets, and separate numbered Portal/Studio releases.",
   "main": "desktop/main.js",
   "scripts": {

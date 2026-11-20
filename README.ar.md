@@ -27,7 +27,7 @@
   <strong>Meganet Hotspot Studio — المحاكي المباشر، نشر مايكروتك v6 FTP و v7، ومختبر QR الدخول</strong>
 </p>
 
-**أحدث إصدار: [v2.8.3](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases)** — إصداران منفصلان برقم البناء: **[حزمة البوابة (`portal-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/portal-v2.8.3-build.149)** (حجم `dist/` ~732 كيلوبايت جاهزة للرفع على الراوتر) و **[تطبيق الاستوديو (`studio-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/studio-v2.8.3-build.149)** (`.exe` / `npm run admin`). يتميز بتسريع قراءة **الكروت الباهتة فوق الخلفيات الداكنة** عبر تمريرة القص المركزي الذكية 60% (`brightCard`)، ومنع إعادة استخدام **تحدّي CHAP عبر الكاش أو `bfcache`**، وإخفاء زري تسجيل الخروج وتبديل الكارت تلقائيًا في **جلسات الماك**، وحفظ **آخر 3 كروت المؤكدة فقط** بعد نجاح الدخول الفعلي، وتثبيت TLS لـ RouterOS وإصلاح QR Copy 1 و12 شخصية جاهزة ومولّد SVG والرفع المباشر (**RouterOS v6 FTP** و **v7 REST/`/tool/fetch`**).
+**أحدث إصدار: [v2.8.4](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases)** — إصداران منفصلان برقم البناء: **[حزمة البوابة (`portal-v2.8.4-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/portal-v2.8.4-build.151)** (حجم `dist/` ~829 كيلوبايت جاهزة للرفع على الراوتر) و **[تطبيق الاستوديو (`studio-v2.8.4-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases/tag/studio-v2.8.4-build.151)** (`.exe` / `npm run admin`). يضيف دعم **زر التجربة المجانية الشرطي (`$(if trial == 'yes')`)**، و**تحديث الحالة الذكي بدون وميض (`$(refresh-timeout)`)** مع مراعاة تفاعل المستخدم والتوقيف/الاستئناف، وتغطية صفحات السيرفلت الثانوية (**`fstatus` / `flogout` / `rlogin` / `rstatus`**)، بجانب قراءة الكروت الباهتة عبر `brightCard`، وحماية `CHAP` من `bfcache`، وإخفاء أزرار الماك، وسجل آخر 3 كروت المؤكدة، وتثبيت TLS، ومولّد SVG، والرفع المباشر (**RouterOS v6 FTP** و **v7 REST/`/tool/fetch`**).
 
 ---
 
@@ -41,8 +41,8 @@
 - **صفحة الباقات ونقاط البيع (`plans.html`):** عرض الباقات والأسعار مع **نقاط بيع الكروت** (`support.outlets`) ورابط واتساب مستقل لطلبات التفعيل (`support.plansWhatsapp`).
 - **حماية متقدمة ضد التصيد (Anti-Phishing & Safe QR Routing):** البوابة لا تغادر أبدًا بسبب حمولة ممسوحة — الروابط الحاملة لبيانات الدخول تُستهلك في مكانها، وغير الحاملة تُقصر على البوابة نفسها.
 - **دعم ثنائي اللغة كامل وتخصيص البراند:** واجهة عربية (RTL) وإنجليزية (LTR) مع سطر وصف اختياري تحت اسم الشبكة (`brandTagline`) وتوافق تام مع **RouterOS v6 و v7** (`CHAP` / `PAP`).
-- **بدون أي اعتمادات خارجية (Zero External Dependencies):** حجم صفحات HTML يتراوح بين ~18–48 كيلوبايت مع حزم مشتركة مستضافة محلياً (`portal.css` ~53 كيلوبايت و `portal-*.js` ~80 كيلوبايت) ليظل إجمالي `dist/` ~732 كيلوبايت (31 ملفاً) ومناسباً لذاكرة الفلاش 1 ميجابايت.
-- **مساعد الاستهلاك الذكي:** عرض مباشر ودقيق للرصيد المتبقي والوقت والتحميل والرفع وسرعة الاتصال في صفحة الحالة (`status.html`).
+- **بدون أي اعتمادات خارجية (Zero External Dependencies):** حجم صفحات HTML يتراوح بين ~18–50 كيلوبايت مع حزم مشتركة مستضافة محلياً (`portal.css` ~56 كيلوبايت و `portal-*.js` ~102 كيلوبايت) ليظل إجمالي `dist/` ~829 كيلوبايت (37 ملفاً) ومناسباً لذاكرة الفلاش 1 ميجابايت.
+- **مساعد الاستهلاك الذكي والتحديث التلقائي:** عرض مباشر ودقيق للرصيد المتبقي والوقت والتحميل والرفع وسرعة الاتصال في صفحة الحالة (`status.html`)، مع تحديث ذكي بدون وميض عبر `$(refresh-timeout)` وتغطية صفحات السيرفلت الثانوية (`fstatus` / `flogout` / `rlogin` / `rstatus`).
 
 ---
 
@@ -57,11 +57,11 @@ Meganet-New-hotspot/
 ├── admin/                  # خادم Studio المحلي وواجهته وأدوات .rsc والرفع ومولّد QR/SVG
 ├── desktop/                # غلاف تطبيق سطح المكتب Electron (Meganet Hotspot Studio)
 ├── src/
-│   ├── templates/          # قوالب Nunjucks (login, status, alogin, logout, error...)
+│   ├── templates/          # قوالب Nunjucks (login, status, alogin, logout, fstatus, flogout, error...)
 │   ├── css/                # ملفات التصميم → تُدمج في حزمة portal.css المشتركة
 │   ├── js/modules/         # وحدات الجافاسكريبت → تُدمج في حزم portal-*.js المشتركة
 │   ├── i18n/               # قواميس النصوص (ar.json / en.json)
-│   ├── static/             # ملفات مايكروتك الثابتة (errors.txt, redirect.html, jsQR.js)
+│   ├── static/             # ملفات مايكروتك الثابتة (errors.txt, redirect.html, rlogin.html, rstatus.html, jsQR.js)
 │   └── assets/             # الصور والشعارات
 ├── dist/                   # ★ المجلد النهائي الناتج — يُرفع هذا المجلد بالكامل إلى الراوتر
 └── tests/                  # اختبارات الوحدة والتكامل (Jest) والاختبارات الشاملة (Playwright)
@@ -73,19 +73,19 @@ Meganet-New-hotspot/
 
 ### الطريقة الأولى: استخدام البرنامج التنفيذي المستقل (Meganet Hotspot Studio - الموصى بها)
 لا تتطلب هذه الطريقة أي معرفة برمجية أو تثبيت Node.js:
-1. توجه لمجلد `dist-app/` أو صفحة [الإصدارات الرسمية للاستوديو (`studio-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases).
+1. توجه لمجلد `dist-app/` أو صفحة [الإصدارات الرسمية للاستوديو (`studio-v2.8.4-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases).
 2. قم بتحميل وتشغيل **النسخة المحمولة** أو المثبت برقم البناء:
-   - `Meganet.Hotspot.Studio-Portable-2.8.3-build.<N>.exe` (لا تحتاج تثبيت، يمكنك وضعها على فلاشة USB).
-   - أو `Meganet.Hotspot.Studio-Setup-2.8.3-build.<N>.exe` (برنامج تثبيت رسمي ينشئ اختصارات على سطح المكتب وقائمة Start).
-3. افتح البرنامج واستفد من أدوات **v2.8.3**:
+   - `Meganet.Hotspot.Studio-Portable-2.8.4-build.<N>.exe` (لا تحتاج تثبيت، يمكنك وضعها على فلاشة USB).
+   - أو `Meganet.Hotspot.Studio-Setup-2.8.4-build.<N>.exe` (برنامج تثبيت رسمي ينشئ اختصارات على سطح المكتب وقائمة Start).
+3. افتح البرنامج واستفد من أدوات **v2.8.4**:
    - **المحاكي المباشر المدمج:** تكبير/تصغير (`50%–150%`)، مقبض سحب لتغيير العرض، زر توسيع (`⛶`)، مبدّل ثيم داكن/نهاري (يتزامن مع كوكي `hotspot_theme`)، ومقاسات شاشات جاهزة (`340px` موبايل ضيق، `412px` موبايل عريض، `768px` تابلت).
    - **تخصيص الهوية والألوان والباقات:** 12 شخصية جاهزة + شخصيات مخصصة، وصف البراند بسطرين (`brandTagline`)، فحص تباين WCAG 2.1 فوري، مولّد الشعارات الذكي (`logo.svg` و `prand-title.svg` و `icon.png`)، نقاط بيع الكروت (`outlets`) وواتساب الباقات (`plansWhatsapp`)، ومختبر QR الدخول.
    - **تكامل مايكروتك المباشر (v6 و v7):** رفع مباشر لملفات البوابة والصور عبر **FTP لـ RouterOS v6** و **REST API / `/tool/fetch` لـ RouterOS v7**، مع مولّد سكربت `hotspot-setup.rsc` (DHCP Option 114 وقواعد Walled Garden) وحفظ إعدادات كل راوتر في `mikrotik.json` بدون حفظ كلمة المرور على القرص.
    - اضغط **بناء وتحميل zip** للحصول على الحزمة الجاهزة ومراقبة مقياس ذاكرة الفلاش (1 MB).
 
 ### الطريقة الثانية: استخدام حزمة البوابة الجاهزة مباشرة للراوتر
-1. توجه إلى صفحة [إصدار البوابة المستقل (`portal-v2.8.3-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases).
-2. قم بتحميل الملف المضغوط `Meganet-Hotspot-Portal-v2.8.3-build.<N>.zip` (أو توليدها محلياً عبر `npm run portal:package`).
+1. توجه إلى صفحة [إصدار البوابة المستقل (`portal-v2.8.4-build.*`)](https://github.com/Mr-Muhamad/Meganet-hotspot-portal/releases).
+2. قم بتحميل الملف المضغوط `Meganet-Hotspot-Portal-v2.8.4-build.<N>.zip` (أو توليدها محلياً عبر `npm run portal:package`).
 3. فك الضغط عن الملف، وارفع محتوياته بالكامل (بما فيها `portal.css` و `portal-*.js` ومجلد `ar/`) إلى مجلد البوابة داخل راوتر مايكروتك عن طريق **FTP** أو **WinBox** (`Files`) أو ميزة الرفع المباشر من Studio.
 
 ### الطريقة الثالثة: التخصيص والبناء الذاتي للمطورين عبر سطر الأوامر

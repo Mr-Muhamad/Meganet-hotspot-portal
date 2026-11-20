@@ -54,7 +54,7 @@ function hexToRgb(hex) {
 function generateLogoSvg(options = {}) {
   const primary = normalizeHex(options.primaryColor, '#22c55e');
   const bg = normalizeHex(options.backgroundColor, '#020617');
-  const iconKey = ICON_PATHS[options.icon] ? options.icon : 'wifi';
+  const iconKey = Object.prototype.hasOwnProperty.call(ICON_PATHS, options.icon) ? options.icon : 'wifi';
   const iconMarkup = ICON_PATHS[iconKey];
 
   return (

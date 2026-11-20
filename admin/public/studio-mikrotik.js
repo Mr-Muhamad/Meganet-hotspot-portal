@@ -399,6 +399,7 @@ async function deployToMikrotik() {
       profileName: rscOpts.profileName,
       dhcpServer: rscOpts.dhcpServer,
       capportMode: rscOpts.capportMode,
+      routerOsVersion: rscOpts.routerOsVersion,
       extraHosts: rscOpts.extraHosts,
       applyRsc: Boolean($('#mk-apply-rsc')?.checked),
       createBackup: Boolean($('#mk-create-backup')?.checked),

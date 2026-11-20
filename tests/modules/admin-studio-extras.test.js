@@ -199,7 +199,7 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
       expect(res.rscApplied).toBe(false);
       expect(uploadedFiles['hotspot/login.html'].toString('utf8')).toBe('<html>login</html>');
       expect(uploadedFiles['hotspot/assets/icon.png']).toEqual(Buffer.from([137, 80, 78, 71]));
-      expect(uploadedFiles['hotspot/hotspot-setup.rsc'].toString('utf8')).toContain('/ip hotspot profile');
+      expect(uploadedFiles['meganet-hotspot-setup.rsc'].toString('utf8')).toContain('/ip hotspot profile');
     } finally {
       await new Promise((r) => ftpServer.close(r));
       await new Promise((r) => dataServer.close(r));
@@ -264,8 +264,8 @@ describe('Package 2 — MikroTik .rsc Generator & Direct RouterOS v7 REST Deploy
       expect(received.auth).toBe('Basic ' + Buffer.from('admin:').toString('base64'));
       expect(received.patches).toHaveLength(1);
       expect(received.patches[0].url).toBe('/rest/file/*A1');
-      expect(received.puts.map((p) => p.name)).toEqual(['hotspot/ar/login.html', 'hotspot/hotspot-setup.rsc']);
-      expect(received.imports).toEqual([{ 'file-name': 'hotspot/hotspot-setup.rsc' }]);
+      expect(received.puts.map((p) => p.name)).toEqual(['hotspot/ar/login.html', 'meganet-hotspot-setup.rsc']);
+      expect(received.imports).toEqual([{ 'file-name': 'meganet-hotspot-setup.rsc' }]);
     } finally {
       mockRouter.close();
     }

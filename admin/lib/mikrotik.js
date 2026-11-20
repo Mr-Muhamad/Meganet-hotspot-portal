@@ -18,10 +18,22 @@ const http = require('http');
 const https = require('https');
 const net = require('net');
 const os = require('os');
+const tls = require('tls');
 
 const COMMENT_TAG = 'meganet-studio';
 const BINARY_EXT_RE = /\.(png|jpe?g|webp|ico|gif|woff2?|ttf|eot)$/i;
 const LARGE_FETCH_THRESHOLD_BYTES = 60 * 1024;
+const IPV4_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+function normalizeFingerprint(fp) {
+  return String(fp || '').replace(/[:\s]/g, '').toUpperCase();
+}
+
+function getRscRemotePath(targetDir) {
+  return /^flash\//i.test(String(targetDir || ''))
+    ? 'flash/meganet-hotspot-setup.rsc'
+    : 'meganet-hotspot-setup.rsc';
+}
 
 function escapeRos(value) {
   return String(value == null ? '' : value)
@@ -96,7 +108,8 @@ function buildRscPlanData(config = {}, options = {}) {
   }
   for (const h of normalizeExtraHosts(options.extraHosts)) {
     const trimmed = String(h || '').trim().toLowerCase();
-    if (/^(\*\.)?[a-z0-9.-]+\.[a-z]{2,}$/i.test(trimmed)) {
+    if (!trimmed || trimmed.includes('..') || trimmed.startsWith('.') || trimmed.endsWith('.')) continue;
+    if (/^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(trimmed) || ipv4ToInt(trimmed) !== null) {
       wgHosts.add(trimmed);
     }
   }
@@ -164,6 +177,7 @@ function generateRscScript(config = {}, options = {}) {
   } else if (capportMode === 'off') {
     lines.push(
       '# 2. DHCP Option 114 (RFC 8910 CAPPORT) — Disabled by Studio configuration',
+      ':foreach s in=[/ip/dhcp-server/find where dhcp-option-set="meganet-capport-set"] do={ /ip/dhcp-server/set $s dhcp-option-set="" }',
       `/ip/dhcp-server/option/sets/remove [find comment="${COMMENT_TAG}"]`,
       `/ip/dhcp-server/option/remove [find comment="${COMMENT_TAG}"]`
     );
@@ -181,6 +195,7 @@ function generateRscScript(config = {}, options = {}) {
             : '# Or switch capportMode to "http" if serving portal solely over HTTP.'),
       '# force=yes is required so clients that omit code 114 in PRL still receive it.',
       '# Outer double quotes + inner single quotes ensure RouterOS sends a string URI.',
+      ':foreach s in=[/ip/dhcp-server/find where dhcp-option-set="meganet-capport-set"] do={ /ip/dhcp-server/set $s dhcp-option-set="" }',
       `/ip/dhcp-server/option/sets/remove [find comment="${COMMENT_TAG}"]`,
       `/ip/dhcp-server/option/remove [find comment="${COMMENT_TAG}"]`,
       `/ip/dhcp-server/option/add name="meganet-capport-114" code=114 force=yes value="'${capportScheme}://${escapeRos(dnsName)}/api.json'" comment="${COMMENT_TAG}"`,
@@ -201,18 +216,23 @@ function generateRscScript(config = {}, options = {}) {
     }
   }
 
+  if (!isV6) {
+    lines.push(
+      '',
+      '# 3. Relocate api.json if created in default hotspot/ root (handles flash/ layout)',
+      ':local srcPath "hotspot/api.json"',
+      `:local dstPath "${escapeRos(htmlDir)}/api.json"`,
+      ':if ([:len [/file/find where name="flash"]] > 0) do={',
+      '  :set srcPath "flash/hotspot/api.json"',
+      `  :set dstPath "flash/${escapeRos(String(htmlDir || 'hotspot').replace(/^flash\//i, ''))}/api.json"`,
+      '}',
+      ':if (($srcPath != $dstPath) && ([:len [/file/find where name=$srcPath]] > 0) && ([:len [/file/find where name=$dstPath]] = 0)) do={',
+      '  /file/set [find where name=$srcPath] name=$dstPath',
+      '}'
+    );
+  }
+
   lines.push(
-    '',
-    '# 3. Relocate api.json if created in default hotspot/ root (handles flash/ layout)',
-    ':local srcPath "hotspot/api.json"',
-    `:local dstPath "${escapeRos(htmlDir)}/api.json"`,
-    `:if ([:len [${p('/file/find')} where name="flash"]] > 0) do={`,
-    '  :set srcPath "flash/hotspot/api.json"',
-    `  :set dstPath "flash/${escapeRos(String(htmlDir || 'hotspot').replace(/^flash\//i, ''))}/api.json"`,
-    '}',
-    `:if (($srcPath != $dstPath) && ([:len [${p('/file/find')} where name=$srcPath]] > 0)) do={`,
-    `  ${p('/file/set')} [find where name=$srcPath] name=$dstPath`,
-    '}',
     '',
     '# 4. Walled Garden IP Rules (Layer-3 HTTPS-compatible, idempotent via comment tag)',
     `${p('/ip/hotspot/walled-garden/ip/remove')} [find comment="${COMMENT_TAG}"]`
@@ -223,7 +243,7 @@ function generateRscScript(config = {}, options = {}) {
       lines.push(
         `${p('/ip/hotspot/walled-garden/ip/add')} dst-host="${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
       );
-      if (!host.startsWith('*.')) {
+      if (!host.startsWith('*.') && !IPV4_RE.test(host)) {
         lines.push(
           `${p('/ip/hotspot/walled-garden/ip/add')} dst-host="*.${escapeRos(host)}" action=accept comment="${COMMENT_TAG}"`
         );
@@ -251,7 +271,11 @@ function previewRscPlan(config = {}, options = {}) {
 }
 
 function validateConnection(connection = {}) {
-  const host = String(connection.host || '').trim();
+  const rawHost = connection.host == null ? '' : String(connection.host);
+  if (/[\r\n]/.test(rawHost)) {
+    throw new Error('invalid router host/IP');
+  }
+  const host = rawHost.trim();
   if (!host || /[\s/?#]/.test(host)) {
     throw new Error('invalid router host/IP');
   }
@@ -266,11 +290,21 @@ function validateConnection(connection = {}) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('invalid router port');
   }
-  const username = String(connection.username || 'admin').trim();
-  if (!username) throw new Error('router username is required');
+  const rawUser = connection.username == null ? 'admin' : String(connection.username);
+  if (/[\r\n]/.test(rawUser)) {
+    throw new Error('invalid router username');
+  }
+  const username = rawUser.trim() || 'admin';
   const password = connection.password != null ? String(connection.password) : '';
+  if (/[\r\n]/.test(password)) {
+    throw new Error('invalid router password');
+  }
 
-  const rawDir = String(connection.targetDir == null ? 'hotspot' : connection.targetDir)
+  const rawDirInput = connection.targetDir == null ? 'hotspot' : String(connection.targetDir);
+  if (/[\r\n]/.test(rawDirInput)) {
+    throw new Error('invalid target directory');
+  }
+  const rawDir = rawDirInput
     .trim()
     .replace(/\\/g, '/')
     .replace(/^\/+|\/+$/g, '');
@@ -293,7 +327,7 @@ function validateConnection(connection = {}) {
 
 /**
  * Low-level HTTP/HTTPS JSON request helper for RouterOS v7 REST API.
- * Requires and enforces a pinned TLS SHA-256 certificate fingerprint on HTTPS.
+ * Enforces pinned TLS SHA-256 fingerprint on `secureConnect` BEFORE transmitting credentials.
  */
 function rosRestRequest(conn, method, restPath, bodyObj) {
   return new Promise((resolve, reject) => {
@@ -303,15 +337,22 @@ function rosRestRequest(conn, method, restPath, bodyObj) {
     // RouterOS empty-password auth still requires the trailing colon ("admin:")
     const authToken = Buffer.from(`${conn.username}:${conn.password || ''}`, 'utf8').toString('base64');
 
+    const expectedFp = isHttps
+      ? (conn.tlsFingerprint ? String(conn.tlsFingerprint).trim().toUpperCase() : '')
+      : '';
+    if (isHttps && !expectedFp) {
+      return reject(new Error('HTTPS to RouterOS requires tlsFingerprint (SHA-256). Refusing an unpinned connection.'));
+    }
+
     let observedFingerprint = '';
 
-    const req = client.request({
+    const requestOptions = {
       hostname: conn.host,
       port: conn.port,
       path: '/rest' + (restPath.startsWith('/') ? restPath : '/' + restPath),
       method,
       timeout: conn.timeoutMs || 10000,
-      rejectUnauthorized: false, // RouterOS certs are commonly self-signed; HTTPS requires a pinned fingerprint below
+      rejectUnauthorized: false, // RouterOS certs are commonly self-signed; HTTPS enforces pinned fingerprint before request writes
       headers: Object.assign(
         {
           Authorization: `Basic ${authToken}`,
@@ -319,27 +360,54 @@ function rosRestRequest(conn, method, restPath, bodyObj) {
         },
         payload ? { 'Content-Type': 'application/json', 'Content-Length': payload.length } : {}
       )
-    }, (res) => {
-      if (isHttps) {
-        const expectedFp = conn.tlsFingerprint ? String(conn.tlsFingerprint).trim().toUpperCase() : '';
-        if (!expectedFp) {
-          res.resume();
-          return reject(new Error('HTTPS to RouterOS requires tlsFingerprint (SHA-256). Refusing an unpinned connection.'));
-        }
-        try {
-          const cert = res.socket && typeof res.socket.getPeerCertificate === 'function'
-            ? res.socket.getPeerCertificate(true)
-            : null;
-          if (cert && cert.fingerprint256) {
-            observedFingerprint = String(cert.fingerprint256).trim().toUpperCase();
-          }
-        } catch { /* compared below */ }
-        if (!observedFingerprint || observedFingerprint !== expectedFp) {
-          res.resume();
-          return reject(new Error(`TLS certificate mismatch (expected ${expectedFp}, got ${observedFingerprint || 'none'})`));
-        }
-      }
+    };
 
+    if (isHttps) {
+      requestOptions.agent = false;
+      requestOptions.createConnection = (_opts, cb) => {
+        let done = false;
+        const sock = tls.connect({
+          host: conn.host,
+          port: conn.port,
+          servername: net.isIP(conn.host) ? undefined : conn.host,
+          rejectUnauthorized: false
+        });
+        const finish = (err, connectedSock) => {
+          if (done) return;
+          done = true;
+          sock.removeListener('error', onHandshakeError);
+          sock.removeListener('timeout', onHandshakeTimeout);
+          cb(err, connectedSock);
+        };
+        const onHandshakeError = (err) => {
+          sock.destroy();
+          finish(err);
+        };
+        const onHandshakeTimeout = () => {
+          const err = new Error('RouterOS connection timed out');
+          sock.destroy(err);
+          finish(err);
+        };
+        sock.setTimeout(conn.timeoutMs || 10000);
+        sock.once('error', onHandshakeError);
+        sock.once('timeout', onHandshakeTimeout);
+        sock.once('secureConnect', () => {
+          try {
+            const cert = typeof sock.getPeerCertificate === 'function' ? sock.getPeerCertificate(true) : null;
+            if (cert && cert.fingerprint256) {
+              observedFingerprint = String(cert.fingerprint256).trim().toUpperCase();
+            }
+          } catch { /* compared below */ }
+          if (!observedFingerprint || normalizeFingerprint(observedFingerprint) !== normalizeFingerprint(expectedFp)) {
+            sock.destroy();
+            return finish(new Error(`TLS certificate mismatch (expected ${expectedFp}, got ${observedFingerprint || 'none'})`));
+          }
+          finish(null, sock);
+        });
+      };
+    }
+
+    const req = client.request(requestOptions, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
@@ -401,7 +469,7 @@ async function inspectRouter(connection = {}) {
       wwwSslCertificate: ''
     };
   }
-  const resRes = await rosOptionalGet(conn, '/system/resource');
+  const resRes = await rosRestRequest(conn, 'GET', '/system/resource');
   const idRes = await rosOptionalGet(conn, '/system/identity');
   const hsRes = await rosOptionalGet(conn, '/ip/hotspot/profile?.proplist=name,html-directory,html-directory-override,dns-name');
   const dhcpRes = await rosOptionalGet(conn, '/ip/dhcp-server?.proplist=name,interface,dhcp-option-set');
@@ -498,24 +566,25 @@ function startBinaryPullServer(fileMap, listenHost) {
       reqUrl = new URL(req.url, 'http://127.0.0.1');
       const prefix = `/${token}/`;
       if (req.method !== 'GET' || !reqUrl.pathname.startsWith(prefix)) {
-        res.writeHead(404);
+        res.writeHead(404, { Connection: 'close' });
         return res.end();
       }
       rel = decodeURIComponent(reqUrl.pathname.slice(prefix.length));
     } catch {
-      res.writeHead(400);
+      res.writeHead(400, { Connection: 'close' });
       return res.end();
     }
     const buf = fileMap.get(rel);
     if (!buf) {
-      res.writeHead(404);
+      res.writeHead(404, { Connection: 'close' });
       return res.end();
     }
     fetchedSet.add(rel);
     res.writeHead(200, {
       'Content-Type': 'application/octet-stream',
       'Content-Length': buf.length,
-      'Cache-Control': 'no-store'
+      'Cache-Control': 'no-store',
+      Connection: 'close'
     });
     res.end(buf);
   });
@@ -528,7 +597,12 @@ function startBinaryPullServer(fileMap, listenHost) {
         port: addr.port,
         token,
         fetchedSet,
-        close: () => new Promise((done) => srv.close(() => done()))
+        close: () => new Promise((done) => {
+          srv.close(() => done());
+          if (typeof srv.closeAllConnections === 'function') {
+            srv.closeAllConnections();
+          }
+        })
       });
     });
   });
@@ -543,15 +617,22 @@ function openFtpControl(conn) {
     sock.setTimeout(conn.timeoutMs || 10000);
     let buf = '';
     const waiters = [];
+    let settled = false;
 
     const flush = () => {
       while (waiters.length > 0) {
         const lines = buf.split(/\r?\n/);
         let endIdx = -1;
         let code = 0;
+        let openCode = 0;
         for (let i = 0; i < lines.length - 1; i++) {
-          const m = /^(\d{3})([ -])/.exec(lines[i]);
-          if (m && m[2] === ' ') {
+          const cont = /^(\d{3})-/.exec(lines[i]);
+          if (cont && openCode === 0) {
+            openCode = Number(cont[1]);
+            continue;
+          }
+          const m = /^(\d{3}) /.exec(lines[i]);
+          if (m && (openCode === 0 || Number(m[1]) === openCode)) {
             code = Number(m[1]);
             endIdx = i;
             break;
@@ -566,6 +647,10 @@ function openFtpControl(conn) {
     };
 
     const failAll = (err) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
       while (waiters.length > 0) {
         waiters.shift().reject(err);
       }
@@ -581,6 +666,7 @@ function openFtpControl(conn) {
       failAll(err);
     });
     sock.on('error', (err) => failAll(err));
+    sock.on('close', () => failAll(new Error('FTP connection closed unexpectedly')));
 
     const readReply = () => new Promise((res, rej) => {
       waiters.push({ resolve: res, reject: rej });
@@ -606,10 +692,13 @@ function openFtpControl(conn) {
         if (userReply.code === 331) {
           await sendCmd(`PASS ${conn.password || ''}`, [230]);
         }
-        resolve({ sock, sendCmd, readReply, close: () => { try { sock.end('QUIT\r\n'); } catch { sock.destroy(); } } });
+        if (!settled) {
+          settled = true;
+          resolve({ sock, sendCmd, readReply, close: () => { try { sock.end('QUIT\r\n'); } catch { sock.destroy(); } } });
+        }
       } catch (err) {
         sock.destroy();
-        reject(err);
+        failAll(err);
       }
     });
   });
@@ -665,7 +754,10 @@ async function ftpDeployFiles(files, connection, conn) {
           await client.sendCmd(`STOR ${remotePath}`, [125, 150]);
           dataSock.end(buf, async () => {
             try {
-              await client.readReply(); // 226 / 250 transfer complete
+              const doneReply = await client.readReply(); // 226 / 250 transfer complete
+              if (doneReply.code !== 226 && doneReply.code !== 250) {
+                return reject(new Error(`FTP upload failed (${doneReply.code}): ${doneReply.text}`));
+              }
               resolve();
             } catch (e) {
               reject(e);
@@ -690,7 +782,7 @@ async function ftpDeployFiles(files, connection, conn) {
       uploaded.push(remoteName);
     }
     if (connection.rscContent) {
-      const rscName = `${conn.targetDir}/hotspot-setup.rsc`;
+      const rscName = getRscRemotePath(conn.targetDir);
       await uploadBuffer(rscName, Buffer.from(connection.rscContent, 'utf8'));
       uploaded.push(rscName);
     }
@@ -722,6 +814,12 @@ async function deployToRouter(files, connection = {}) {
   }
   const { host, port, targetDir } = conn;
 
+  if (connection.studioHost != null && String(connection.studioHost).trim()) {
+    if (/[\s/?#\r\n]/.test(String(connection.studioHost).trim())) {
+      throw new Error('invalid studioHost address');
+    }
+  }
+
   // Optional flash storage preflight check (skips silently on minimal mocks returning 404)
   let totalUploadBytes = connection.rscContent ? Buffer.byteLength(connection.rscContent, 'utf8') : 0;
   for (const f of files || []) {
@@ -729,13 +827,13 @@ async function deployToRouter(files, connection = {}) {
   }
 
   const resCheck = await rosOptionalGet(conn, '/system/resource');
-  if (resCheck && resCheck.data && resCheck.data['free-hdd-space'] != null) {
-    const freeSpace = Number(resCheck.data['free-hdd-space']);
-    if (Number.isFinite(freeSpace) && freeSpace > 0 && freeSpace < Math.ceil(totalUploadBytes * 1.15)) {
-      const freeKb = Math.round(freeSpace / 1024);
-      const needKb = Math.round(totalUploadBytes / 1024);
-      throw new Error(`Insufficient router flash storage: free ${freeKb} KB, needed ~${needKb} KB`);
-    }
+  const freeSpace = (resCheck && resCheck.data && resCheck.data['free-hdd-space'] != null)
+    ? Number(resCheck.data['free-hdd-space'])
+    : null;
+  if (freeSpace !== null && Number.isFinite(freeSpace) && freeSpace < Math.ceil(totalUploadBytes * 1.15)) {
+    const freeKb = Math.round(freeSpace / 1024);
+    const needKb = Math.round(totalUploadBytes / 1024);
+    throw new Error(`Insufficient router flash storage: free ${freeKb} KB, needed ~${needKb} KB`);
   }
 
   // Optional pre-deploy router backup
@@ -793,7 +891,7 @@ async function deployToRouter(files, connection = {}) {
   // 3. Transfer binary / oversized files losslessly via authenticated Studio HTTP + /tool/fetch
   if (fetchFiles.length > 0) {
     const isLoopback = /^(127\.|localhost$|::1$)/i.test(host);
-    const studioHost = connection.studioHost || pickLocalIpForRouter(host);
+    const studioHost = connection.studioHost ? String(connection.studioHost).trim() : pickLocalIpForRouter(host);
     if (!isLoopback && (!studioHost || /^(0\.0\.0\.0|::)$/.test(studioHost))) {
       throw new Error('Cannot determine a local interface the router can reach. Set studioHost to that interface address, or deploy via ZIP.');
     }
@@ -822,10 +920,10 @@ async function deployToRouter(files, connection = {}) {
     }
   }
 
-  // 4. Optionally upload & import hotspot-setup.rsc
+  // 4. Optionally upload & import setup script (stored outside public hotspot directory)
   let rscApplied = false;
   if (connection.rscContent) {
-    const rscName = `${targetDir}/hotspot-setup.rsc`;
+    const rscName = getRscRemotePath(targetDir);
     const existingRscId = existingMap.get(rscName);
     if (existingRscId) {
       await rosRestRequest(conn, 'PATCH', `/file/${encodeURIComponent(existingRscId)}`, { contents: connection.rscContent });

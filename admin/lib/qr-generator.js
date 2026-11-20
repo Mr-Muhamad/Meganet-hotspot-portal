@@ -360,14 +360,17 @@ function encodeQrMatrix(text) {
     }
 
     const formatBits = computeFormatBits(maskId);
-    for (let i = 0; i <= 5; i++) mat[8][i] = ((formatBits >> i) & 1) === 1;
-    mat[8][7] = ((formatBits >> 6) & 1) === 1;
-    mat[8][8] = ((formatBits >> 7) & 1) === 1;
-    mat[7][8] = ((formatBits >> 8) & 1) === 1;
-    for (let i = 9; i < 15; i++) mat[14 - i][8] = ((formatBits >> i) & 1) === 1;
+    const fmtBit = (bit) => ((formatBits >> bit) & 1) === 1;
+    // Copy 1 (top-left around finder per ISO/IEC 18004 Fig. 25): MSB (14) at (8,0) .. LSB (0) at (0,8)
+    for (let i = 0; i <= 5; i++) mat[8][i] = fmtBit(14 - i);
+    mat[8][7] = fmtBit(8);
+    mat[8][8] = fmtBit(7);
+    mat[7][8] = fmtBit(6);
+    for (let i = 0; i <= 5; i++) mat[i][8] = fmtBit(i);
 
-    for (let i = 0; i < 8; i++) mat[8][size - 1 - i] = ((formatBits >> i) & 1) === 1;
-    for (let i = 8; i < 15; i++) mat[size - 15 + i][8] = ((formatBits >> i) & 1) === 1;
+    // Copy 2 (top-right + bottom-left)
+    for (let i = 0; i < 8; i++) mat[8][size - 1 - i] = fmtBit(i);
+    for (let i = 8; i < 15; i++) mat[size - 15 + i][8] = fmtBit(i);
 
     const penalty = evaluatePenalty(mat, size);
     if (penalty < bestScore) {
@@ -396,7 +399,7 @@ function escapeXml(s) {
 function generateQrSvg(text, options = {}) {
   const { size, matrix } = encodeQrMatrix(text);
   const parsedMargin = Number(options.margin);
-  const margin = (options.margin != null && Number.isFinite(parsedMargin) && parsedMargin >= 0) ? parsedMargin : 2;
+  const margin = (options.margin != null && Number.isFinite(parsedMargin) && parsedMargin >= 0) ? parsedMargin : 4;
   const fg = options.color || '#020617';
   const bg = options.background || '#ffffff';
   const total = size + margin * 2;

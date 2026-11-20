@@ -57,9 +57,19 @@ function createProfileStore(baseDir) {
     return fs.readdirSync(profilesDir, { withFileTypes: true })
       .filter((e) => e.isDirectory() && SLUG_RE.test(e.name))
       .map((e) => {
-        const meta = readJson(path.join(profileDir(e.name), 'metadata.json'));
-        return { id: e.name, name: meta.name, createdAt: meta.createdAt, updatedAt: meta.updatedAt };
+        try {
+          const meta = readJson(path.join(profileDir(e.name), 'metadata.json'));
+          return {
+            id: e.name,
+            name: typeof meta.name === 'string' && meta.name.trim() ? meta.name : e.name,
+            createdAt: meta.createdAt || '',
+            updatedAt: meta.updatedAt || ''
+          };
+        } catch {
+          return null;
+        }
       })
+      .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -119,11 +129,16 @@ function createProfileStore(baseDir) {
     fs.rmSync(profileDir(id), { recursive: true, force: true });
   }
 
+  function cleanControl(v, fallback = '') {
+    const s = String(v == null ? fallback : v).replace(/[\r\n]/g, '').trim();
+    return s;
+  }
+
   function sanitizeMikrotikSettings(input = {}, id = '') {
     const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
-    const rawProto = String(src.protocol || 'http').toLowerCase();
+    const rawProto = cleanControl(src.protocol || 'http').toLowerCase();
     const protocol = rawProto === 'https' ? 'https' : (rawProto === 'ftp' ? 'ftp' : 'http');
-    const tlsFingerprint = String(src.tlsFingerprint || '').trim().toUpperCase();
+    const tlsFingerprint = cleanControl(src.tlsFingerprint || '').toUpperCase();
     const rawPort = Number(src.port);
     const defaultPort = protocol === 'https' ? 443 : (protocol === 'ftp' ? 21 : 80);
     const port = Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535
@@ -133,29 +148,30 @@ function createProfileStore(baseDir) {
     const routerOsVersion = src.routerOsVersion === 'v6' ? 'v6' : 'v7';
     let extraHosts = [];
     if (Array.isArray(src.extraHosts)) {
-      extraHosts = src.extraHosts.map((s) => String(s || '').trim()).filter(Boolean);
+      extraHosts = src.extraHosts.map((s) => cleanControl(s)).filter(Boolean);
     } else if (typeof src.extraHosts === 'string') {
-      extraHosts = src.extraHosts.split(',').map((s) => s.trim()).filter(Boolean);
+      extraHosts = src.extraHosts.split(',').map((s) => cleanControl(s)).filter(Boolean);
     }
-    const targetDir = String(src.targetDir || 'hotspot').trim() || 'hotspot';
-    const htmlDir = String(src.htmlDir || targetDir || 'hotspot').trim() || 'hotspot';
+    const targetDir = cleanControl(src.targetDir || 'hotspot') || 'hotspot';
+    const htmlDir = cleanControl(src.htmlDir || targetDir || 'hotspot') || 'hotspot';
     return {
-      host: String(src.host ?? '192.168.88.1').trim(),
+      host: cleanControl(src.host ?? '192.168.88.1'),
       protocol,
       port,
-      username: String(src.username || 'admin').trim() || 'admin',
+      username: cleanControl(src.username || 'admin') || 'admin',
       targetDir,
       htmlDir,
-      dnsName: String(src.dnsName || 'login.meganet.local').trim() || 'login.meganet.local',
-      profileName: String(src.profileName || (id ? `${id}-hs-profile` : '')).trim(),
-      dhcpServer: String(src.dhcpServer || '').trim(),
+      dnsName: cleanControl(src.dnsName || 'login.meganet.local') || 'login.meganet.local',
+      profileName: cleanControl(src.profileName || (id ? `${id}-hs-profile` : '')),
+      dhcpServer: cleanControl(src.dhcpServer || ''),
       capportMode,
       routerOsVersion,
+      sslCertificate: cleanControl(src.sslCertificate || ''),
       extraHosts,
       applyRsc: Boolean(src.applyRsc),
       createBackup: Boolean(src.createBackup),
       tlsFingerprint,
-      updatedAt: String(src.updatedAt || new Date().toISOString())
+      updatedAt: cleanControl(src.updatedAt || new Date().toISOString())
     };
   }
 
@@ -237,8 +253,15 @@ function createProfileStore(baseDir) {
 
   /** Sanitize an uploaded filename; returns the safe basename. */
   function sanitizeAssetName(filename) {
-    const base = path.basename(String(filename || ''));
-    if (!base || base.startsWith('.') || !ASSET_EXT.has(path.extname(base).toLowerCase())) {
+    const raw = String(filename || '');
+    const normalized = raw.replace(/\\/g, '/');
+    const base = path.posix.basename(normalized);
+    if (
+      !base ||
+      base.startsWith('.') ||
+      /[\\:*?"<>|]/.test(base) ||
+      !ASSET_EXT.has(path.extname(base).toLowerCase())
+    ) {
       throw new Error(`unsupported asset file: ${filename}`);
     }
     return base;
@@ -261,6 +284,7 @@ function createProfileStore(baseDir) {
 
   function deleteAsset(slug, filename) {
     const id = assertSlug(slug);
+    if (!exists(id)) throw new Error(`profile not found: ${id}`);
     const safe = sanitizeAssetName(filename);
     const file = path.join(profileDir(id), 'assets', safe);
     if (fs.existsSync(file)) fs.rmSync(file);

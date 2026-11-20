@@ -136,7 +136,12 @@ function isLoopback(addr) {
 
 function sendJson(res, status, body) {
   const payload = JSON.stringify(body);
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(payload) });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': Buffer.byteLength(payload),
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN'
+  });
   res.end(payload);
 }
 
@@ -148,22 +153,28 @@ function httpError(status, message) {
 
 function readBody(req, limitMb = 10) {
   return new Promise((resolve, reject) => {
+    const maxBytes = limitMb * 1024 * 1024;
     const chunks = [];
     let size = 0;
+    let rejected = false;
     req.on('data', (c) => {
+      if (rejected) return;
       size += c.length;
-      if (size > limitMb * 1024 * 1024) {
-        // destroy() makes any later write throw — reject FIRST, then reset
-        const err = httpError(413, 'payload too large');
-        req.removeAllListeners('data');
-        req.destroy();
-        reject(err);
+      if (size > maxBytes) {
+        rejected = true;
+        chunks.length = 0;
+        reject(httpError(413, 'payload too large'));
+        req.resume();
         return;
       }
       chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', (err) => reject(httpError(400, 'request aborted')));
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks));
+    });
+    req.on('error', () => {
+      if (!rejected) reject(httpError(400, 'request aborted'));
+    });
   });
 }
 
@@ -232,7 +243,7 @@ async function startPreview(port, distDir) {
   if (previewChild && currentPreviewPort === port && currentPreviewDist === targetDist) {
     return port;
   }
-  stopPreview();
+  await stopPreviewAsync();
   // spawn with an explicit argv array (no shell) — nothing here is ever
   // concatenated into a command string. The port is validated as a bounded
   // integer by the caller before it reaches this point.
@@ -255,13 +266,15 @@ async function startPreview(port, distDir) {
   previewChild = child;
   currentPreviewPort = port;
   currentPreviewDist = targetDist;
-  child.on('exit', () => {
+  const clearIfCurrent = () => {
     if (previewChild === child) {
       previewChild = null;
       currentPreviewPort = null;
       currentPreviewDist = null;
     }
-  });
+  };
+  child.on('error', clearIfCurrent);
+  child.on('exit', clearIfCurrent);
 
   // Wait until preview server is bound and answering HTTP requests
   let ready = false;
@@ -287,9 +300,28 @@ async function startPreview(port, distDir) {
   return port;
 }
 
+function stopPreviewAsync() {
+  const child = previewChild;
+  if (!child) return Promise.resolve();
+  previewChild = null;
+  currentPreviewPort = null;
+  currentPreviewDist = null;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    child.once('exit', finish);
+    try { child.kill('SIGTERM'); } catch { finish(); }
+    setTimeout(finish, 500);
+  });
+}
+
 function stopPreview() {
   if (previewChild) {
-    previewChild.kill('SIGTERM');
+    try { previewChild.kill('SIGTERM'); } catch { /* empty */ }
     previewChild = null;
     currentPreviewPort = null;
     currentPreviewDist = null;
@@ -369,13 +401,15 @@ async function handleApi(req, res, url, method) {
       const body = await readJsonBody(req);
       const info = await inspectRouter(body || {});
       if (body && body.slug && store.exists(body.slug)) {
-        store.saveMikrotikSettings(body.slug, {
+        const mkPatch = {
           host: body.host,
           protocol: body.protocol,
           port: body.port,
-          username: body.username,
-          tlsFingerprint: info.tlsFingerprint || body.tlsFingerprint || ''
-        });
+          username: body.username
+        };
+        const testedFp = info.tlsFingerprint || (body.protocol === 'https' ? body.tlsFingerprint : '');
+        if (testedFp) mkPatch.tlsFingerprint = testedFp;
+        store.saveMikrotikSettings(body.slug, mkPatch);
       }
       return sendJson(res, 200, info);
     }
@@ -440,7 +474,7 @@ async function handleApi(req, res, url, method) {
     if (method === 'DELETE' && parts[0] === 'api' && parts[1] === 'presets' && parts.length === 3) {
       const id = decodeURIComponent(parts[2]);
       const map = loadCustomPresets();
-      if (!map[id]) return sendJson(res, 404, { error: 'custom preset not found' });
+      if (!Object.prototype.hasOwnProperty.call(map, id)) return sendJson(res, 404, { error: 'custom preset not found' });
       delete map[id];
       saveCustomPresets(map);
       return sendJson(res, 200, { ok: true });
@@ -473,11 +507,16 @@ async function handleApi(req, res, url, method) {
       const body = await readJsonBody(req, 20);
       const bundle = body.bundle || {};
       if (!bundle.config) return sendJson(res, 400, { error: 'bundle has no config' });
+      if (bundle.announcements !== undefined && bundle.announcements !== null && typeof bundle.announcements !== 'object') {
+        return sendJson(res, 400, { error: 'bundle announcements must be a JSON object or null' });
+      }
+      const rawName = body.name !== undefined ? body.name : bundle.name;
+      const safeName = (typeof rawName === 'string' && rawName.trim()) ? rawName.trim() : String(body.slug || 'imported');
       const validation = validate(bundle.config);
       if (validation.errors && validation.errors.length) {
         return sendJson(res, 422, { error: 'bundle config validation failed', validationErrors: validation.errors });
       }
-      const profile = store.create(body.slug, body.name || bundle.name, bundle.config);
+      const profile = store.create(body.slug, safeName, bundle.config);
       try {
         if (bundle.announcements) store.saveAnnouncements(profile.id, bundle.announcements);
         if (bundle.mikrotik && typeof bundle.mikrotik === 'object' && !Array.isArray(bundle.mikrotik)) {
@@ -535,13 +574,23 @@ async function handleApi(req, res, url, method) {
       }
       // strict port validation: positive integer in the private/ephemeral range
       const requested = Number(body.port);
-      const port = Number.isInteger(requested) && requested >= 1024 && requested <= 65535
+      const explicitPort = Number.isInteger(requested) && requested >= 1024 && requested <= 65535;
+      let port = explicitPort
         ? requested
         : (currentPreviewPort || await findFreeLoopbackPort());
       const distToServe = fs.existsSync(PREVIEW_DIST_DIR)
         ? PREVIEW_DIST_DIR
         : path.join(REPO_ROOT, 'dist');
-      await startPreview(port, distToServe);
+      try {
+        await startPreview(port, distToServe);
+      } catch (err) {
+        if (!explicitPort) {
+          port = await findFreeLoopbackPort();
+          await startPreview(port, distToServe);
+        } else {
+          throw err;
+        }
+      }
       return sendJson(res, 200, {
         url: `http://127.0.0.1:${port}/login.html`,
         baseUrl: `http://127.0.0.1:${port}`,
@@ -589,6 +638,7 @@ async function handleApi(req, res, url, method) {
     // DELETE /api/profiles/:id
     if (method === 'DELETE' && parts.length === 3) {
       store.remove(id);
+      try { fs.rmSync(path.join(ADMIN_DIR, 'tmp', `${id}-dist.zip`), { force: true }); } catch { /* empty */ }
       return sendJson(res, 200, { ok: true });
     }
 
@@ -806,7 +856,12 @@ function serveStatic(res, url) {
     return sendJson(res, 404, { error: 'not found' });
   }
   const data = fs.readFileSync(file);
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': data.length });
+  res.writeHead(200, {
+    'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+    'Content-Length': data.length,
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN'
+  });
   res.end(data);
 }
 
@@ -830,9 +885,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     // CSRF guard for mutating requests: any browser page on the operator's
-    // machine (malicious website) can POST to 127.0.0.1 — require the Origin
-    // (if present) to be the loopback admin origin. `no-cors` fetches still
-    // send Origin, so this closes the cross-site local-API tampering.
+    // machine (malicious website or cross-port localhost page/simulator) can
+    // POST to 127.0.0.1 — require Origin (when present) to match BOTH loopback
+    // host AND the exact server port (`o.host === hostHeader`).
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       const secFetchSite = req.headers['sec-fetch-site'];
       if (secFetchSite && secFetchSite === 'cross-site') {
@@ -844,7 +899,7 @@ const server = http.createServer(async (req, res) => {
           const o = new URL(origin);
           const host = o.hostname;
           const isLocalOrigin = host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1';
-          if (!isLocalOrigin) {
+          if (!isLocalOrigin || o.host.toLowerCase() !== hostHeader) {
             return sendJson(res, 403, { error: 'cross-origin request rejected' });
           }
         } catch {

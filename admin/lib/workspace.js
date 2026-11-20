@@ -140,11 +140,27 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
     const collectedFiles = [];
     let fileCount = 0;
 
+    const tmpZip = `${outputZip}.tmp-${process.pid}-${Date.now()}`;
+
     return new Promise((resolve, reject) => {
+      let failed = false;
+      const fail = (err) => {
+        if (failed) return;
+        failed = true;
+        try { fs.rmSync(tmpZip, { force: true }); } catch { /* ignore */ }
+        reject(err);
+      };
+
       const zipfile = new ZipFile();
-      const output = fs.createWriteStream(outputZip);
-      output.on('error', reject);
+      const output = fs.createWriteStream(tmpZip);
+      output.on('error', fail);
       output.on('close', () => {
+        if (failed) return;
+        try {
+          fs.renameSync(tmpZip, outputZip);
+        } catch (err) {
+          return fail(err);
+        }
         let zipSize = 0;
         try { zipSize = fs.statSync(outputZip).size; } catch { /* ignore */ }
         resolve({
@@ -158,7 +174,8 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
           fileCount
         });
       });
-      zipfile.outputStream.on('error', reject);
+      zipfile.on('error', fail);
+      zipfile.outputStream.on('error', fail);
       zipfile.outputStream.pipe(output);
 
       const walk = (dir, prefix) => {
@@ -275,10 +292,6 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
       const stageDist = path.join(stageDir, 'dist');
 
       try {
-        if (!options.skipZip && zipPath) {
-          try { fs.rmSync(zipPath, { force: true }); } catch { /* best-effort */ }
-        }
-
         applyProfileToDir(profile, stageAssets, stageConfig, stageAnnouncements);
 
         const rscContent = options.skipZip ? '' : generateRscScript(profile.config, {
@@ -287,7 +300,9 @@ function createWorkspace({ repoRoot = REPO_ROOT, workDir } = {}) {
           dnsName: options.dnsName || 'login.meganet.local',
           dhcpServer: options.dhcpServer || '',
           extraHosts: options.extraHosts || [],
-          capportMode: options.capportMode || 'https'
+          capportMode: options.capportMode || 'https',
+          routerOsVersion: options.routerOsVersion || 'v7',
+          sslCertificate: options.sslCertificate || ''
         });
 
         const { build } = require('../../build.js');

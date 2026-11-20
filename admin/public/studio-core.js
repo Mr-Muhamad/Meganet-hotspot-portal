@@ -73,6 +73,7 @@ function openStudioModal({ title, bodyHtml, confirmLabel = 'تأكيد', cancelL
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
       if (e.key === 'Enter' && e.target && e.target.tagName !== 'TEXTAREA') {
+        if (document.activeElement === cancelBtn || e.target === cancelBtn) return;
         e.preventDefault();
         // Ignore the Enter that confirms an IME composition (CJK keyboards);
         // Safari also reports keyCode 229 on it out of order (WebKit bug 165004).
@@ -112,7 +113,8 @@ async function studioPrompt(label, defaultVal = '', { title = 'إدخال بيا
   });
   if (!res) return null;
   const val = res.querySelector('#studio-prompt-input')?.value ?? '';
-  return val.trim() ? val : null;
+  const trimmed = val.trim();
+  return trimmed ? trimmed : null;
 }
 
 function toggleSidebar(force) {
@@ -274,13 +276,14 @@ async function selectProfile(id, skipDirtyCheck) {
 // ---------------------------------------------------------------------------
 function collectConfig() {
   captureDraft(state.tab);
-  const c = state.current.config;
+  const c = structuredClone(state.current.config);
   applyDrafts(c);
   return c;
 }
 
 async function saveConfig() {
   if (!state.current) { toast('اختر بريفايل أولاً', true); return false; }
+  document.querySelectorAll('#content .errorbox').forEach(el => el.remove());
   try {
     const pendingMikrotik = state.mikrotikDirty
       ? ($('#mk-host') ? collectMikrotikSettings() : (state.current.mikrotik || null))
@@ -314,6 +317,7 @@ async function saveConfig() {
   } catch (e) {
     toast(e.message, true);
     if (e.validationErrors) {
+      document.querySelectorAll('#content .errorbox').forEach(el => el.remove());
       const box = document.createElement('div');
       box.className = 'errorbox';
       box.textContent = 'أخطاء التحقق:\n' + e.validationErrors.join('\n');
@@ -461,15 +465,17 @@ async function deleteProfile(id) {
   if (!ok) return;
   try {
     await api('/profiles/' + encodeURIComponent(id), { method: 'DELETE' });
-    state.current = null;
-    state.drafts = {};
-    state.mikrotikDirty = false;
-    markDirty(false);
-    $('#profileTitle').textContent = 'اختر بريفايل';
-    $('#profileMeta').textContent = '';
-    $('#tabs').replaceChildren();
-    if ($('#bundleMeter')) $('#bundleMeter').className = '';
-    $('#content').replaceChildren();
+    if (state.current && state.current.id === id) {
+      state.current = null;
+      state.drafts = {};
+      state.mikrotikDirty = false;
+      markDirty(false);
+      $('#profileTitle').textContent = 'اختر بريفايل';
+      $('#profileMeta').textContent = '';
+      $('#tabs').replaceChildren();
+      if ($('#bundleMeter')) $('#bundleMeter').className = '';
+      $('#content').replaceChildren();
+    }
     await loadProfiles();
   } catch (e) { toast(e.message, true); }
 }

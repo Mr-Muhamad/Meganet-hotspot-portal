@@ -595,7 +595,8 @@ var qrScanner = {
     var cfW, cfH;
     var attempts = [
       { x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' },
-      { x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' }
+      { x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' },
+      { x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' }
     ];
     if (maxDim > 1100) {
       // Native 1:1 center slice (no downscaling) catches dense link QRs cleanly
@@ -603,7 +604,8 @@ var qrScanner = {
       cfH = Math.min(1, 1200 / h);
       attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1200, invert: 'dontInvert' });
     }
-    // Contrast stretch on medium frame and center crop for glared/dim photos
+    // Bright-card and standard contrast stretch on medium frame and center crop for glared/dim/faded-ink photos
+    attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
     attempts.push({ x: 0, y: 0, w: 1, h: 1, cap: 900, enhance: true, invert: 'dontInvert' });
     if (maxDim > 1100) {
       attempts.push({ x: (1 - cfW) / 2, y: (1 - cfH) / 2, w: cfW, h: cfH, cap: 1200, enhance: true, invert: 'dontInvert' });
@@ -622,13 +624,14 @@ var qrScanner = {
   },
 
   /**
-   * Stretch luminance between the 2nd and 98th percentile in place (RGBA).
-   * Restores module contrast on low-contrast photos so jsQR's binarizer can
-   * separate dark and light modules.
+   * Stretch luminance in place (RGBA) between a lower cutoff and 98th percentile.
+   * When hiFloorRatio > 0 (brightCard), clamps dark backgrounds below hi * ratio
+   * to 0 so faded thermal gray ink on white paper keeps full contrast.
    * @param {Uint8ClampedArray} data - RGBA pixel buffer
+   * @param {number} hiFloorRatio - minimum fraction of 98th percentile for lo (0..1)
    * @returns {boolean} true when the buffer was modified
    */
-  _enhanceContrast: function(data) {
+  _stretchLuminance: function(data, hiFloorRatio) {
     var hist = new Array(256);
     var i;
     for (i = 0; i < 256; i++) hist[i] = 0;
@@ -636,10 +639,12 @@ var qrScanner = {
     for (i = 0; i < data.length; i += 4) {
       hist[(data[i] * 77 + data[i + 1] * 150 + data[i + 2] * 29) >> 8]++;
     }
-    var lo = 0, hi = 255, acc = 0, cut = total * 0.02;
-    for (lo = 0; lo < 255; lo++) { acc += hist[lo]; if (acc >= cut) break; }
+    var rawLo = 0, hi = 255, acc = 0, cut = total * 0.02;
+    for (rawLo = 0; rawLo < 255; rawLo++) { acc += hist[rawLo]; if (acc >= cut) break; }
     acc = 0;
     for (hi = 255; hi > 0; hi--) { acc += hist[hi]; if (acc >= cut) break; }
+    if (hi - rawLo < 16) return false;
+    var lo = hiFloorRatio > 0 ? Math.max(rawLo, Math.round(hi * hiFloorRatio)) : rawLo;
     if (hi - lo < 16) return false;
     var scale = 255 / (hi - lo);
     for (i = 0; i < data.length; i += 4) {
@@ -649,6 +654,27 @@ var qrScanner = {
       }
     }
     return true;
+  },
+
+  /**
+   * Stretch luminance between the 2nd and 98th percentile in place (RGBA).
+   * Restores module contrast on low-contrast photos so jsQR's binarizer can
+   * separate dark and light modules.
+   * @param {Uint8ClampedArray} data - RGBA pixel buffer
+   * @returns {boolean} true when the buffer was modified
+   */
+  _enhanceContrast: function(data) {
+    return this._stretchLuminance(data, 0);
+  },
+
+  /**
+   * Focus contrast on the upper dynamic range for white/bright paper cards
+   * printed with faded thermal/gray ink over dark backgrounds.
+   * @param {Uint8ClampedArray} data - RGBA pixel buffer
+   * @returns {boolean} true when the buffer was modified
+   */
+  _enhanceBrightCard: function(data) {
+    return this._stretchLuminance(data, 0.45);
   },
 
   /**
@@ -722,7 +748,11 @@ var qrScanner = {
             canvas.height = ch;
             ctx.drawImage(source, sx, sy, sw, sh, 0, 0, cw, ch);
             var imageData = ctx.getImageData(0, 0, cw, ch);
-            if (cfg.enhance) self._enhanceContrast(imageData.data);
+            if (cfg.enhance === 'brightCard') {
+              self._enhanceBrightCard(imageData.data);
+            } else if (cfg.enhance) {
+              self._enhanceContrast(imageData.data);
+            }
             var code = jsQR(imageData.data, cw, ch, { inversionAttempts: cfg.invert || 'dontInvert' });
             if (code && code.data) {
               done(code.data);

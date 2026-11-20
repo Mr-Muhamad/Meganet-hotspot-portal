@@ -414,11 +414,16 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(enLogin).toContain('qr_gallery_btn_text');
       expect(enLogin).toContain('HotspotErrorMap');
       expect(enLogin).not.toContain('name="target"');
+      expect(enLogin).toMatch(/http-equiv=["']?pragma["']?/i);
+      expect(enLogin).toMatch(/content=["']?no-cache["']?/i);
+      expect(enLogin).toMatch(/http-equiv=["']?expires["']?/i);
     });
 
-    test('ar/login.html preserves Arabic subdir across RouterOS POST via hidden target=ar', () => {
+    test('ar/login.html preserves Arabic subdir across RouterOS POST via hidden target=ar and sets no-cache meta', () => {
       const arLogin = fs.readFileSync(path.join(DIST, 'ar', 'login.html'), 'utf8');
       expect(arLogin).toContain('<input type="hidden" name="target" value="ar">');
+      expect(arLogin).toMatch(/http-equiv=["']?pragma["']?/i);
+      expect(arLogin).toMatch(/http-equiv=["']?expires["']?/i);
     });
 
     test('logout.html uses 20s delay with cancel button and sign_in_again label', () => {

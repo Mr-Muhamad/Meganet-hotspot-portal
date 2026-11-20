@@ -845,5 +845,44 @@ describe('Hotspot.auth', () => {
       auth.init();
       expect(auth._getVoucherHistory()).toEqual(['11112222']);
     });
+
+    test('pageshow with persisted=true reloads page on live #chap-id instead of running triggerAutoLogin', () => {
+      const origTrigger = auth.triggerAutoLogin;
+      const origLocation = window.location;
+      const reloadMock = jest.fn();
+      const triggerSpy = jest.fn();
+
+      const chapId = document.createElement('input');
+      chapId.id = 'chap-id';
+      chapId.value = '\\243';
+      document.body.appendChild(chapId);
+
+      try {
+        auth.triggerAutoLogin = triggerSpy;
+        delete window.location;
+        window.location = { ...origLocation, reload: reloadMock };
+
+        if (!auth._pageshowBound) {
+          auth.init();
+        }
+        triggerSpy.mockClear();
+
+        const persistedEvent = new Event('pageshow');
+        Object.defineProperty(persistedEvent, 'persisted', { value: true });
+        window.dispatchEvent(persistedEvent);
+        expect(reloadMock).toHaveBeenCalledTimes(1);
+        expect(triggerSpy).not.toHaveBeenCalled();
+
+        // When #chap-id is un-substituted or absent, triggerAutoLogin runs without reload
+        chapId.value = '$(chap-id)';
+        reloadMock.mockClear();
+        window.dispatchEvent(persistedEvent);
+        expect(reloadMock).not.toHaveBeenCalled();
+        expect(triggerSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        window.location = origLocation;
+        auth.triggerAutoLogin = origTrigger;
+      }
+    });
   });
 });

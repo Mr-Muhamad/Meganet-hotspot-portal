@@ -168,15 +168,19 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
-    test('_buildDecodeAttempts puts fastest 600px first, uses attemptBoth only on first two passes, and builds 1200px tiles', () => {
+    test('_buildDecodeAttempts puts fastest 600px first, adds 60% brightCard center crop for all sizes, and builds 1200px tiles', () => {
       const attempts = qrScanner._buildDecodeAttempts(4000, 3000);
       expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' });
       expect(attempts[1]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' });
+      expect(attempts[2]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
       const nativeTiles = attempts.filter(a => !a.enhance && a.w < 1 && a.h < 1 && a.cap === 1200);
       expect(nativeTiles.length).toBe(5);
-      expect(attempts.filter(a => a.enhance).length).toBe(2);
+      expect(attempts.filter(a => a.enhance).length).toBe(4);
       expect(attempts.slice(2).every(a => a.invert === 'dontInvert')).toBe(true);
-      expect(attempts.some(a => a.enhance && a.w < 1 && a.h < 1 && a.cap === 1200)).toBe(true);
+      expect(attempts.some(a => a.enhance === true && a.w < 1 && a.h < 1 && a.cap === 1200)).toBe(true);
+
+      const midAttempts = qrScanner._buildDecodeAttempts(768, 1024);
+      expect(midAttempts[2]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
     });
 
     test('_enhanceContrast stretches a low-contrast buffer and skips flat ones', () => {
@@ -191,6 +195,23 @@ describe('Hotspot.qrScanner', () => {
       expect(data[4]).toBeGreaterThan(235);
       const flat = new Uint8ClampedArray(400).fill(128);
       expect(qrScanner._enhanceContrast(flat)).toBe(false);
+    });
+
+    test('_enhanceBrightCard collapses dark background to 0 while boosting gray-on-white contrast and skips flat ones', () => {
+      // 70% dark fabric pixels (35), 15% faded gray ink pixels (140), 15% white card pixels (225)
+      const data = new Uint8ClampedArray(400);
+      for (let i = 0; i < 100; i++) {
+        const v = i < 70 ? 35 : (i < 85 ? 140 : 225);
+        data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = v;
+        data[i * 4 + 3] = 255;
+      }
+      expect(qrScanner._enhanceBrightCard(data)).toBe(true);
+      expect(data[0]).toBe(0); // dark background clamped
+      expect(data[70 * 4]).toBeGreaterThan(40);
+      expect(data[70 * 4]).toBeLessThan(120); // faded gray stays distinct from dark & white
+      expect(data[85 * 4]).toBe(255); // bright white reaches full white
+      const flat = new Uint8ClampedArray(400).fill(128);
+      expect(qrScanner._enhanceBrightCard(flat)).toBe(false);
     });
   });
 

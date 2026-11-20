@@ -290,6 +290,12 @@ var auth = {
           if (ev && ev.persisted) {
             auth._restoreRawChapPassword();
             auth.setLoadingState(false);
+            var chapInput = document.getElementById('chap-id');
+            var chapVal = chapInput ? String(chapInput.value || '').trim() : '';
+            if (chapVal && chapVal.indexOf('$(') === -1) {
+              try { window.location.reload(); } catch (reloadErr) {}
+              return;
+            }
             auth.triggerAutoLogin();
           }
         });
@@ -1110,6 +1116,9 @@ var auth = {
       var decodeOctal = function(s) {
         return s.replace(/\\(?:([0-7]{1,3})|(.))/g, function(_, oct, char) {
           if (oct) return String.fromCharCode(parseInt(oct, 8));
+          if (char === 'n') return '\n';
+          if (char === 'r') return '\r';
+          if (char === 't') return '\t';
           return char;
         });
       };

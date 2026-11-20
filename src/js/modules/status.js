@@ -61,18 +61,31 @@ var statusModule = {
       });
 
       var userEl = document.getElementById('tech-username') || document.getElementById('stat-username');
-      if (userEl) {
-        // Hide logout button if username matches MAC address format (e.g. 1C:BF:CE:B7:A4:D8 or 1c-bf-ce-b7-a4-d8)
-        var usernameVal = userEl.textContent.trim();
-        var macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
-        if (macRegex.test(usernameVal)) {
-          var logoutBtn = document.getElementById('logout-btn');
-          if (logoutBtn) {
-            logoutBtn.style.display = 'none';
-          }
-        } else if (usernameVal && usernameVal.indexOf('$(') !== 0) {
-          statusModule._recordVoucherHistory(usernameVal);
+      var usernameVal = userEl ? userEl.textContent.trim() : '';
+      var macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+      var switchCardLink = document.getElementById('switchCardLink');
+      var loginByEl = document.getElementById('tech-login-by');
+      var rawLoginBy = (loginByEl && loginByEl.textContent)
+        ? loginByEl.textContent.trim()
+        : (switchCardLink ? String(switchCardLink.getAttribute('data-login-by') || '').trim() : '');
+      var loginByVal = (rawLoginBy && rawLoginBy.indexOf('$(') === -1) ? rawLoginBy.toLowerCase() : '';
+      var isMacLogin = Boolean((usernameVal && macRegex.test(usernameVal)) || loginByVal === 'mac');
+
+      if (isMacLogin) {
+        var logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+          logoutBtn.style.display = 'none';
         }
+        if (switchCardLink) {
+          switchCardLink.style.display = 'none';
+          switchCardLink.hidden = true;
+        }
+        var plansCompact = document.querySelector ? document.querySelector('.plans-link-compact') : null;
+        if (plansCompact && !document.getElementById('viewPlansLink')) {
+          plansCompact.style.display = 'none';
+        }
+      } else if (usernameVal && usernameVal.indexOf('$(') !== 0) {
+        statusModule._recordVoucherHistory(usernameVal);
       }
 
       // Show PWA banner on load for 5s unless already running inside installed PWA

@@ -407,6 +407,65 @@ document.body.appendChild(mockSmartUsageCard);
       expect(JSON.parse(localStorage.getItem('hotspot_voucher_history'))).toEqual(['99887766']);
       expect(JSON.parse(util.getCookie('hotspot_voucher_history'))).toEqual(['99887766']);
     });
+
+    test('hides #switchCardLink and #logout-btn for MAC logins (MAC username or login-by=mac) while keeping mac-cookie/voucher visible', () => {
+      mockTimeLeft.setAttribute('data-seconds', '0');
+
+      const makeStatusActions = (username, loginBy, withPlans) => {
+        document.querySelectorAll('#stat-username, #tech-login-by, #logout-btn, .plans-link-compact').forEach((el) => el.remove());
+
+        const statUser = document.createElement('div');
+        statUser.id = 'stat-username';
+        statUser.textContent = username;
+        document.body.appendChild(statUser);
+
+        if (loginBy !== undefined) {
+          const loginByEl = document.createElement('div');
+          loginByEl.id = 'tech-login-by';
+          loginByEl.textContent = loginBy;
+          document.body.appendChild(loginByEl);
+        }
+
+        const logoutBtn = document.createElement('a');
+        logoutBtn.id = 'logout-btn';
+        document.body.appendChild(logoutBtn);
+
+        const compact = document.createElement('div');
+        compact.className = 'plans-link-compact';
+        const switchLink = document.createElement('a');
+        switchLink.id = 'switchCardLink';
+        compact.appendChild(switchLink);
+        if (withPlans) {
+          const plansLink = document.createElement('a');
+          plansLink.id = 'viewPlansLink';
+          compact.appendChild(plansLink);
+        }
+        document.body.appendChild(compact);
+
+        statusModule.init();
+        return { logoutBtn, switchLink, compact };
+      };
+
+      // Case 1: MAC address username without #viewPlansLink
+      const macUser = makeStatusActions('1C:BF:CE:B7:A4:D8', 'http-chap', false);
+      expect(macUser.logoutBtn.style.display).toBe('none');
+      expect(macUser.switchLink.style.display).toBe('none');
+      expect(macUser.switchLink.hidden).toBe(true);
+      expect(macUser.compact.style.display).toBe('none');
+
+      // Case 2: Non-MAC display name with RouterOS login-by = mac, keeping container visible when #viewPlansLink exists
+      const macProto = makeStatusActions('mac-device-1', 'mac', true);
+      expect(macProto.logoutBtn.style.display).toBe('none');
+      expect(macProto.switchLink.style.display).toBe('none');
+      expect(macProto.switchLink.hidden).toBe(true);
+      expect(macProto.compact.style.display).toBe('');
+
+      // Case 3: Normal voucher / mac-cookie keeps switch-card visible
+      const macCookie = makeStatusActions('12345678', 'mac-cookie', true);
+      expect(macCookie.logoutBtn.style.display).toBe('');
+      expect(macCookie.switchLink.style.display).toBe('');
+      expect(macCookie.switchLink.hidden).toBe(false);
+    });
   });
 
   describe('toggleTechDetails', () => {

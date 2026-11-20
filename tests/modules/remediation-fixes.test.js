@@ -451,11 +451,13 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(enExpired).toContain('toggleSupportModal()');
     });
 
-    test('status.html wraps #switchCardLink in $(if login-by != "mac") in EN and AR', () => {
+    test('status.html wraps #logout-btn and #switchCardLink in $(if login-by != "mac") in EN and AR', () => {
       const enStatus = fs.readFileSync(path.join(DIST, 'status.html'), 'utf8');
       const arStatus = fs.readFileSync(path.join(DIST, 'ar', 'status.html'), 'utf8');
-      expect(enStatus).toMatch(/\$\(if login-by != 'mac'\).*id=["']?switchCardLink["']?.*\$\(endif\)/s);
-      expect(arStatus).toMatch(/\$\(if login-by != 'mac'\).*id=["']?switchCardLink["']?.*\$\(endif\)/s);
+      expect(enStatus).toMatch(/\$\(if login-by != 'mac'\).*?id=["']?logout-btn["']?.*?\$\(endif\)/s);
+      expect(arStatus).toMatch(/\$\(if login-by != 'mac'\).*?id=["']?logout-btn["']?.*?\$\(endif\)/s);
+      expect(enStatus).toMatch(/\$\(if login-by != 'mac'\).*?id=["']?switchCardLink["']?.*?\$\(endif\)/s);
+      expect(arStatus).toMatch(/\$\(if login-by != 'mac'\).*?id=["']?switchCardLink["']?.*?\$\(endif\)/s);
     });
 
     test('status.html renders #sessionCountdownSection before #pwaBanner', () => {

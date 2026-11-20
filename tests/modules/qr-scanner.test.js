@@ -168,19 +168,19 @@ describe('Hotspot.qrScanner', () => {
       });
     });
 
-    test('_buildDecodeAttempts puts fastest 600px first, adds 60% brightCard center crop for all sizes, and builds 1200px tiles', () => {
+    test('_buildDecodeAttempts puts 600px first, 60% brightCard center crop second for all sizes, then 1100px and 1200px tiles', () => {
       const attempts = qrScanner._buildDecodeAttempts(4000, 3000);
       expect(attempts[0]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' });
-      expect(attempts[1]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' });
-      expect(attempts[2]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
+      expect(attempts[1]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
+      expect(attempts[2]).toEqual({ x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' });
       const nativeTiles = attempts.filter(a => !a.enhance && a.w < 1 && a.h < 1 && a.cap === 1200);
       expect(nativeTiles.length).toBe(5);
       expect(attempts.filter(a => a.enhance).length).toBe(4);
-      expect(attempts.slice(2).every(a => a.invert === 'dontInvert')).toBe(true);
+      expect(attempts.slice(3).every(a => a.invert === 'dontInvert')).toBe(true);
       expect(attempts.some(a => a.enhance === true && a.w < 1 && a.h < 1 && a.cap === 1200)).toBe(true);
 
       const midAttempts = qrScanner._buildDecodeAttempts(768, 1024);
-      expect(midAttempts[2]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
+      expect(midAttempts[1]).toEqual({ x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' });
     });
 
     test('_enhanceContrast stretches a low-contrast buffer and skips flat ones', () => {

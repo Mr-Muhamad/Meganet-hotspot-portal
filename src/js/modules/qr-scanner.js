@@ -583,9 +583,10 @@ var qrScanner = {
 
   /**
    * Build lightweight scale and native 1:1 tile passes for jsQR.
-   * Starts with the fastest full-frame pass (600px), then 1100px, native 1:1
-   * center crop, contrast-stretched passes, and corner tiles. Uses attemptBoth
-   * only on the first two fast passes and dontInvert on heavier ones.
+   * Starts with the fastest full-frame pass (600px), then a 60% bright-card
+   * center crop (catches faded gray ink on dark backgrounds fast), then 1100px,
+   * native 1:1 center crop, contrast-stretched passes, and corner tiles.
+   * Uses attemptBoth only on the two uncropped initial full-frame passes.
    * @param {number} w
    * @param {number} h
    * @returns {Array<Object>}
@@ -595,8 +596,8 @@ var qrScanner = {
     var cfW, cfH;
     var attempts = [
       { x: 0, y: 0, w: 1, h: 1, cap: 600, invert: 'attemptBoth' },
-      { x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' },
-      { x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' }
+      { x: 0.2, y: 0.2, w: 0.6, h: 0.6, cap: 900, enhance: 'brightCard', invert: 'dontInvert' },
+      { x: 0, y: 0, w: 1, h: 1, cap: 1100, invert: 'attemptBoth' }
     ];
     if (maxDim > 1100) {
       // Native 1:1 center slice (no downscaling) catches dense link QRs cleanly

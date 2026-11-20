@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Faded Thermal QR Cards on Dark/Textured Backgrounds (`src/js/modules/qr-scanner.js`)**: added a bright-card luminance stretch (`_enhanceBrightCard` via shared `_stretchLuminance`) paired with an unconditional relative 60% center-crop pass so mid-resolution photos (`<= 1100px`) of gray-ink QR cards on dark surfaces decode in ~30–40ms.
+- **Faded Thermal QR Cards on Dark/Textured Backgrounds (`src/js/modules/qr-scanner.js`)**: added a bright-card luminance stretch (`_enhanceBrightCard` via shared `_stretchLuminance`) paired with an unconditional relative 60% center-crop pass prioritized 2nd (right after 600px full-frame) so mid-resolution photos (`<= 1100px`) of gray-ink QR cards on dark surfaces decode in a fraction of a second.
 - **Stale CHAP Challenge Reuse on `bfcache` / Cached `login.html` (`src/templates/base.html`, `src/js/modules/auth.js`)**: added `no-cache` / `expires=-1` meta headers on `login`, reloaded the page on `pageshow` (`persisted: true`) when a live `#chap-id` is present so RouterOS generates a fresh challenge instead of rejecting with `invalid password`, and decoded `\n`/`\r`/`\t` escapes in `chapHashOnSubmit`.
-- **Hide Switch Card on MAC Authentication (`src/templates/status.html`, `src/js/modules/status.js`)**: wrapped `#switchCardLink` in RouterOS `$(if login-by != 'mac')` and hid `#switchCardLink` (and an otherwise empty `.plans-link-compact`) in `statusModule.init()` for MAC-authenticated sessions without affecting `mac-cookie` or voucher logins.
+- **Hide Logout & Switch Card on MAC Authentication (`src/templates/status.html`, `src/js/modules/status.js`)**: wrapped both `#logout-btn` and `#switchCardLink` in RouterOS `$(if login-by != 'mac')` and hid `#switchCardLink` (and an otherwise empty `.plans-link-compact`) in `statusModule.init()` for MAC-authenticated sessions without affecting `mac-cookie` or voucher logins.
 
 ## [2.8.2] - 2026-11-20
 

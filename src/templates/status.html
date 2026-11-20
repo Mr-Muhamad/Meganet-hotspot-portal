@@ -252,6 +252,7 @@
 
           <!-- Logout Section -->
           <div class="logout-section status-actions">
+            $(if login-by != 'mac')
             <a href="$(link-logout)" class="btn btn-secondary btn-block" id="logout-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -260,6 +261,7 @@
               </svg>
               <span data-i18n="logout">{{ i18n.logout }}</span>
             </a>
+            $(endif)
             <button type="button" class="btn btn-primary btn-block" onclick="refreshStatus()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="23 4 23 10 17 10"/>

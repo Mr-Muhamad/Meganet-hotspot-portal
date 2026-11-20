@@ -11,10 +11,14 @@ asarUnpack:
   - "md5.js"
 directories:
   output: dist-app
+extraResources:
+  - from: "build/icon.png"
+    to: "icon.png"
 files:
   - "**/*"
   - "!dist/**"
   - "!dist-app/**"
+  - "!dist-release/**"
   - "!docs/**"
   - "!**/*.map"
   - "!tests/**"
@@ -22,6 +26,26 @@ files:
   - "!playwright-report/**"
   - "!coverage/**"
   - "!*.zip"
+  - "!.env"
+  - "!.env.*"
+  - "!*.tmp"
+  - "!*.temp"
+  - "!.cache/**"
+  - "!icon.png"
+  - "!icon1.png"
+  - "!AGENTS.md"
+  - "!ARCHITECTURE.md"
+  - "!CHANGELOG.md"
+  - "!CONTRIBUTING.md"
+  - "!DESIGN.md"
+  - "!README*.md"
+  - "!jest.config.js"
+  - "!playwright.config.js"
+  - "!.eslintrc.json"
+  - "!scripts/compose-screenshots.py"
+  - "!scripts/build-studio.js"
+  - "!scripts/package-portal.js"
+  - "!scripts/validate-templates.js"
   # Client data must never ship inside the distributable (profiles carry the
   # clients' configs, WhatsApp numbers and uploaded brand assets).
   - "!.admin/**"

@@ -6,12 +6,15 @@ const UglifyJS = require('uglify-js');
 const nunjucks = require('nunjucks');
 const { deriveThemeTokens } = require('./scripts/color-utils.js');
 const { resolveEffectiveConfig } = require('./scripts/presets.js');
-const { sanitizeSvg } = require('./scripts/svg-utils.js');
+const { sanitizeSvg, stripDangerousMarkup } = require('./scripts/svg-utils.js');
 
 // Custom (admin-saved) presets live in .admin/custom-presets.json (or ADMIN_DATA_DIR)
 function loadCustomPresetsForBuild(customPresetsPath) {
   try {
-    const p = customPresetsPath || path.join(__dirname, '.admin', 'custom-presets.json');
+    const defaultAdminDir = process.env.ADMIN_DATA_DIR
+      ? path.resolve(process.env.ADMIN_DATA_DIR)
+      : path.join(__dirname, '.admin');
+    const p = customPresetsPath || path.join(defaultAdminDir, 'custom-presets.json');
     if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch (err) {
     console.warn('⚠ Could not read custom-presets.json:', err.message);
@@ -93,12 +96,21 @@ function buildDynamicThemeCSS(resolvedConfig) {
   const darkDecls = [];
   const lightDecls = [];
   if (theme.cardRadius !== undefined && theme.cardRadius !== null && theme.cardRadius !== '') {
-    const r = Number(theme.cardRadius);
-    if (Number.isFinite(r) && r >= 0) {
-      sharedRules.push(`--radius-md:${r}px`);
-      sharedRules.push(`--radius-sm:${Math.max(0, r - 4)}px`);
-      sharedRules.push(`--radius-lg:${r + 4}px`);
-      sharedRules.push(`--radius-xl:${r + 12}px`);
+    const m = /^\s*(\d+(?:\.\d+)?)\s*(px|rem|em|%)?\s*$/.exec(String(theme.cardRadius));
+    if (m) {
+      const n = Number(m[1]);
+      const unit = m[2] || 'px';
+      if (Number.isFinite(n) && n >= 0) {
+        if (unit === 'px') {
+          sharedRules.push(`--radius-lg:${n}px`);
+          sharedRules.push(`--radius-md:${Math.max(0, Math.round(n * 0.625))}px`);
+          sharedRules.push(`--radius-sm:${Math.max(0, Math.round(n * 0.375))}px`);
+        } else {
+          sharedRules.push(`--radius-lg:${n}${unit}`);
+          sharedRules.push(`--radius-md:${+(n * 0.625).toFixed(3)}${unit}`);
+          sharedRules.push(`--radius-sm:${+(n * 0.375).toFixed(3)}${unit}`);
+        }
+      }
     }
   }
   if (tokens) {
@@ -304,9 +316,6 @@ function generatePage(page, lang, options = {}) {
     const pageTranslations = filterTranslationsForPage(allTranslations, page);
     const pageTranslationsJson = JSON.stringify(pageTranslations).replace(/<\//g, '<\\/');
 
-    const theme = config.theme || {};
-    const themeTokens = deriveThemeTokens(theme.primaryColor, theme.backgroundColor);
-
     const logoInline = inlineSVG(path.join(assetsDir, 'logo.svg'), svgCache);
     const prandTitleInline = inlineSVG(path.join(assetsDir, 'prand-title.svg'), svgCache);
 
@@ -320,8 +329,7 @@ function generatePage(page, lang, options = {}) {
       minify: options.minify !== false,
       logoInline: logoInline,
       prandTitleInline: prandTitleInline,
-      config: config,
-      themeTokens: themeTokens
+      config: config
     });
 
     if (options.minify !== false) {
@@ -331,7 +339,7 @@ function generatePage(page, lang, options = {}) {
         removeComments: true,
         ignoreCustomComments: [/^ros:/],
         minifyCSS: true,
-        minifyJS: true,
+        minifyJS: { compress: { arrows: false }, mangle: true },
         keepClosingSlash: true,
         caseSensitive: true
       });
@@ -407,11 +415,12 @@ function copyAssets(options = {}) {
         if (entry.isDirectory()) {
           copyDir(srcPath, destPath, false);
         } else if (path.extname(entry.name).toLowerCase() === '.svg') {
+          const rawSvg = fs.readFileSync(srcPath, 'utf8');
           try {
-            const safeSvg = sanitizeSvg(fs.readFileSync(srcPath, 'utf8'));
+            const safeSvg = sanitizeSvg(rawSvg);
             fs.writeFileSync(destPath, safeSvg, 'utf8');
           } catch {
-            fs.copyFileSync(srcPath, destPath);
+            fs.writeFileSync(destPath, stripDangerousMarkup(rawSvg), 'utf8');
           }
         } else {
           fs.copyFileSync(srcPath, destPath);
@@ -461,10 +470,10 @@ function build(options = {}) {
     console.error(`✖ config.json failed validation (${configErrors.length} error${configErrors.length === 1 ? '' : 's'}):`);
     configErrors.forEach(e => console.error(`  - ${e}`));
     console.error('Run "npm run validate:config" for details. Aborting build.');
-    process.exitCode = 1;
     if (options.throwOnError) {
       throw new Error(`config validation failed: ${configErrors.join('; ')}`);
     }
+    process.exitCode = 1;
     return;
   }
 
@@ -522,7 +531,7 @@ function build(options = {}) {
     if (resolvedConfig.general && resolvedConfig.general.poweredByUrl) {
       apiContent = apiContent.replace(
         /"venue-info-url":\s*""/,
-        `"venue-info-url": ${JSON.stringify(resolvedConfig.general.poweredByUrl)}`
+        () => `"venue-info-url": ${JSON.stringify(resolvedConfig.general.poweredByUrl)}`
       );
     }
     fs.writeFileSync(apiDest, apiContent, 'utf8');

@@ -12,8 +12,12 @@ const ROOT_DIR = path.join(__dirname, '..');
 
 function resolveBuildNumber() {
   const fromEnv = process.env.BUILD_NUMBER || process.env.GITHUB_RUN_NUMBER;
-  if (fromEnv && String(fromEnv).trim()) {
-    return String(fromEnv).trim();
+  if (fromEnv != null && String(fromEnv).trim()) {
+    const trimmed = String(fromEnv).trim();
+    if (!/^\d+$/.test(trimmed)) {
+      throw new Error(`Invalid BUILD_NUMBER: "${trimmed}" (digits only)`);
+    }
+    return trimmed;
   }
   try {
     return execSync('git rev-list --count HEAD', { cwd: ROOT_DIR, stdio: ['ignore', 'pipe', 'ignore'] })

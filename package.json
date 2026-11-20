@@ -38,9 +38,11 @@
   },
   "license": "MIT",
   "dependencies": {
+    "clean-css": "^4.2.4",
     "html-minifier": "^4.0.0",
     "nunjucks": "^3.2.4",
     "svgo": "^3.3.5",
+    "uglify-js": "^3.19.3",
     "yazl": "^3.3.1"
   },
   "devDependencies": {

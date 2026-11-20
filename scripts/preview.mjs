@@ -141,6 +141,7 @@ const scenarios = {
 
   // Captive-portal detected client (extra notice on the login footer).
   captive: {
+    vars: { ...baseVars },
     conds: { ...baseConds, captive: true }
   }
 };
@@ -154,27 +155,33 @@ function htmlEscape(s) {
 }
 
 function substitute(html, scenario) {
-  const { vars, conds } = scenario;
+  const { vars = baseVars, conds = baseConds } = scenario || {};
 
   // Evaluate a RouterOS condition: plain $(if x) uses the flags map,
-  // comparison $(if x == "y") checks the demo value.
+  // comparison $(if x == "y") / $(if x != "y") checks the demo value.
   const evalCondition = (name, comparison) => {
     if (!comparison) return !!conds[name];
-    const expected = comparison.replace(/^\s*==\s*/, '').replace(/^["']|["']$/g, '');
-    return String(vars[name] ?? baseVars[name] ?? '') === expected;
+    const m = /^\s*(==|!=)\s*(.+)$/.exec(comparison);
+    if (!m) return !!conds[name];
+    const op = m[1];
+    const expected = m[2].trim().replace(/^["']|["']$/g, '');
+    const actual = String(vars[name] ?? baseVars[name] ?? '');
+    return op === '!=' ? actual !== expected : actual === expected;
   };
-  // $(if x == "y") — the operator + literal part of a conditional.
-  const compare = '(\\s*==\\s*(?:"[^"]*"|\'[^\']*\'|[^)]+))?';
+  // $(if x == "y") or $(if x != "y")
+  const compare = '(\\s*(?:==|!=)\\s*(?:"[^"]*"|\'[^\']*\'|[^)]+))?';
+  // Forbid crossing another $(if ), $(else), or $(endif) so flat conditionals never eat neighbors.
+  const seg = '(?:(?!\\$\\((?:if |else\\)|endif\\)))[\\s\\S])*?';
+  const ifElseRe = new RegExp(`\\$\\(if ([a-z-]+)${compare}\\)(${seg})\\$\\(else\\)(${seg})\\$\\(endif\\)`, 'g');
+  const ifOnlyRe = new RegExp(`\\$\\(if ([a-z-]+)${compare}\\)(${seg})\\$\\(endif\\)`, 'g');
 
-  // Conditionals with $(else) first, then bare $(if)...$(endif).
-  html = html.replace(
-    new RegExp(`\\$\\(if ([a-z-]+)${compare}\\)([\\s\\S]*?)\\$\\(else\\)([\\s\\S]*?)\\$\\(endif\\)`, 'g'),
-    (m, name, comparison, trueBranch, falseBranch) => (evalCondition(name, comparison) ? trueBranch : falseBranch) || ''
-  );
-  html = html.replace(
-    new RegExp(`\\$\\(if ([a-z-]+)${compare}\\)([\\s\\S]*?)\\$\\(endif\\)`, 'g'),
-    (m, name, comparison, trueBranch) => (evalCondition(name, comparison) ? trueBranch : '') || ''
-  );
+  for (let pass = 0; pass < 10; pass++) {
+    const prev = html;
+    html = html
+      .replace(ifElseRe, (_m, name, comparison, trueBranch, falseBranch) => (evalCondition(name, comparison) ? trueBranch : falseBranch) || '')
+      .replace(ifOnlyRe, (_m, name, comparison, trueBranch) => (evalCondition(name, comparison) ? trueBranch : '') || '');
+    if (html === prev) break;
+  }
 
   // Simple variable substitution: $(var) and the URL/HTML-escaped $(var-esc) forms.
   // Lazy name capture so "username-esc" parses as name="username" + "-esc" suffix.
@@ -189,7 +196,7 @@ function substitute(html, scenario) {
   });
 
   // Safety net: strip any unmatched RouterOS conditional markers.
-  html = html.replace(/\$\(if [a-z-]+\)|\$\(else\)|\$\(endif\)/gi, '');
+  html = html.replace(/\$\(if [^)]+\)|\$\(else\)|\$\(endif\)/gi, '');
 
   if (scenario && scenario.forcePwaBanner) {
     html = html.replace('</head>', '<style>#pwaBanner{display:block!important}</style></head>');
@@ -208,6 +215,12 @@ const MIME = {
   '.js': 'text/javascript',
   '.json': 'application/json',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
   '.webmanifest': 'application/manifest+json'
@@ -217,7 +230,12 @@ function parseArgs() {
   const args = { port: 8765, scenario: 'default', open: false, pinLang: true, dist: process.env.PREVIEW_DIST_DIR || '' };
   for (let i = 2; i < process.argv.length; i++) {
     const a = process.argv[i];
-    if (a === '--port') args.port = Number(process.argv[++i]);
+    if (a === '--port') {
+      const parsedPort = Number(process.argv[++i]);
+      if (Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535) {
+        args.port = parsedPort;
+      }
+    }
     else if (a === '--scenario') args.scenario = process.argv[++i];
     else if (a === '--dist') args.dist = process.argv[++i];
     else if (a === '--open') args.open = true;
@@ -242,6 +260,15 @@ if (!existsSync(ROOT)) {
 
 const server = createServer(async (req, res) => {
   try {
+    const hostHeader = String(req.headers.host || '').toLowerCase();
+    const hostName = hostHeader.startsWith('[')
+      ? hostHeader.slice(0, hostHeader.indexOf(']') + 1)
+      : hostHeader.split(':')[0];
+    if (hostName && hostName !== '127.0.0.1' && hostName !== 'localhost' && hostName !== '[::1]') {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Preview 403: invalid host header');
+    }
+
     const reqUrl = new URL(req.url, 'http://127.0.0.1');
     let urlPath = decodeURIComponent(reqUrl.pathname);
     if (urlPath.includes('$(')) urlPath = '/alogin.html'; // unsubstituted MikroTik path
@@ -258,17 +285,17 @@ const server = createServer(async (req, res) => {
     }
     if (urlPath.endsWith('/')) filePath = join(filePath, 'index.html');
 
-    // Pin the language cookie to the URL so pages don't auto-redirect while
-    // reviewing (ui.initLang defaults to 'ar' when the cookie is absent).
-    // --no-pin-lang hands the language decision back to the portal (E2E).
-    if (args.pinLang) {
+    let data = await readFile(filePath);
+    const ext = extname(filePath).toLowerCase();
+
+    // Pin the language cookie ONLY on HTML documents so CSS/JS/JSON subresource
+    // fetches from root (/portal.css, /announcements.json) don't overwrite AR.
+    if (args.pinLang && ext === '.html') {
       const lang = urlPath.startsWith('/ar/') ? 'ar' : 'en';
       res.setHeader('Set-Cookie', `hotspot_lang=${lang}; Path=/; Max-Age=86400; SameSite=Lax`);
     }
 
-    let data = await readFile(filePath);
-    const ext = extname(filePath).toLowerCase();
-    if (ext === '.html' || ext === '.txt') {
+    if (ext === '.html' || ext === '.txt' || urlPath.toLowerCase().endsWith('/api.json')) {
       data = Buffer.from(substitute(data.toString('utf8'), activeScenario));
     }
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });

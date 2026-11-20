@@ -207,6 +207,7 @@ function deriveThemeTokens(primaryColor, backgroundColor) {
 
     if (!primaryIsDefault) {
       dark['color-primary'] = primary;
+      dark['color-input-focus'] = primary;
       dark['color-primary-hover'] = adjustLightness(primary, -9);
       dark['color-primary-active'] = adjustLightness(primary, -18);
       dark['color-primary-text'] = readableTextOn(primary);
@@ -218,7 +219,7 @@ function deriveThemeTokens(primaryColor, backgroundColor) {
       light['color-primary'] = adjustLightness(primary, -12);
       light['color-primary-hover'] = adjustLightness(primary, -20);
       light['color-primary-active'] = adjustLightness(primary, -30);
-      light['color-primary-text'] = '#ffffff';
+      light['color-primary-text'] = readableTextOn(light['color-primary']);
       light['color-primary-bg'] = withAlpha(light['color-primary'], 0.08);
       light['color-primary-bright-text'] = adjustLightness(primary, -18);
       // The light theme needs the FULL alpha ladder derived too — its static
@@ -232,10 +233,6 @@ function deriveThemeTokens(primaryColor, backgroundColor) {
       // Light-theme focus ring follows the client brand too (it used to stay
       // statically green even when the dark theme was recolored).
       light['color-input-focus'] = light['color-primary'];
-      [0.05, 0.10, 0.15, 0.25].forEach(function (a) {
-        var v = withAlpha(light['color-primary'], a);
-        if (v) light['color-primary-alpha-' + String(Math.round(a * 100)).padStart(2, '0')] = v;
-      });
     }
   }
 

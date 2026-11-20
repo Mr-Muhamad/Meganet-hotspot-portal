@@ -41,7 +41,7 @@ if (gotTheLock) {
 
   app.whenReady().then(async () => {
     try {
-      // Start local backend on an ephemeral free loopback port (or fallback to 8899)
+      // Start local backend on an ephemeral free loopback port (0 when ADMIN_PORT is unset)
       serverPort = await startServer(Number(process.env.ADMIN_PORT) || 0);
 
       createWindow();
@@ -81,10 +81,9 @@ function isAllowedExternalUrl(rawUrl) {
 }
 
 function createWindow() {
-  const iconCandidate = path.join(__dirname, '..', 'build', 'icon.png');
-  const windowIcon = iconCandidate.includes('app.asar')
-    ? iconCandidate.replace('app.asar', 'app.asar.unpacked')
-    : iconCandidate;
+  const windowIcon = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.png')
+    : path.join(__dirname, '..', 'build', 'icon.png');
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -126,6 +125,19 @@ function createWindow() {
       shell.openExternal(url);
     }
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('did-create-window', (childWin) => {
+    childWin.webContents.on('will-navigate', (event, url) => {
+      if (isAllowedAppUrl(url, serverPort)) return;
+      event.preventDefault();
+      if (isAllowedExternalUrl(url)) shell.openExternal(url);
+    });
+    childWin.webContents.setWindowOpenHandler(({ url }) => {
+      if (isAllowedAppUrl(url, serverPort)) return { action: 'allow' };
+      if (isAllowedExternalUrl(url)) shell.openExternal(url);
+      return { action: 'deny' };
+    });
   });
 
   mainWindow.on('closed', () => {

@@ -36,6 +36,7 @@ try {
 const SCHEMA = {
   general: {
     type: 'object',
+    required: true,
     fields: {
       networkName: { type: 'string', required: true },
       networkName_ar: { type: 'string' },
@@ -50,6 +51,7 @@ const SCHEMA = {
   },
   theme: {
     type: 'object',
+    required: true,
     fields: {
       primaryColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{6}$/, hint: 'CSS hex color, 6 digits, like #22c55e' },
       backgroundColor: { type: 'string', required: true, pattern: /^#[0-9a-fA-F]{6}$/, hint: 'CSS hex color, 6 digits, like #020617' },
@@ -61,6 +63,7 @@ const SCHEMA = {
   },
   features: {
     type: 'object',
+    required: true,
     fields: {
       loginMode: { type: 'string', required: true, enum: ['normal_only', 'voucher_only', 'both'], hint: 'which login panels the login page shows' },
       voucherPasswordMode: { type: 'string', enum: ['same', 'empty'], hint: 'same = username is reused as password, empty = blank password' },
@@ -106,6 +109,7 @@ const SCHEMA = {
   },
   support: {
     type: 'object',
+    required: true,
     fields: {
       plansWhatsapp: { type: 'string', pattern: /^\d{6,}$/, hint: 'digits only, country code without + (e.g. 201212208788)' },
       outlets: {
@@ -139,15 +143,12 @@ const SCHEMA = {
 // Validator
 // ---------------------------------------------------------------------------
 
-const errors = [];
-const warnings = [];
-
 function describe(value) {
   const s = JSON.stringify(value);
   return s === undefined ? String(value) : s;
 }
 
-function checkField(pathStr, value, rule) {
+function checkField(pathStr, value, rule, errors) {
   if (value === undefined || value === null) {
     if (rule.required) errors.push(`${pathStr}: missing, expected ${rule.hint || rule.type}`);
     return;
@@ -171,25 +172,35 @@ function checkField(pathStr, value, rule) {
     errors.push(`${pathStr}: ${describe(value)} is below the minimum ${rule.min}`);
   }
 
-  // Nested arrays (support.agents) recurse here — top-level arrays (plans)
+  // Nested arrays (support.agents / support.outlets) recurse here — top-level arrays (plans)
   // use the same rule shape.
   if (rule.type === 'array' && rule.itemFields) {
     value.forEach((item, i) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        errors.push(`${pathStr}[${i}]: expected an object`);
+        return;
+      }
       for (const [field, itemRule] of Object.entries(rule.itemFields)) {
-        checkField(`${pathStr}[${i}].${field}`, item[field], itemRule);
+        checkField(`${pathStr}[${i}].${field}`, item[field], itemRule, errors);
       }
     });
   }
 }
 
 function validate(config, assetsDir = ASSETS_DIR) {
-  // Fresh state per call — validate() may run repeatedly (CLI, build, tests).
-  errors.length = 0;
-  warnings.length = 0;
+  // Fresh state per call — validate() may run repeatedly without aliasing arrays.
+  const errors = [];
+  const warnings = [];
 
-  if (config && config.theme && config.theme.preset === '') {
-    delete config.theme.preset;
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return { errors: ['config: expected a JSON object'], warnings };
   }
+
+  const hasPreset = Boolean(
+    config.theme &&
+    typeof config.theme.preset === 'string' &&
+    config.theme.preset.trim().length > 0
+  );
 
   for (const [section, sectionRule] of Object.entries(SCHEMA)) {
     const value = config[section];
@@ -206,7 +217,7 @@ function validate(config, assetsDir = ASSETS_DIR) {
 
     if (sectionRule.type === 'object' && sectionRule.fields) {
       for (const [field, rule] of Object.entries(sectionRule.fields)) {
-        checkField(`${section}.${field}`, value[field], rule);
+        checkField(`${section}.${field}`, value[field], rule, errors);
       }
       // Sections with declared fields shouldn't carry unknown top-level keys
       // (typos like "feautres" live one level up, not here).
@@ -214,8 +225,12 @@ function validate(config, assetsDir = ASSETS_DIR) {
 
     if (sectionRule.type === 'array' && sectionRule.itemFields) {
       value.forEach((item, i) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          errors.push(`${section}[${i}]: expected an object`);
+          return;
+        }
         for (const [field, rule] of Object.entries(sectionRule.itemFields)) {
-          checkField(`${section}[${i}].${field}`, item[field], rule);
+          checkField(`${section}[${i}].${field}`, item[field], rule, errors);
         }
       });
     }
@@ -232,7 +247,7 @@ function validate(config, assetsDir = ASSETS_DIR) {
     if (sectionRule.i18nKeys) {
       for (const [k, v] of Object.entries(value)) {
         if (k.startsWith('_')) continue; // comments/hints
-        if (!KNOWN_I18N_KEYS.has(k)) {
+        if (KNOWN_I18N_KEYS.size > 0 && !KNOWN_I18N_KEYS.has(k)) {
           errors.push(`${section}.${k}: unknown i18n key — it must be one of the portal's translation keys (e.g. voucher_label)`);
           continue;
         }
@@ -282,15 +297,14 @@ function validate(config, assetsDir = ASSETS_DIR) {
   }
 
   // --- cross-field rules --------------------------------------------------
-  // (qrScannerUrl is optional: the default is the self-hosted qr.html scanner)
 
   // cardRadius may be omitted only when a theme preset provides it.
-  if (config.theme && !config.theme.preset && config.theme.cardRadius === undefined) {
+  if (config.theme && typeof config.theme === 'object' && !hasPreset && (config.theme.cardRadius === undefined || config.theme.cardRadius === null)) {
     errors.push('theme.cardRadius: missing — required unless theme.preset is set');
   }
 
   // theme.preset must be a built-in id or a custom:<id> saved in the admin tool
-  if (config.theme && config.theme.preset) {
+  if (hasPreset) {
     const p = String(config.theme.preset).trim();
     if (p && !BUILTIN_PRESET_IDS.includes(p) && !CUSTOM_PRESET_RE.test(p)) {
       errors.push(`theme.preset: "${p}" is not a built-in preset [${BUILTIN_PRESET_IDS.join(', ')}] nor a custom:<id> preset`);
@@ -301,7 +315,9 @@ function validate(config, assetsDir = ASSETS_DIR) {
 
   if (Array.isArray(config.support?.agents)) {
     config.support.agents.forEach((agent, i) => {
-      if (agent.image && !fs.existsSync(path.join(assetsDir, agent.image))) {
+      if (!agent || typeof agent !== 'object' || !agent.image) return;
+      const cleanedRel = String(agent.image).replace(/^\.?\/?assets[\\/]/i, '').replace(/\\/g, '/').trim();
+      if (cleanedRel && !fs.existsSync(path.join(assetsDir, cleanedRel))) {
         warnings.push(`support.agents[${i}].image: "${agent.image}" not found in src/assets/ (avatar falls back to the icon)`);
       }
     });
@@ -322,7 +338,10 @@ function validateConfigFile(configPath = CONFIG_PATH, assetsDir = ASSETS_DIR) {
 
 // CLI entry point
 if (require.main === module) {
-  const { errors, warnings } = validateConfigFile();
+  const cliTarget = process.argv[2]
+    ? path.resolve(process.argv[2])
+    : (fs.existsSync(CONFIG_PATH) ? CONFIG_PATH : path.join(__dirname, '..', 'config.example.json'));
+  const { errors, warnings } = validateConfigFile(cliTarget);
   for (const w of warnings) console.log(`  ⚠  ${w}`);
   if (errors.length) {
     console.error(`\n✖ config.json failed validation: ${errors.length} error${errors.length === 1 ? '' : 's'}\n`);

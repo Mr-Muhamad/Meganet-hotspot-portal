@@ -142,8 +142,8 @@ function validateAll() {
 
   // Check if dist directory exists
   if (!fs.existsSync(distDir)) {
-    console.log('⚠️  dist/ directory not found. Run "npm run build" first.\n');
-    return;
+    console.error('❌ dist/ directory not found. Run "npm run build" first.\n');
+    return { valid: false, filesValidated: 0, totalErrors: 1, totalWarnings: 0 };
   }
 
   // The dist/ HTML set is fixed by the build (build.js page lists) — spell
@@ -156,6 +156,7 @@ function validateAll() {
     path.join(__dirname, '..', 'dist', 'login.html'),
     path.join(__dirname, '..', 'dist', 'logout.html'),
     path.join(__dirname, '..', 'dist', 'plans.html'),
+    path.join(__dirname, '..', 'dist', 'redirect.html'),
     path.join(__dirname, '..', 'dist', 'status.html'),
     path.join(__dirname, '..', 'dist', 'ar', 'alogin.html'),
     path.join(__dirname, '..', 'dist', 'ar', 'error.html'),
@@ -168,8 +169,10 @@ function validateAll() {
   ];
 
   distPages.forEach(filePath => {
+    const displayName = path.relative(path.join(__dirname, '..', 'dist'), filePath).replace(/\\/g, '/');
     if (!fs.existsSync(filePath)) {
-      console.warn(`⚠️  Missing from dist/: ${path.basename(filePath)}`);
+      console.error(`❌ Missing from dist/: ${displayName}`);
+      totalErrors++;
       return;
     }
     const result = validateFile(filePath);
@@ -178,7 +181,6 @@ function validateAll() {
     totalErrors += result.errors.length;
     totalWarnings += result.warnings.length;
 
-    const displayName = path.relative(path.join(__dirname, '..', 'dist'), filePath).replace(/\\/g, '/');
     if (result.valid && result.warnings.length === 0) {
       console.log(`✅ ${displayName}`);
     } else if (result.valid) {
@@ -198,18 +200,19 @@ function validateAll() {
   console.log(`   Errors: ${totalErrors}`);
   console.log(`   Warnings: ${totalWarnings}`);
 
-  if (totalErrors === 0) {
+  const valid = totalErrors === 0;
+  if (valid) {
     console.log('\n✨ All templates are valid!\n');
-    process.exit(0);
   } else {
     console.log('\n❌ Some templates have errors. Please fix them.\n');
-    process.exit(1);
   }
+  return { valid, filesValidated, totalErrors, totalWarnings };
 }
 
 // Run validation
 if (require.main === module) {
-  validateAll();
+  const summary = validateAll();
+  process.exit(summary && summary.valid ? 0 : 1);
 }
 
 module.exports = { validateFile, validateAll };

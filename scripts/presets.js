@@ -237,8 +237,11 @@ const CUSTOM_PRESET_RE = /^custom:[a-z0-9-]{1,40}$/;
  */
 function resolveEffectiveConfig(raw, extraPresets) {
   const config = JSON.parse(JSON.stringify(raw || {}));
-  if (config.theme && config.theme.preset === '') {
-    delete config.theme.preset;
+  if (config.theme && typeof config.theme.preset === 'string') {
+    config.theme.preset = config.theme.preset.trim();
+    if (!config.theme.preset) {
+      delete config.theme.preset;
+    }
   }
   const presetName = config.theme && config.theme.preset;
   const preset = presetName

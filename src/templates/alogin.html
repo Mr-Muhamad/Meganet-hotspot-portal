@@ -146,6 +146,9 @@
             } catch (uErr) {
               uTarget.textContent = rawUser.replace(/%3A/gi, ':');
             }
+            if (typeof util !== 'undefined' && util.recordVoucherHistory) {
+              util.recordVoucherHistory(uTarget.textContent.trim());
+            }
           }
         }
 

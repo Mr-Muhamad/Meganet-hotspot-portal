@@ -382,6 +382,31 @@ document.body.appendChild(mockSmartUsageCard);
       expect(statUser.textContent).toBe('user name@wifi');
       expect(techUser.textContent).toBe('1C:BF:CE:B7:A4:D8');
     });
+
+    test('records verified voucher #stat-username into hotspot_voucher_history while ignoring MAC and trial usernames', () => {
+      localStorage.clear();
+      sessionStorage.clear();
+      util.setCookie('hotspot_voucher_history', '', -1);
+      util.setCookie('hotspot_mode', '', -1);
+      mockTimeLeft.setAttribute('data-seconds', '0');
+
+      const statUser = document.createElement('div');
+      statUser.id = 'stat-username';
+      document.body.appendChild(statUser);
+
+      statUser.textContent = '1C:BF:CE:B7:A4:D8';
+      statusModule.init();
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+
+      statUser.textContent = 'T-1C:BF:CE:B7:A4:D8';
+      statusModule.init();
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+
+      statUser.textContent = '99887766';
+      statusModule.init();
+      expect(JSON.parse(localStorage.getItem('hotspot_voucher_history'))).toEqual(['99887766']);
+      expect(JSON.parse(util.getCookie('hotspot_voucher_history'))).toEqual(['99887766']);
+    });
   });
 
   describe('toggleTechDetails', () => {

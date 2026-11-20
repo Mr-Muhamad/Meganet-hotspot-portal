@@ -56,11 +56,16 @@ test('the language toggle switches to the English portal', async ({ context, pag
   expect(cookies.find((c) => c.name === 'hotspot_lang')?.value).toBe('en');
 });
 
-test('alogin shows the connected state, balance button, and redirects to status after countdown', async ({ page }) => {
+test('alogin shows the connected state, balance button, and redirects to status after countdown', async ({ page, context }) => {
   await page.goto(`${DEFAULT}/ar/alogin.html`);
   // the countdown is LIVE (3→2→1) — assert a live digit, not a snapshot of "3"
   await expect(page.locator('#countdown')).toHaveText(/[1-3]/);
   await expect(page.locator('[data-i18n="connected"]')).toBeVisible();
+  const aloginUser = ((await page.locator('#alogin-username bdi').textContent()) || '').trim();
+  const storedHistory = await page.evaluate(() => JSON.parse(localStorage.getItem('hotspot_voucher_history') || '[]'));
+  expect(storedHistory).toContain(aloginUser);
+  const historyCookie = (await context.cookies()).find((c) => c.name === 'hotspot_voucher_history');
+  expect(JSON.parse(decodeURIComponent(historyCookie ? historyCookie.value : '[]'))).toContain(aloginUser);
   // Primary button navigates straight to the balance/status page
   await expect(page.locator('.card #viewStatusBtn.btn-primary')).toHaveAttribute('href', './status.html');
   // Secondary button opens Google directly and cancels the status redirect timer on click

@@ -800,5 +800,50 @@ describe('Hotspot.auth', () => {
       expect(mockSubmit).not.toHaveBeenCalled();
       window.history.pushState({}, '', 'http://localhost/');
     });
+
+    test('applyVoucherCredentials and onFormSubmit do not store unverified codes in hotspot_voucher_history', () => {
+      localStorage.removeItem('hotspot_voucher_history');
+      sessionStorage.removeItem('hotspot_voucher_history');
+      util.setCookie('hotspot_voucher_history', '', -1);
+
+      mockVoucher.value = '88776655';
+      const event = { preventDefault: jest.fn(), stopImmediatePropagation: jest.fn() };
+      auth.onFormSubmit(event);
+      auth.applyVoucherCredentials('88776655');
+
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+      expect(sessionStorage.getItem('hotspot_voucher_history')).toBeNull();
+      expect(util.getCookie('hotspot_voucher_history')).toBeNull();
+    });
+
+    test('auth.init with stored hotspot_last_voucher does not write it into hotspot_voucher_history', () => {
+      localStorage.removeItem('hotspot_voucher_history');
+      sessionStorage.removeItem('hotspot_voucher_history');
+      util.setCookie('hotspot_voucher_history', '', -1);
+      localStorage.setItem('hotspot_last_voucher', '44332211');
+
+      auth.init();
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+      expect(sessionStorage.getItem('hotspot_voucher_history')).toBeNull();
+      expect(util.getCookie('hotspot_voucher_history')).toBeNull();
+    });
+
+    test('auth.init removes #username from hotspot_voucher_history on permanent error even without hotspot_last_voucher', () => {
+      localStorage.removeItem('hotspot_voucher_history');
+      sessionStorage.removeItem('hotspot_voucher_history');
+      util.setCookie('hotspot_voucher_history', '', -1);
+
+      auth._addVoucherToHistory('11112222');
+      auth._addVoucherToHistory('99990000');
+
+      const errEl = document.createElement('div');
+      errEl.id = 'errorMessage';
+      errEl.textContent = 'invalid password';
+      document.body.appendChild(errEl);
+      mockUsernameInput.value = '99990000';
+
+      auth.init();
+      expect(auth._getVoucherHistory()).toEqual(['11112222']);
+    });
   });
 });

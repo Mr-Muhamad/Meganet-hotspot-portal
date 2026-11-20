@@ -281,6 +281,58 @@ var util = {
       cancelled = true;
       clearInterval(interval);
     };
+  },
+
+  /**
+   * Append a verified voucher code to the recent-cards list (up to 3),
+   * skipping un-substituted RouterOS tags, MAC/trial names, and normal accounts.
+   * @param {string} code - Authenticated username/voucher from post-login page
+   * @returns {boolean} True when saved
+   */
+  recordVoucherHistory: function(code) {
+    try {
+      var val = String(code || '').trim();
+      if (!val || val.indexOf('$(') !== -1) return false;
+      if (/^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/.test(val)) return false;
+      if (/^T-(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/i.test(val)) return false;
+
+      var savedMode = null;
+      try { if (typeof sessionStorage !== 'undefined') savedMode = sessionStorage.getItem('hotspot_mode'); } catch (eM1) {}
+      if (!savedMode) { try { if (typeof localStorage !== 'undefined') savedMode = localStorage.getItem('hotspot_mode'); } catch (eM2) {} }
+      if (!savedMode && util.getCookie) {
+        try { savedMode = util.getCookie('hotspot_mode'); } catch (eM3) {}
+      }
+      if (savedMode === 'normal') return false;
+
+      var raw = null;
+      try { if (typeof sessionStorage !== 'undefined') raw = sessionStorage.getItem('hotspot_voucher_history'); } catch (e1) {}
+      if (!raw) { try { if (typeof localStorage !== 'undefined') raw = localStorage.getItem('hotspot_voucher_history'); } catch (e2) {} }
+      if (!raw && util.getCookie) {
+        try { raw = util.getCookie('hotspot_voucher_history'); } catch (e3) {}
+      }
+
+      var list = [];
+      if (raw) {
+        try {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            list = parsed.filter(function(item) { return typeof item === 'string' && item.trim().length > 0; });
+          }
+        } catch (e4) {}
+      }
+
+      list = list.filter(function(item) { return item !== val; });
+      list.unshift(val);
+      var serialized = JSON.stringify(list.slice(0, 3));
+      try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('hotspot_voucher_history', serialized); } catch (e5) {}
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem('hotspot_voucher_history', serialized); } catch (e6) {}
+      if (util.setCookie) {
+        try { util.setCookie('hotspot_voucher_history', serialized, 30); } catch (e7) {}
+      }
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 };
 

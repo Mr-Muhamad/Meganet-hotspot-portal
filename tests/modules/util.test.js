@@ -291,4 +291,41 @@ describe('Hotspot.util', () => {
       });
     });
   });
+
+  describe('recordVoucherHistory', () => {
+    const clearHistoryState = () => {
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      util.setCookie('hotspot_voucher_history', '', -1);
+      util.setCookie('hotspot_mode', '', -1);
+    };
+
+    beforeEach(clearHistoryState);
+    afterEach(clearHistoryState);
+
+    test('deduplicates and caps stored vouchers at 3 across storage and cookie', () => {
+      ['1111', '2222', '3333', '4444', '2222'].forEach((c) => {
+        expect(util.recordVoucherHistory(c)).toBe(true);
+      });
+
+      const expected = ['2222', '4444', '3333'];
+      expect(JSON.parse(sessionStorage.getItem('hotspot_voucher_history'))).toEqual(expected);
+      expect(JSON.parse(localStorage.getItem('hotspot_voucher_history'))).toEqual(expected);
+      expect(JSON.parse(util.getCookie('hotspot_voucher_history'))).toEqual(expected);
+    });
+
+    test('ignores empty values, un-substituted tags, MAC addresses, and trial T-<MAC> names', () => {
+      ['', '   ', '$(username-esc)', 'AA:BB:CC:DD:EE:FF', 'aa-bb-cc-dd-ee-ff', 'T-AA:BB:CC:DD:EE:FF'].forEach((bad) => {
+        expect(util.recordVoucherHistory(bad)).toBe(false);
+      });
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+      expect(util.getCookie('hotspot_voucher_history')).toBeNull();
+    });
+
+    test('skips recording when hotspot_mode is normal (account login)', () => {
+      localStorage.setItem('hotspot_mode', 'normal');
+      expect(util.recordVoucherHistory('alice_user')).toBe(false);
+      expect(localStorage.getItem('hotspot_voucher_history')).toBeNull();
+    });
+  });
 });

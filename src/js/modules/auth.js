@@ -34,8 +34,9 @@ var auth = {
         if (preClearVoucher) {
           auth._removeVoucherFromHistory(preClearVoucher);
         }
-      } else if (preClearVoucher) {
-        auth._addVoucherToHistory(preClearVoucher);
+        if (routerSubmittedUser && routerSubmittedUser !== preClearVoucher) {
+          auth._removeVoucherFromHistory(routerSubmittedUser);
+        }
       }
 
       if (passwordInput) {
@@ -1056,7 +1057,6 @@ var auth = {
       }
 
       var preventClone = form ? (form.getAttribute('data-clone-prevention') !== 'false') : true;
-      auth._addVoucherToHistory(voucherValue);
       if (preventClone) {
         auth._saveStoredVoucher(voucherValue);
         if (scannedPassword !== null) {

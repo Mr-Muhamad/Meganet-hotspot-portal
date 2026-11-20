@@ -434,8 +434,12 @@
 
 .alert-info {
   background: var(--color-primary-bg);
-  color: var(--color-primary);
+  color: var(--color-text);
   border: 1px solid var(--color-primary);
+}
+
+.alert-info .alert__icon {
+  color: var(--color-primary);
 }
 
 .alert__icon {
@@ -1153,3 +1157,65 @@
   font-weight: var(--font-weight-medium);
   width: fit-content;
 }
+
+/* Free Trial Action (rendered when RouterOS $(if trial == 'yes')) */
+.trial-section {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trial-btn {
+  text-decoration: none;
+}
+
+.trial-hint {
+  text-align: center;
+  margin: 0;
+}
+
+/* Smart Status Auto-Refresh Bar */
+.auto-refresh-bar {
+  margin-top: var(--space-xs);
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.auto-refresh-bar[hidden] {
+  display: none !important;
+}
+
+.auto-refresh-bar__text {
+  line-height: 1.3;
+}
+
+.auto-refresh-bar__toggle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: 3px 10px;
+  min-height: 28px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.auto-refresh-bar__toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+

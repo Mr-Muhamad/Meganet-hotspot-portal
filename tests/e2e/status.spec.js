@@ -76,3 +76,19 @@ test('logout button targets link-logout and switch-card navigates directly to lo
   await switchLink.click();
   await expect(page).toHaveURL(`${DEFAULT}/ar/login.html`);
 });
+
+test('smart auto-refresh bar renders countdown and toggles pause/resume cleanly', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/status.html`);
+  const bar = page.locator('#auto-refresh-bar');
+  const statusEl = page.locator('#auto-refresh-status');
+  const toggleBtn = page.locator('#auto-refresh-toggle');
+
+  await expect(bar).toBeVisible();
+  await expect(statusEl).toContainText(/\d+\s*ث/);
+  await toggleBtn.click();
+  await expect(statusEl).toContainText('متوقف');
+  await expect(toggleBtn).toContainText('استئناف');
+  await toggleBtn.click();
+  await expect(statusEl).toContainText(/\d+\s*ث/);
+  await expect(toggleBtn).toContainText('إيقاف');
+});

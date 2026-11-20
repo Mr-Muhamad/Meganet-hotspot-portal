@@ -47,6 +47,8 @@
                data-remain-bytes-total="$(remain-bytes-total)"
                data-bytes-in="$(bytes-in)"
                data-bytes-out="$(bytes-out)"
+               data-refresh-timeout="$(if refresh-timeout)$(refresh-timeout-secs)$(endif)"
+               data-refresh-timeout-raw="$(if refresh-timeout)$(refresh-timeout)$(endif)"
                data-quota-format="{% if config.features.quotaDisplayFormat %}{{ config.features.quotaDisplayFormat | e }}{% else %}MB{% endif %}"
                data-kb-base="{% if config.features.kbBase %}{{ config.features.kbBase | e }}{% else %}1000{% endif %}">
             <div class="session-countdown__label" data-i18n="remaining_quota">{{ i18n.remaining_quota }}</div>
@@ -262,7 +264,7 @@
               <span data-i18n="logout">{{ i18n.logout }}</span>
             </a>
             $(endif)
-            <button type="button" class="btn btn-primary btn-block" onclick="refreshStatus()">
+            <button type="button" class="btn btn-primary btn-block" id="refresh-status-btn" onclick="refreshStatus()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -270,6 +272,12 @@
               <span data-i18n="refresh">{{ i18n.refresh }}</span>
             </button>
           </div>
+          $(if refresh-timeout)
+          <div class="auto-refresh-bar" id="auto-refresh-bar" hidden>
+            <span class="auto-refresh-bar__text" id="auto-refresh-status" aria-live="off">{{ i18n.auto_refresh_paused }}</span>
+            <button type="button" class="auto-refresh-bar__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" aria-pressed="false" data-i18n="auto_refresh_pause_btn">{{ i18n.auto_refresh_pause_btn }}</button>
+          </div>
+          $(endif)
           <div id="logout-confirm-bar" class="logout-confirm-bar" hidden role="region" aria-live="polite">
             <p class="logout-confirm-bar__text" data-i18n="logout_confirm_prompt">{{ i18n.logout_confirm_prompt }}</p>
             <div class="logout-confirm-bar__actions">
@@ -323,6 +331,11 @@
         return window.Hotspot.status.switchCard(event);
       }
       return true;
+    }
+    function toggleAutoRefresh() {
+      if (window.Hotspot && window.Hotspot.status && window.Hotspot.status.toggleAutoRefresh) {
+        return window.Hotspot.status.toggleAutoRefresh();
+      }
     }
 
     // Initialize modules

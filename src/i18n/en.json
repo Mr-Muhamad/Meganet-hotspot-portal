@@ -145,6 +145,22 @@
     "diagnostics_copied": "Diagnostics copied!",
     "switch_card": "Switch Card",
     "outlets_title": "Card Sales Locations",
-    "recent_cards_label": "Recent cards:"
+    "recent_cards_label": "Recent cards:",
+    "trial_login_btn": "Start Free Trial",
+    "trial_login_hint": "Try the network free for a limited time before entering a card.",
+    "auto_refresh_in": "Auto-refresh in {n}s",
+    "auto_refresh_paused": "Auto-refresh paused",
+    "auto_refresh_waiting": "Waiting to refresh…",
+    "auto_refresh_updating": "Updating…",
+    "auto_refresh_pause_btn": "Pause",
+    "auto_refresh_resume_btn": "Resume",
+    "status_updated_toast": "Session status updated",
+    "fstatus_title": "Not Signed In",
+    "fstatus_subtitle": "No active internet session was found for this device.",
+    "fstatus_alert": "Sign in with your voucher card or account to view status and use the internet.",
+    "flogout_title": "No Active Session",
+    "flogout_subtitle": "You are not currently signed in on this device.",
+    "flogout_alert": "Your session has already ended or timed out.",
+    "redirecting_to_login": "Opening sign-in page in"
   }
 }

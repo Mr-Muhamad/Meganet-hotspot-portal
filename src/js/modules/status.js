@@ -4,9 +4,20 @@
  */
 var statusModule = {
   _pwaHideTimer: null,
+  _uptimeInterval: null,
+  _countdownInterval: null,
+  _autoRefreshInterval: null,
+  _autoRefreshSeconds: 0,
+  _autoRefreshRemaining: 0,
+  _autoRefreshNextAt: 0,
+  _autoRefreshWaiting: false,
+  _isRefreshing: false,
+  _isCheckingConnection: false,
+  _onAutoRefreshVisibility: null,
 
   init: function() {
     try {
+      statusModule._stopAutoRefresh();
       statusModule.startCountdowns();
       statusModule.startUptimeTicker();
       statusModule.showWarnings();
@@ -16,6 +27,7 @@ var statusModule = {
       // waking the phone's radio) runs on explicit tap, not on every visit.
       statusModule.checkConnectionQuality(true);
       statusModule.displayDeviceType();
+      statusModule._startAutoRefresh();
 
       if (typeof rateLimiter !== 'undefined') {
         rateLimiter.clearAll();
@@ -398,13 +410,17 @@ var statusModule = {
 
   startCountdowns: function() {
     try {
+      if (statusModule._countdownInterval) {
+        clearInterval(statusModule._countdownInterval);
+        statusModule._countdownInterval = null;
+      }
       var timeLeftElement = document.getElementById('session-time-left');
       if (timeLeftElement) {
         var rawVal = timeLeftElement.getAttribute('data-seconds') || timeLeftElement.textContent;
         var timeLeft = statusModule.parseTimeValue(rawVal);
         if (timeLeft > 0) {
           timeLeftElement.setAttribute('data-seconds', timeLeft);
-          ui.initCountdown(timeLeft, 'session-time-left', function() {
+          statusModule._countdownInterval = ui.initCountdown(timeLeft, 'session-time-left', function() {
             statusModule.logoutOnExpiry();
           });
         } else {
@@ -419,6 +435,10 @@ var statusModule = {
 
   startUptimeTicker: function() {
     try {
+      if (statusModule._uptimeInterval) {
+        clearInterval(statusModule._uptimeInterval);
+        statusModule._uptimeInterval = null;
+      }
       var uptimeElement = document.getElementById('uptime');
       if (!uptimeElement) return;
 
@@ -436,7 +456,7 @@ var statusModule = {
         statusModule.updateTimeProgress(startTimeLeft);
       }
 
-      setInterval(function() {
+      statusModule._uptimeInterval = setInterval(function() {
         var elapsed = Math.floor((Date.now() - startTime) / 1000);
         var currentUptime = startUptime + elapsed;
         var uptimeTarget = (uptimeElement.querySelector && uptimeElement.querySelector('bdi')) || uptimeElement;
@@ -613,11 +633,13 @@ var statusModule = {
       valEl.className = 'stat-card__value';
 
       if (typeof fetch === 'undefined') {
+        statusModule._isCheckingConnection = false;
         valEl.textContent = i18n.t('status_offline');
         valEl.classList.add('color-danger');
         return;
       }
 
+      statusModule._isCheckingConnection = true;
       var startTime = Date.now();
 
       // Fetch a small local resource to measure round-trip time (ping)
@@ -636,13 +658,17 @@ var statusModule = {
           // downgrade honestly if it is dead.
           if (!isAutoCheck) {
             statusModule._verifyInternet(valEl);
+          } else {
+            statusModule._isCheckingConnection = false;
           }
         })
         .catch(function(err) {
+          statusModule._isCheckingConnection = false;
           valEl.textContent = i18n.t('status_offline');
           valEl.classList.add('color-danger');
         });
     } catch (err) {
+      statusModule._isCheckingConnection = false;
       console.error('Check connection quality error:', err);
     }
   },
@@ -672,7 +698,10 @@ var statusModule = {
 
   _verifyInternet: function(valEl) {
     try {
-      if (!window.AbortController) return; // legacy browsers: keep the local reading
+      if (!window.AbortController) {
+        statusModule._isCheckingConnection = false;
+        return; // legacy browsers: keep the local reading
+      }
 
       if (statusModule._internetController) {
         try { statusModule._internetController.abort(); } catch (abortErr) {}
@@ -693,16 +722,19 @@ var statusModule = {
         if (statusModule._internetController === controller) {
           statusModule._internetController = null;
         }
+        statusModule._isCheckingConnection = false;
       }).catch(function() {
         clearTimeout(timer);
         if (statusModule._internetController !== controller) return;
         statusModule._internetController = null;
+        statusModule._isCheckingConnection = false;
         if (document.getElementById('connection-status-val') !== valEl) return;
         valEl.textContent = i18n.t('status_no_internet');
         valEl.className = 'stat-card__value';
         valEl.classList.add('color-danger');
       });
     } catch (err) {
+      statusModule._isCheckingConnection = false;
       console.error('Internet check error:', err);
     }
   },
@@ -810,11 +842,347 @@ var statusModule = {
     }
   },
 
-  refreshStatus: function() {
+  getRefreshIntervalSeconds: function() {
     try {
-      window.location.reload();
+      var quotaSection = document.getElementById('sessionCountdownSection');
+      if (!quotaSection) return 0;
+      var rawSecs = String(quotaSection.getAttribute('data-refresh-timeout') || '').trim();
+      var parsed = 0;
+      if (rawSecs && rawSecs.indexOf('$(') === -1 && rawSecs.toLowerCase() !== 'none') {
+        parsed = statusModule.parseTimeValue(rawSecs);
+      }
+      if (!parsed || parsed <= 0) {
+        var rawFallback = String(quotaSection.getAttribute('data-refresh-timeout-raw') || '').trim();
+        if (rawFallback && rawFallback.indexOf('$(') === -1 && rawFallback.toLowerCase() !== 'none') {
+          parsed = statusModule.parseTimeValue(rawFallback);
+        }
+      }
+      if (!parsed || parsed <= 0) return 0;
+      return parsed < 15 ? 15 : parsed;
     } catch (err) {
+      return 0;
+    }
+  },
+
+  isAutoRefreshPaused: function() {
+    try {
+      return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('hotspot_auto_refresh_paused') === '1';
+    } catch (err) {
+      return false;
+    }
+  },
+
+  setAutoRefreshPaused: function(paused) {
+    try {
+      if (typeof sessionStorage === 'undefined') return;
+      if (paused) sessionStorage.setItem('hotspot_auto_refresh_paused', '1');
+      else sessionStorage.removeItem('hotspot_auto_refresh_paused');
+    } catch (err) {}
+  },
+
+  toggleAutoRefresh: function() {
+    try {
+      var nextPaused = !statusModule.isAutoRefreshPaused();
+      statusModule.setAutoRefreshPaused(nextPaused);
+      statusModule._autoRefreshWaiting = false;
+      if (!nextPaused) {
+        var interval = statusModule.getRefreshIntervalSeconds();
+        if (interval > 0) {
+          statusModule._autoRefreshSeconds = interval;
+          statusModule._autoRefreshNextAt = Date.now() + interval * 1000;
+          statusModule._autoRefreshRemaining = interval;
+          if (!statusModule._autoRefreshInterval) {
+            statusModule._startAutoRefresh();
+            return;
+          }
+        }
+      }
+      statusModule._renderAutoRefreshUi();
+    } catch (err) {
+      console.error('Toggle auto refresh error:', err);
+    }
+  },
+
+  isAutoRefreshBusy: function() {
+    if (statusModule._isRefreshing || statusModule._isCheckingConnection || statusModule._internetController) {
+      return true;
+    }
+    var confirmBar = document.getElementById('logout-confirm-bar');
+    if (confirmBar && !confirmBar.hidden) {
+      return true;
+    }
+    if (typeof document !== 'undefined' && document.querySelector && document.querySelector('.support-modal--open')) {
+      return true;
+    }
+    return false;
+  },
+
+  _renderAutoRefreshUi: function(stateOverride) {
+    var bar = document.getElementById('auto-refresh-bar');
+    if (!bar) return;
+    var interval = statusModule._autoRefreshSeconds || statusModule.getRefreshIntervalSeconds();
+    if (interval <= 0) {
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+
+    var paused = statusModule.isAutoRefreshPaused();
+    var toggleBtn = document.getElementById('auto-refresh-toggle');
+    if (toggleBtn) {
+      toggleBtn.textContent = paused
+        ? i18n.t('auto_refresh_resume_btn')
+        : i18n.t('auto_refresh_pause_btn');
+      toggleBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+    }
+
+    var statusEl = document.getElementById('auto-refresh-status');
+    if (statusEl) {
+      if (paused) {
+        statusEl.textContent = i18n.t('auto_refresh_paused');
+      } else if (stateOverride === 'updating' || statusModule._isRefreshing) {
+        statusEl.textContent = i18n.t('auto_refresh_updating');
+      } else if (stateOverride === 'waiting' || statusModule._autoRefreshWaiting) {
+        statusEl.textContent = i18n.t('auto_refresh_waiting');
+      } else {
+        statusEl.textContent = i18n.t('auto_refresh_in', { n: Math.max(0, statusModule._autoRefreshRemaining) });
+      }
+    }
+  },
+
+  _stopAutoRefresh: function() {
+    if (statusModule._autoRefreshInterval) {
+      clearInterval(statusModule._autoRefreshInterval);
+      statusModule._autoRefreshInterval = null;
+    }
+    if (typeof document !== 'undefined' && statusModule._onAutoRefreshVisibility) {
+      document.removeEventListener('visibilitychange', statusModule._onAutoRefreshVisibility);
+      statusModule._onAutoRefreshVisibility = null;
+    }
+    statusModule._autoRefreshWaiting = false;
+  },
+
+  _startAutoRefresh: function() {
+    statusModule._stopAutoRefresh();
+    var interval = statusModule.getRefreshIntervalSeconds();
+    statusModule._autoRefreshSeconds = interval;
+    if (interval <= 0) {
+      var bar = document.getElementById('auto-refresh-bar');
+      if (bar) bar.hidden = true;
+      return;
+    }
+
+    statusModule._autoRefreshNextAt = Date.now() + interval * 1000;
+    statusModule._autoRefreshRemaining = interval;
+    statusModule._renderAutoRefreshUi();
+
+    var stepAutoRefresh = function() {
+      if (statusModule.isAutoRefreshPaused()) {
+        statusModule._renderAutoRefreshUi();
+        return;
+      }
+      var remaining = Math.max(0, Math.ceil((statusModule._autoRefreshNextAt - Date.now()) / 1000));
+      statusModule._autoRefreshRemaining = remaining;
+      if (remaining > 0) {
+        statusModule._autoRefreshWaiting = false;
+        statusModule._renderAutoRefreshUi();
+        return;
+      }
+      if ((typeof document !== 'undefined' && document.hidden) || statusModule.isAutoRefreshBusy()) {
+        statusModule._autoRefreshWaiting = true;
+        statusModule._renderAutoRefreshUi('waiting');
+        return;
+      }
+      statusModule._autoRefreshWaiting = false;
+      statusModule._autoRefreshNextAt = Date.now() + statusModule._autoRefreshSeconds * 1000;
+      statusModule._autoRefreshRemaining = statusModule._autoRefreshSeconds;
+      statusModule.refreshStatus(true);
+    };
+
+    statusModule._autoRefreshInterval = setInterval(stepAutoRefresh, 1000);
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      statusModule._onAutoRefreshVisibility = function() {
+        if (!document.hidden && !statusModule.isAutoRefreshPaused()) {
+          stepAutoRefresh();
+        }
+      };
+      document.addEventListener('visibilitychange', statusModule._onAutoRefreshVisibility);
+    }
+  },
+
+  _setRefreshButtonLoading: function(isLoading) {
+    var btn = document.getElementById('refresh-status-btn');
+    if (!btn) return;
+    if (isLoading) {
+      btn.disabled = true;
+      btn.classList.add('btn--loading');
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('btn--loading');
+    }
+  },
+
+  _copyAttr: function(src, dst, attr) {
+    if (!src || !dst) return;
+    if (src.hasAttribute(attr)) {
+      dst.setAttribute(attr, src.getAttribute(attr));
+    }
+  },
+
+  _applyRefreshedDocument: function(doc) {
+    var nextQuota = doc.getElementById('sessionCountdownSection');
+    var curQuota = document.getElementById('sessionCountdownSection');
+    if (!nextQuota || !curQuota) return false;
+
+    var attrs = [
+      'data-limit-bytes-total',
+      'data-remain-bytes-total',
+      'data-bytes-in',
+      'data-bytes-out',
+      'data-refresh-timeout',
+      'data-refresh-timeout-raw'
+    ];
+    for (var i = 0; i < attrs.length; i++) {
+      statusModule._copyAttr(nextQuota, curQuota, attrs[i]);
+    }
+
+    var nextWarn = doc.getElementById('session-warning');
+    var curWarn = document.getElementById('session-warning');
+    if (curWarn) {
+      statusModule._copyAttr(nextWarn, curWarn, 'data-logout-url');
+      curWarn.hidden = true;
+      curWarn.classList.remove('alert-error');
+      curWarn.classList.add('alert-warning');
+    }
+
+    var nextUptime = doc.getElementById('uptime');
+    var curUptime = document.getElementById('uptime');
+    if (nextUptime && curUptime) {
+      statusModule._copyAttr(nextUptime, curUptime, 'data-seconds');
+      var curUptimeBdi = (curUptime.querySelector && curUptime.querySelector('bdi')) || curUptime;
+      var nextUptimeBdi = (nextUptime.querySelector && nextUptime.querySelector('bdi')) || nextUptime;
+      curUptimeBdi.textContent = nextUptimeBdi.textContent;
+    }
+
+    var nextTimeLeft = doc.getElementById('session-time-left');
+    var curTimeLeft = document.getElementById('session-time-left');
+    if (nextTimeLeft && curTimeLeft) {
+      statusModule._copyAttr(nextTimeLeft, curTimeLeft, 'data-seconds');
+      var curLeftBdi = (curTimeLeft.querySelector && curTimeLeft.querySelector('bdi')) || curTimeLeft;
+      var nextLeftBdi = (nextTimeLeft.querySelector && nextTimeLeft.querySelector('bdi')) || nextTimeLeft;
+      curLeftBdi.textContent = nextLeftBdi.textContent;
+    }
+
+    var nextTimeCard = doc.getElementById('timeRemainingCard');
+    var curTimeCard = document.getElementById('timeRemainingCard');
+    if (nextTimeCard && curTimeCard && curTimeCard.style) {
+      curTimeCard.style.display = nextTimeCard.style ? nextTimeCard.style.display : '';
+    }
+
+    var techIds = ['tech-login-by', 'tech-idle-timeout', 'tech-server'];
+    for (var t = 0; t < techIds.length; t++) {
+      var nextTech = doc.getElementById(techIds[t]);
+      var curTech = document.getElementById(techIds[t]);
+      if (nextTech && curTech) {
+        var curBdi = (curTech.querySelector && curTech.querySelector('bdi')) || curTech;
+        var nextBdi = (nextTech.querySelector && nextTech.querySelector('bdi')) || nextTech;
+        curBdi.textContent = nextBdi.textContent;
+      }
+    }
+
+    statusModule._expiryWarned = false;
+    statusModule._expiryCritical = false;
+    statusModule.startCountdowns();
+    statusModule.startUptimeTicker();
+    statusModule.calculateRemainingQuota();
+    statusModule.showWarnings();
+    return true;
+  },
+
+  refreshStatus: function(isAuto) {
+    try {
+      if (statusModule._isRefreshing) {
+        return Promise.resolve(false);
+      }
+
+      if (typeof fetch !== 'function' || typeof DOMParser !== 'function') {
+        if (!isAuto) {
+          window.location.reload();
+        }
+        return false;
+      }
+
+      statusModule._isRefreshing = true;
+      if (!isAuto) {
+        statusModule._setRefreshButtonLoading(true);
+      }
+      statusModule._renderAutoRefreshUi('updating');
+
+      var reqUrl = (typeof window !== 'undefined' && window.location && window.location.href)
+        ? window.location.href.split('#')[0]
+        : 'status.html';
+
+      return fetch(reqUrl, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin'
+      })
+        .then(function(response) {
+          if (!response || !response.ok) {
+            throw new Error('status refresh failed');
+          }
+          return response.text().then(function(html) {
+            return { html: html, url: response.url || '' };
+          });
+        })
+        .then(function(payload) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(payload.html, 'text/html');
+          if (!statusModule._applyRefreshedDocument(doc)) {
+            statusModule._isRefreshing = false;
+            statusModule._setRefreshButtonLoading(false);
+            if (payload.url && /^https?:\/\//i.test(payload.url) && payload.url.split('#')[0] !== reqUrl) {
+              window.location.replace(payload.url);
+            } else {
+              window.location.reload();
+            }
+            return false;
+          }
+
+          var nextInterval = statusModule.getRefreshIntervalSeconds();
+          if (nextInterval > 0) {
+            statusModule._autoRefreshSeconds = nextInterval;
+            statusModule._autoRefreshNextAt = Date.now() + nextInterval * 1000;
+            statusModule._autoRefreshRemaining = nextInterval;
+          }
+          statusModule._isRefreshing = false;
+          if (!isAuto) {
+            statusModule._setRefreshButtonLoading(false);
+            if (typeof util !== 'undefined' && util.showToast) {
+              util.showToast(i18n.t('status_updated_toast'), 'success', 2000);
+            }
+          }
+          statusModule._renderAutoRefreshUi();
+          return true;
+        })
+        .catch(function(err) {
+          statusModule._isRefreshing = false;
+          if (!isAuto) {
+            statusModule._setRefreshButtonLoading(false);
+            window.location.reload();
+          } else {
+            var retryInterval = statusModule._autoRefreshSeconds || 30;
+            statusModule._autoRefreshNextAt = Date.now() + retryInterval * 1000;
+            statusModule._autoRefreshRemaining = retryInterval;
+            statusModule._renderAutoRefreshUi();
+          }
+          return false;
+        });
+    } catch (err) {
+      statusModule._isRefreshing = false;
+      statusModule._setRefreshButtonLoading(false);
       console.error('Refresh status error:', err);
+      return false;
     }
   },
 

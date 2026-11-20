@@ -173,7 +173,7 @@ describe('color-utils', () => {
 
   describe('validate-templates validateAll programmatic failure reporting', () => {
     const fs = require('fs');
-    const { validateAll } = require('../../scripts/validate-templates.js');
+    const { validateAll, getDistPages } = require('../../scripts/validate-templates.js');
 
     test('returns valid: false and totalErrors > 0 when dist/ or files are missing without calling process.exit', () => {
       const existsSpy = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
@@ -186,7 +186,7 @@ describe('color-utils', () => {
         existsSpy.mockImplementation((p) => (calls++ === 0 ? true : !String(p).endsWith('.html')));
         const missingFilesSummary = validateAll();
         expect(missingFilesSummary.valid).toBe(false);
-        expect(missingFilesSummary.totalErrors).toBe(17);
+        expect(missingFilesSummary.totalErrors).toBe(getDistPages().length);
       } finally {
         existsSpy.mockRestore();
       }

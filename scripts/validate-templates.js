@@ -43,6 +43,37 @@ const rules = {
   ]
 };
 
+const REDIRECTOR_FILES = new Set(['index.html', 'redirect.html', 'rlogin.html', 'rstatus.html']);
+
+function getDistPages(rootDir = path.join(__dirname, '..')) {
+  const d = path.join(rootDir, 'dist');
+  return [
+    path.join(d, 'alogin.html'),
+    path.join(d, 'error.html'),
+    path.join(d, 'expired.html'),
+    path.join(d, 'flogout.html'),
+    path.join(d, 'fstatus.html'),
+    path.join(d, 'index.html'),
+    path.join(d, 'login.html'),
+    path.join(d, 'logout.html'),
+    path.join(d, 'plans.html'),
+    path.join(d, 'redirect.html'),
+    path.join(d, 'rlogin.html'),
+    path.join(d, 'rstatus.html'),
+    path.join(d, 'status.html'),
+    path.join(d, 'ar', 'alogin.html'),
+    path.join(d, 'ar', 'error.html'),
+    path.join(d, 'ar', 'expired.html'),
+    path.join(d, 'ar', 'flogout.html'),
+    path.join(d, 'ar', 'fstatus.html'),
+    path.join(d, 'ar', 'index.html'),
+    path.join(d, 'ar', 'login.html'),
+    path.join(d, 'ar', 'logout.html'),
+    path.join(d, 'ar', 'plans.html'),
+    path.join(d, 'ar', 'status.html')
+  ];
+}
+
 // Validate a single file
 function validateFile(filePath) {
   const errors = [];
@@ -53,6 +84,7 @@ function validateFile(filePath) {
     const filename = path.basename(filePath);
     const normalizedPath = filePath.replace(/\\/g, '/');
     const isArabic = normalizedPath.includes('/ar/');
+    const isRedirector = REDIRECTOR_FILES.has(filename);
 
     // Validate RTL direction on Arabic templates
     if (isArabic && !content.includes('dir="rtl"')) {
@@ -61,11 +93,9 @@ function validateFile(filePath) {
 
     // Check required HTML structure
     rules.requiredElements.forEach(element => {
-      // index.html and redirect.html are simple redirect pages, so they don't contain some structural elements
-      if (filename === 'index.html' || filename === 'redirect.html') {
-        if (element === '<main' || element === '<!DOCTYPE html>') {
-          return;
-        }
+      // Redirector stubs do not contain <main> or full document shells
+      if (isRedirector && (element === '<main' || element === '<!DOCTYPE html>')) {
+        return;
       }
       if (!content.includes(element)) {
         errors.push(`Missing required element: ${element}`);
@@ -89,7 +119,7 @@ function validateFile(filePath) {
     });
 
     // Only perform page-level accessibility and features checks on content pages
-    if (filename !== 'index.html' && filename !== 'redirect.html') {
+    if (!isRedirector) {
       // Check for accessibility
       rules.accessibilityChecks.forEach(({ pattern, message }) => {
         if (!pattern.test(content)) {
@@ -146,27 +176,7 @@ function validateAll() {
     return { valid: false, filesValidated: 0, totalErrors: 1, totalWarnings: 0 };
   }
 
-  // The dist/ HTML set is fixed by the build (build.js page lists) — spell
-  // every path out literally so path handling is fully scanner-clean.
-  const distPages = [
-    path.join(__dirname, '..', 'dist', 'alogin.html'),
-    path.join(__dirname, '..', 'dist', 'error.html'),
-    path.join(__dirname, '..', 'dist', 'expired.html'),
-    path.join(__dirname, '..', 'dist', 'index.html'),
-    path.join(__dirname, '..', 'dist', 'login.html'),
-    path.join(__dirname, '..', 'dist', 'logout.html'),
-    path.join(__dirname, '..', 'dist', 'plans.html'),
-    path.join(__dirname, '..', 'dist', 'redirect.html'),
-    path.join(__dirname, '..', 'dist', 'status.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'alogin.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'error.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'expired.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'index.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'login.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'logout.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'plans.html'),
-    path.join(__dirname, '..', 'dist', 'ar', 'status.html')
-  ];
+  const distPages = getDistPages(projectRoot);
 
   distPages.forEach(filePath => {
     const displayName = path.relative(path.join(__dirname, '..', 'dist'), filePath).replace(/\\/g, '/');
@@ -215,4 +225,4 @@ if (require.main === module) {
   process.exit(summary && summary.valid ? 0 : 1);
 }
 
-module.exports = { validateFile, validateAll };
+module.exports = { validateFile, validateAll, getDistPages };

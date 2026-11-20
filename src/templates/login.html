@@ -195,6 +195,20 @@
               <button type="submit" class="btn btn-primary btn-block" id="loginButton" data-i18n="login_button">{{ i18n.login_button }}</button>
             </div>
           </form>
+
+          $(if trial == 'yes')
+          <div class="trial-section" id="trial-section">
+            <a href="$(link-login-only)?dst=$(link-orig-esc)&amp;username=T-$(mac-esc)&amp;popup=$(popup){% if lang == 'ar' %}&amp;target=ar{% endif %}"
+               class="btn btn-outline btn-block trial-btn"
+               id="trialLoginBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              <span data-i18n="trial_login_btn">{{ i18n.trial_login_btn }}</span>
+            </a>
+            <p class="form-hint trial-hint" data-i18n="trial_login_hint">{{ i18n.trial_login_hint }}</p>
+          </div>
+          $(endif)
         </div>
         <div class="card-footer login-card-footer">
           {% if config.features.enablePlansPage is not defined or config.features.enablePlansPage %}

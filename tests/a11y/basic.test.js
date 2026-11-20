@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
-const PAGES = ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'];
+const PAGES = ['index', 'login', 'status', 'logout', 'fstatus', 'flogout', 'error', 'expired', 'plans', 'alogin'];
 
 const enDict = require('../../src/i18n/en.json').en;
 const arDict = require('../../src/i18n/ar.json').ar;

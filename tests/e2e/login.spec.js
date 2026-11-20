@@ -114,3 +114,15 @@ test('recent 3 voucher chips persist via cookie/storage and fill #voucher on cli
   await chips.nth(1).click();
   await expect(page.locator('#voucher')).toHaveValue('554433');
 });
+
+test('Free Trial button is hidden by default and renders with RouterOS T-<MAC> link in trial scenario', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/login.html`);
+  await expect(page.locator('#trialLoginBtn')).toHaveCount(0);
+
+  await page.goto(`${DEFAULT}/ar/login.html?scenario=trial`);
+  const trialBtn = page.locator('#trialLoginBtn');
+  await expect(trialBtn).toBeVisible();
+  const href = await trialBtn.getAttribute('href');
+  expect(href).toContain('username=T-3C%3A5A%3AB4%3A0F%3A22%3A91');
+  expect(href).toContain('target=ar');
+});

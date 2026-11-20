@@ -446,6 +446,8 @@ function copyAssets(options = {}) {
   }
 }
 
+const PORTAL_PAGES = ['index', 'login', 'status', 'logout', 'fstatus', 'flogout', 'error', 'expired', 'plans', 'alogin'];
+
 // Main build function
 function build(options = {}) {
   console.log('🔨 Building MikroTik Hotspot Portal...\n');
@@ -495,7 +497,7 @@ function build(options = {}) {
 
   console.log('📄 Building English pages...');
   const buildErrors = [];
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
+  PORTAL_PAGES.forEach(page => {
     try {
       const html = generatePage(page, 'en', pageOptions);
       const outputPath = path.join(distDir, `${page}.html`);
@@ -511,7 +513,7 @@ function build(options = {}) {
   const arDir = path.join(distDir, 'ar');
   fs.mkdirSync(arDir, { recursive: true });
 
-  ['index', 'login', 'status', 'logout', 'error', 'expired', 'plans', 'alogin'].forEach(page => {
+  PORTAL_PAGES.forEach(page => {
     try {
       const html = generatePage(page, 'ar', pageOptions);
       const outputPath = path.join(arDir, `${page}.html`);

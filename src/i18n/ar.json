@@ -145,6 +145,22 @@
     "diagnostics_copied": "تم نسخ بيانات التشخيص!",
     "switch_card": "تغيير الكارت",
     "outlets_title": "أماكن شراء الكروت / الموزعون",
-    "recent_cards_label": "كروت استخدمتها مؤخراً:"
+    "recent_cards_label": "كروت استخدمتها مؤخراً:",
+    "trial_login_btn": "تجربة مجانية",
+    "trial_login_hint": "جرّب الشبكة مجاناً لفترة محدودة قبل إدخال كارت.",
+    "auto_refresh_in": "تحديث تلقائي خلال {n} ث",
+    "auto_refresh_paused": "التحديث التلقائي متوقف",
+    "auto_refresh_waiting": "بانتظار التحديث…",
+    "auto_refresh_updating": "جاري التحديث…",
+    "auto_refresh_pause_btn": "إيقاف",
+    "auto_refresh_resume_btn": "استئناف",
+    "status_updated_toast": "تم تحديث بيانات الجلسة",
+    "fstatus_title": "غير مسجل الدخول",
+    "fstatus_subtitle": "لا توجد جلسة اتصال نشطة حالياً لهذا الجهاز.",
+    "fstatus_alert": "سجّل الدخول بكارت الشحن أو حسابك لعرض حالة الجلسة واستخدام الإنترنت.",
+    "flogout_title": "الجلسة غير نشطة",
+    "flogout_subtitle": "هذا الجهاز غير مسجل الدخول حالياً.",
+    "flogout_alert": "انتهت صلاحية الجلسة أو تم تسجيل الخروج مسبقاً.",
+    "redirecting_to_login": "جاري التحويل لصفحة الدخول خلال"
   }
 }

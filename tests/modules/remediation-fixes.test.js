@@ -697,5 +697,26 @@ describe('Security, Portal Journey, Assets, and Workspace Remediation Suite', ()
       expect(builtAlogin).toContain('<!--ros:status:$(link-status)-->');
       expect(builtAlogin).toContain('function isSafeUrl(');
     });
+
+    test('login.html includes conditional Free Trial link, status.html carries refresh-timeout, and secondary servlet pages are built', () => {
+      const enLogin = fs.readFileSync(path.join(DIST, 'login.html'), 'utf8');
+      const arLogin = fs.readFileSync(path.join(DIST, 'ar', 'login.html'), 'utf8');
+      expect(enLogin).toMatch(/\$\(if trial == 'yes'\).*?id=["']?trialLoginBtn["']?.*?\$\(endif\)/s);
+      expect(enLogin).toContain('username=T-$(mac-esc)');
+      expect(arLogin).toContain('&amp;target=ar');
+
+      const enStatus = fs.readFileSync(path.join(DIST, 'status.html'), 'utf8');
+      const arStatus = fs.readFileSync(path.join(DIST, 'ar', 'status.html'), 'utf8');
+      expect(enStatus).toContain('data-refresh-timeout="$(if refresh-timeout)$(refresh-timeout-secs)$(endif)"');
+      expect(arStatus).toMatch(/\$\(if refresh-timeout\).*?id=["']?auto-refresh-bar["']?.*?\$\(endif\)/s);
+
+      for (const rel of ['fstatus.html', 'ar/fstatus.html', 'flogout.html', 'ar/flogout.html', 'rlogin.html', 'rstatus.html']) {
+        expect(fs.existsSync(path.join(DIST, rel))).toBe(true);
+      }
+      const rlogin = fs.readFileSync(path.join(DIST, 'rlogin.html'), 'utf8');
+      const rstatus = fs.readFileSync(path.join(DIST, 'rstatus.html'), 'utf8');
+      expect(rlogin).toContain('$(link-redirect)');
+      expect(rstatus).toContain('$(link-redirect)');
+    });
   });
 });

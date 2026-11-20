@@ -12,7 +12,7 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 }
 ];
 
-const PORTAL_PAGES = ['login', 'status', 'plans', 'logout', 'error', 'expired', 'alogin'];
+const PORTAL_PAGES = ['login', 'status', 'plans', 'logout', 'fstatus', 'flogout', 'error', 'expired', 'alogin'];
 
 test.describe('axe-core Accessibility Audit across Themes, Languages & Viewports', () => {
   for (const theme of ['light', 'dark']) {

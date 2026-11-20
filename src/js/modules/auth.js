@@ -287,6 +287,7 @@ var auth = {
       if (typeof window !== 'undefined' && window.addEventListener && !auth._pageshowBound) {
         auth._pageshowBound = true;
         window.addEventListener('pageshow', function(ev) {
+          auth.resetTrialButton();
           if (ev && ev.persisted) {
             auth._restoreRawChapPassword();
             auth.setLoadingState(false);
@@ -298,6 +299,14 @@ var auth = {
             }
             auth.triggerAutoLogin();
           }
+        });
+      }
+
+      var trialBtn = document.getElementById('trialLoginBtn');
+      if (trialBtn && !trialBtn.getAttribute('data-trial-bound')) {
+        trialBtn.setAttribute('data-trial-bound', '1');
+        trialBtn.addEventListener('click', function(ev) {
+          auth.onTrialClick(trialBtn, ev);
         });
       }
     } catch (err) {
@@ -1223,6 +1232,60 @@ var auth = {
   },
 
   _loadWatchdog: null,
+  _trialWatchdog: null,
+
+  /**
+   * Guard the Free Trial anchor against accidental double-taps while keeping
+   * native href navigation to RouterOS intact; clears on pageshow or 15s watchdog.
+   * @param {HTMLElement} btn - The trial link button (#trialLoginBtn)
+   * @param {Event} [event] - Click event
+   * @returns {boolean} false if already loading, otherwise true
+   */
+  onTrialClick: function(btn, event) {
+    try {
+      if (!btn) return true;
+      if (btn.getAttribute('data-loading') === '1') {
+        if (event && typeof event.preventDefault === 'function') event.preventDefault();
+        return false;
+      }
+      btn.setAttribute('data-loading', '1');
+      btn.setAttribute('aria-busy', 'true');
+      btn.classList.add('btn--loading');
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.textContent = (typeof i18n !== 'undefined' && i18n.t)
+        ? i18n.t('login_loading')
+        : 'Connecting…';
+      if (auth._trialWatchdog) clearTimeout(auth._trialWatchdog);
+      auth._trialWatchdog = setTimeout(function() {
+        auth._trialWatchdog = null;
+        auth.resetTrialButton();
+      }, 15000);
+      return true;
+    } catch (err) {
+      console.error('Trial click handler error:', err);
+      return true;
+    }
+  },
+
+  resetTrialButton: function() {
+    try {
+      if (auth._trialWatchdog) {
+        clearTimeout(auth._trialWatchdog);
+        auth._trialWatchdog = null;
+      }
+      var btn = document.getElementById('trialLoginBtn');
+      if (!btn) return;
+      btn.removeAttribute('data-loading');
+      btn.removeAttribute('aria-busy');
+      btn.classList.remove('btn--loading');
+      if (btn.dataset && btn.dataset.originalHtml) {
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      }
+    } catch (err) {
+      console.error('Reset trial button error:', err);
+    }
+  },
 
   /**
    * Freeze/unfreeze the Connect button while the router round trip is in

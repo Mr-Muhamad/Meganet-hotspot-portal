@@ -22,13 +22,26 @@ const i18n = {
       status_poor: 'Poor',
       session_expiring_soon: 'Session expires soon',
       session_expiring_critical: 'Your session ends in less than a minute',
-      data_limit_almost_reached: 'Data limit almost reached'
+      data_limit_almost_reached: 'Data limit almost reached',
+      auto_refresh_in: 'Auto-refresh in {n}s',
+      auto_refresh_paused: 'Auto-refresh paused',
+      auto_refresh_waiting: 'Waiting to refresh…',
+      auto_refresh_updating: 'Updating…',
+      auto_refresh_pause_btn: 'Pause',
+      auto_refresh_resume_btn: 'Resume',
+      status_updated_toast: 'Session status updated'
     }
   },
   currentLang: 'en',
-  t: function(key) {
+  t: function(key, params) {
     var lang = this.data[this.currentLang];
-    return lang && lang[key] !== undefined ? lang[key] : key;
+    var text = lang && lang[key] !== undefined ? lang[key] : key;
+    if (params && typeof params === 'object') {
+      Object.keys(params).forEach(function(k) {
+        text = text.replace(new RegExp('\\{' + k + '\\}', 'g'), params[k]);
+      });
+    }
+    return text;
   }
 };
 
@@ -63,6 +76,7 @@ describe('Hotspot.status', () => {
   let mockPwaBanner;
 
   beforeEach(() => {
+    document.documentElement.setAttribute('lang', 'en');
     document.body.innerHTML = '';
 
     mockUptime = document.createElement('div');
@@ -776,6 +790,127 @@ document.body.appendChild(mockSmartUsageCard);
         window.location = origLocation;
         global.fetch = prevFetch;
         link.remove();
+      }
+    });
+  });
+
+  describe('smart status auto-refresh', () => {
+    afterEach(() => {
+      statusModule._stopAutoRefresh();
+      statusModule.setAutoRefreshPaused(false);
+      statusModule._isRefreshing = false;
+      statusModule._isCheckingConnection = false;
+      jest.useRealTimers();
+      delete global.fetch;
+    });
+
+    test('getRefreshIntervalSeconds honors seconds, shorthand strings, minimum 15s floor, and ignores none/empty', () => {
+      mockCountdownSection.removeAttribute('data-refresh-timeout');
+      mockCountdownSection.removeAttribute('data-refresh-timeout-raw');
+      expect(statusModule.getRefreshIntervalSeconds()).toBe(0);
+
+      mockCountdownSection.setAttribute('data-refresh-timeout', 'none');
+      expect(statusModule.getRefreshIntervalSeconds()).toBe(0);
+
+      mockCountdownSection.setAttribute('data-refresh-timeout', '$(refresh-timeout-secs)');
+      mockCountdownSection.setAttribute('data-refresh-timeout-raw', '2m');
+      expect(statusModule.getRefreshIntervalSeconds()).toBe(120);
+
+      mockCountdownSection.setAttribute('data-refresh-timeout', '5');
+      expect(statusModule.getRefreshIntervalSeconds()).toBe(15);
+
+      mockCountdownSection.setAttribute('data-refresh-timeout', '60');
+      expect(statusModule.getRefreshIntervalSeconds()).toBe(60);
+    });
+
+    test('isAutoRefreshBusy defers when confirm bar or support modal is open', () => {
+      expect(statusModule.isAutoRefreshBusy()).toBe(false);
+
+      const confirmBar = document.createElement('div');
+      confirmBar.id = 'logout-confirm-bar';
+      confirmBar.hidden = false;
+      document.body.appendChild(confirmBar);
+      expect(statusModule.isAutoRefreshBusy()).toBe(true);
+
+      confirmBar.hidden = true;
+      expect(statusModule.isAutoRefreshBusy()).toBe(false);
+
+      const modal = document.createElement('div');
+      modal.className = 'support-modal support-modal--open';
+      document.body.appendChild(modal);
+      expect(statusModule.isAutoRefreshBusy()).toBe(true);
+    });
+
+    test('toggleAutoRefresh pauses/resumes countdown and updates UI state', () => {
+      jest.useFakeTimers();
+      mockCountdownSection.setAttribute('data-refresh-timeout', '60');
+
+      const bar = document.createElement('div');
+      bar.id = 'auto-refresh-bar';
+      bar.hidden = true;
+      const statusEl = document.createElement('span');
+      statusEl.id = 'auto-refresh-status';
+      const toggleBtn = document.createElement('button');
+      toggleBtn.id = 'auto-refresh-toggle';
+      bar.appendChild(statusEl);
+      bar.appendChild(toggleBtn);
+      document.body.appendChild(bar);
+
+      statusModule._startAutoRefresh();
+      expect(bar.hidden).toBe(false);
+      expect(statusEl.textContent).toBe('Auto-refresh in 60s');
+      expect(toggleBtn.textContent).toBe('Pause');
+
+      statusModule.toggleAutoRefresh();
+      expect(statusModule.isAutoRefreshPaused()).toBe(true);
+      expect(statusEl.textContent).toBe('Auto-refresh paused');
+      expect(toggleBtn.textContent).toBe('Resume');
+
+      statusModule.toggleAutoRefresh();
+      expect(statusModule.isAutoRefreshPaused()).toBe(false);
+      expect(statusEl.textContent).toBe('Auto-refresh in 60s');
+      expect(toggleBtn.textContent).toBe('Pause');
+    });
+
+    test('refreshStatus updates quota and uptime in place without reloading and redirects if session ended', async () => {
+      const bar = document.createElement('div');
+      bar.id = 'auto-refresh-bar';
+      document.body.appendChild(bar);
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        url: 'http://localhost/status.html',
+        text: () => Promise.resolve(
+          '<html><body>' +
+          '<div id="sessionCountdownSection" data-limit-bytes-total="104857600" data-remain-bytes-total="52428800" data-bytes-in="26214400" data-bytes-out="26214400" data-refresh-timeout="60"></div>' +
+          '<div id="uptime" data-seconds="200"><bdi>3m 20s</bdi></div>' +
+          '<div id="session-time-left" data-seconds="500"><bdi>00:08:20</bdi></div>' +
+          '</body></html>'
+        )
+      });
+
+      const ok = await statusModule.refreshStatus(true);
+      expect(ok).toBe(true);
+      expect(mockCountdownValue.textContent).toBe('50 MB');
+      expect(mockUptime.getAttribute('data-seconds')).toBe('200');
+      expect(statusModule._uptimeInterval).not.toBeNull();
+
+      // If router returns fstatus/login HTML without #sessionCountdownSection, navigate there cleanly
+      const origLocation = window.location;
+      const replaceMock = jest.fn();
+      delete window.location;
+      window.location = { href: 'http://localhost/status.html', replace: replaceMock, reload: jest.fn() };
+      try {
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          url: 'http://localhost/login.html',
+          text: () => Promise.resolve('<html><body><h1>Login</h1></body></html>')
+        });
+        const okAfterLogout = await statusModule.refreshStatus(true);
+        expect(okAfterLogout).toBe(false);
+        expect(replaceMock).toHaveBeenCalledWith('http://localhost/login.html');
+      } finally {
+        window.location = origLocation;
       }
     });
   });

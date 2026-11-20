@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+      <div class="card">
+        <div class="card-header">
+          <svg class="card-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <h1 class="card-header__title" data-i18n="fstatus_title">{{ i18n.fstatus_title }}</h1>
+          <p class="card-header__subtitle" data-i18n="fstatus_subtitle">{{ i18n.fstatus_subtitle }}</p>
+        </div>
+
+        <div class="card-body" id="fstatus-target">
+          <!--ros:login:$(link-login)-->
+          <div class="alert alert-info" role="status">
+            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span class="alert__text" data-i18n="fstatus_alert">{{ i18n.fstatus_alert }}</span>
+          </div>
+
+          <div class="text-center mt-md">
+            <p class="text-muted text-sm" id="login-redirect-notice">
+              <span data-i18n="redirecting_to_login">{{ i18n.redirecting_to_login }}</span>
+              <span id="redirect-countdown">10</span>
+              <span data-i18n="seconds">{{ i18n.seconds }}</span>
+            </p>
+            <p class="text-muted text-sm" id="redirect-cancelled-msg" hidden data-i18n="redirect_cancelled">{{ i18n.redirect_cancelled }}</p>
+            <button type="button" id="cancel-redirect-btn" class="btn btn-outline btn-sm mt-xs" data-i18n="stay_on_page">{{ i18n.stay_on_page }}</button>
+          </div>
+
+          <div class="actions actions--stack mt-lg">
+            <a href="./login.html" class="btn btn-primary btn-block">
+              <span data-i18n="back_to_login">{{ i18n.back_to_login }}</span>
+            </a>
+            {% if config.features.enablePlansPage is not defined or config.features.enablePlansPage %}
+            <a href="./plans.html" class="btn btn-secondary btn-block">
+              <span data-i18n="view_plans">{{ i18n.view_plans }}</span>
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="footer__device-info mt-md">
+            <button type="button" class="device-chip" onclick="copyToClipboard('$(ip)', 'IP')" data-i18n-title="copy_ip_title" title="{{ i18n.copy_ip_title }}">
+              IP: <strong class="device-chip__value"><bdi dir="ltr">$(ip)</bdi></strong>
+            </button>
+            <button type="button" class="device-chip" onclick="copyToClipboard(decodeURIComponent('$(mac-esc)'), 'MAC')" data-i18n-title="copy_mac_title" title="{{ i18n.copy_mac_title }}">
+              MAC: <strong id="footer-mac-display" class="device-chip__value"><bdi dir="ltr">$(mac-esc)</bdi></strong> <span id="mac-type-display" class="mac-type-display"></span>
+            </button>
+          </div>
+          <p id="mac-random-hint" class="mac-random-hint" hidden data-i18n="mac_random_warning">{{ i18n.mac_random_warning }}</p>
+        </div>
+      </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    (function() {
+      try {
+        i18n.init();
+        ui.initTheme();
+        ui.initLang();
+        ui.initFooterMacDisplay();
+        ui.initLoginRedirectNotice('fstatus-target', 10);
+      } catch (err) {
+        console.error('FStatus page init error:', err);
+      }
+    })();
+  </script>
+{% endblock %}

@@ -884,5 +884,37 @@ describe('Hotspot.auth', () => {
         auth.triggerAutoLogin = origTrigger;
       }
     });
+
+    test('onTrialClick guards double-taps with loading state and resetTrialButton restores original label', () => {
+      jest.useFakeTimers();
+      const trialBtn = document.createElement('a');
+      trialBtn.id = 'trialLoginBtn';
+      trialBtn.href = 'http://10.5.50.1/login?username=T-mac';
+      trialBtn.innerHTML = '<span>Start Free Trial</span>';
+      document.body.appendChild(trialBtn);
+
+      auth.resetTrialButton();
+      const firstEv = { preventDefault: jest.fn() };
+      expect(auth.onTrialClick(trialBtn, firstEv)).toBe(true);
+      expect(firstEv.preventDefault).not.toHaveBeenCalled();
+      expect(trialBtn.getAttribute('data-loading')).toBe('1');
+      expect(trialBtn.getAttribute('aria-busy')).toBe('true');
+      expect(trialBtn.classList.contains('btn--loading')).toBe(true);
+
+      const secondEv = { preventDefault: jest.fn() };
+      expect(auth.onTrialClick(trialBtn, secondEv)).toBe(false);
+      expect(secondEv.preventDefault).toHaveBeenCalledTimes(1);
+
+      auth.resetTrialButton();
+      expect(trialBtn.getAttribute('data-loading')).toBeNull();
+      expect(trialBtn.classList.contains('btn--loading')).toBe(false);
+      expect(trialBtn.innerHTML).toBe('<span>Start Free Trial</span>');
+
+      // Watchdog auto-resets after 15s
+      expect(auth.onTrialClick(trialBtn, firstEv)).toBe(true);
+      jest.advanceTimersByTime(15000);
+      expect(trialBtn.getAttribute('data-loading')).toBeNull();
+      jest.useRealTimers();
+    });
   });
 });

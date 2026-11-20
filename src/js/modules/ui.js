@@ -958,6 +958,104 @@ var ui = {
     } catch (err) {
       console.error('Close install modal click outside error:', err);
     }
+  },
+
+  /**
+   * Decode and classify the MAC chip shown in portal footers.
+   */
+  initFooterMacDisplay: function() {
+    try {
+      var footerMac = document.getElementById('footer-mac-display');
+      if (!footerMac) return;
+
+      var footerMacTarget = (footerMac.querySelector && footerMac.querySelector('bdi')) || footerMac;
+      var rawMacText = footerMacTarget.textContent.trim();
+      var decodedMac = '';
+      try {
+        decodedMac = decodeURIComponent(rawMacText);
+      } catch (e) {
+        decodedMac = rawMacText.replace(/%3A/gi, ':');
+      }
+      footerMacTarget.textContent = decodedMac;
+
+      var cleanMac = decodedMac.replace(/[:-]/g, '');
+      if (cleanMac.length >= 2) {
+        var secondChar = cleanMac.charAt(1).toUpperCase();
+        var isRandom = ['2', '6', 'A', 'E'].indexOf(secondChar) !== -1;
+        var typeDisplay = document.getElementById('mac-type-display');
+        if (typeDisplay) {
+          var lang = document.documentElement.getAttribute('lang') || 'en';
+          if (isRandom) {
+            typeDisplay.textContent = lang === 'ar' ? '(عشوائي)' : '(Random)';
+            typeDisplay.classList.add('mac-type-display--random');
+            var macHint = document.getElementById('mac-random-hint');
+            if (macHint) macHint.hidden = false;
+          } else {
+            typeDisplay.textContent = lang === 'ar' ? '(الجهاز)' : '(Device)';
+            typeDisplay.classList.add('mac-type-display--device');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Init footer MAC display error:', err);
+    }
+  },
+
+  /**
+   * Configure auto-redirect to login on secondary unauthenticated pages
+   * (fstatus/flogout) with a cancellable countdown.
+   * @param {string} containerId - Container carrying <!--ros:login:$(link-login)-->
+   * @param {number} [seconds=10] - Countdown seconds before navigating to login
+   */
+  initLoginRedirectNotice: function(containerId, seconds) {
+    try {
+      var delay = typeof seconds === 'number' && !isNaN(seconds) && seconds >= 0 ? seconds : 10;
+      var loginUrl = '';
+      var container = containerId ? document.getElementById(containerId) : null;
+      if (container) {
+        var nodes = container.childNodes;
+        for (var i = 0; i < nodes.length; i++) {
+          if (nodes[i].nodeType === 8 && nodes[i].data.indexOf('ros:login:') === 0) {
+            loginUrl = nodes[i].data.slice('ros:login:'.length);
+            break;
+          }
+        }
+      }
+
+      var isArabicPage = typeof window !== 'undefined' && window.location && window.location.pathname && window.location.pathname.indexOf('/ar/') !== -1;
+      if (!loginUrl || loginUrl.indexOf('$(') === 0) {
+        loginUrl = './login.html';
+      } else if (isArabicPage) {
+        var qIdx = loginUrl.indexOf('?');
+        loginUrl = qIdx !== -1 ? './login.html' + loginUrl.slice(qIdx) : './login.html';
+      }
+
+      var cancelRedirect = util.safeRedirect(loginUrl, delay, 'redirect-countdown');
+      var cancelBtn = document.getElementById('cancel-redirect-btn');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          if (typeof cancelRedirect === 'function') {
+            cancelRedirect();
+            cancelRedirect = null;
+          }
+          var notice = document.getElementById('login-redirect-notice');
+          if (notice) {
+            notice.hidden = true;
+            notice.style.display = 'none';
+          }
+          var cancelledMsg = document.getElementById('redirect-cancelled-msg');
+          if (cancelledMsg) {
+            cancelledMsg.hidden = false;
+            cancelledMsg.style.display = 'block';
+            if (typeof i18n !== 'undefined') cancelledMsg.textContent = i18n.t('redirect_cancelled');
+          }
+          cancelBtn.hidden = true;
+          cancelBtn.style.display = 'none';
+        });
+      }
+    } catch (err) {
+      console.error('Init login redirect notice error:', err);
+    }
   }
 };
 

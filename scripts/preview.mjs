@@ -39,6 +39,8 @@ const baseVars = {
   'interface-name': 'bridge-hotspot',
   'login-by': 'http-chap',
   'idle-timeout': '5m',
+  'refresh-timeout': '1m',
+  'refresh-timeout-secs': '60',
   uptime: '02:14:37',
   'uptime-secs': '8077',
   'session-time-left': '01:45:23',
@@ -55,6 +57,7 @@ const baseVars = {
   'link-status': 'http://10.5.50.1/status',
   'link-logout': 'http://10.5.50.1/logout',
   popup: 'true',
+  trial: 'no',
   error: '',
   'chap-id': '',
   'chap-challenge': '',
@@ -68,10 +71,12 @@ const baseConds = {
   'chap-id': false,
   'session-time-left': true,
   'limit-bytes-total': true,
+  'refresh-timeout': true,
   'login-by': true,
   'server-name': true,
   'idle-timeout': true,
   popup: true,
+  trial: false,
   captive: false
 };
 
@@ -91,6 +96,8 @@ const scenarios = {
     vars: {
       ...baseVars,
       username: 'T-3C:5A:B4:0F:22:91',
+      'login-by': 'trial',
+      trial: 'yes',
       'session-time-left': '00:29:59',
       'session-time-left-secs': '1799',
       'limit-bytes-total': '524288000'
@@ -329,9 +336,13 @@ server.listen(args.port, '127.0.0.1', () => {
     ['expired (AR · RTL)', '/ar/expired.html'],
     ['logout (EN)', '/logout.html'],
     ['logout (AR · RTL)', '/ar/logout.html'],
+    ['fstatus (EN)', '/fstatus.html'],
+    ['fstatus (AR · RTL)', '/ar/fstatus.html'],
+    ['flogout (EN)', '/flogout.html'],
+    ['flogout (AR · RTL)', '/ar/flogout.html'],
     ['error (EN)', '/error.html'],
     ['error (AR · RTL)', '/ar/error.html'],
-    ['redirect (RouterOS hop)', '/redirect.html']
+    ['redirect / rlogin / rstatus', '/redirect.html']
   ];
 
   const base = `http://127.0.0.1:${args.port}`;

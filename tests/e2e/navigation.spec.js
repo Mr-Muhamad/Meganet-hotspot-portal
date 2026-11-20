@@ -80,3 +80,16 @@ test('alogin in English redirects to English status.html', async ({ page, contex
   await expect(page.locator('.card #viewStatusBtn.btn-primary')).toHaveAttribute('href', './status.html');
   await expect(page).toHaveURL(`${DEFAULT}/status.html`, { timeout: 6000 });
 });
+
+test('secondary unauthenticated servlet pages (fstatus & flogout) render localized UI cleanly', async ({ page }) => {
+  await page.goto(`${DEFAULT}/ar/fstatus.html`);
+  await expect(page.locator('#fstatus-target')).toBeVisible();
+  await expect(page.locator('#cancel-redirect-btn')).toBeVisible();
+  await page.locator('#cancel-redirect-btn').click();
+  await expect(page.locator('#redirect-cancelled-msg')).toBeVisible();
+  await expect(page.locator('#fstatus-target a.btn-primary')).toHaveAttribute('href', './login.html');
+
+  await page.goto(`${DEFAULT}/ar/flogout.html`);
+  await expect(page.locator('#flogout-target')).toBeVisible();
+  await expect(page.locator('#flogout-target a.btn-primary')).toHaveAttribute('href', './login.html');
+});

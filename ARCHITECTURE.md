@@ -298,7 +298,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 ### Page Weight
 
-- Total bundle budget: `< 1 MB` for RouterOS flash constraints (`dist/` currently ~747 KB across built assets including `portal.css`, `portal-*.js`, localized HTML pages, `md5.js`, and lazy-loaded `jsQR.js` ~127 KB).
+- Total bundle budget: `< 1 MB` for RouterOS flash constraints (`dist/` currently ~730 KB across built assets including `portal.css`, `portal-*.js`, localized HTML pages, `md5.js`, and lazy-loaded `jsQR.js` ~127 KB).
 - No external requests
 - System fonts only
 - Inline SVG icons
